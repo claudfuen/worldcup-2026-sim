@@ -25,7 +25,8 @@ export default function MethodologyPage() {
         <Section title="How third-placed teams reach the bracket">
           With 12 groups, the top 2 of each (24 teams) advance automatically. To fill the 32-team Round of 32, the{" "}
           <b>8 best of the 12 third-placed teams</b> also go through, ranked across groups by points → goal difference →
-          goals scored → fair-play → FIFA ranking. The twist: <i>which</i> third-placed team is sent to <i>which</i> group
+          goals scored → FIFA ranking (conduct/fair-play is part of the official tiebreak but isn&apos;t modelled here, so
+          we fall straight through to the ranking). The twist: <i>which</i> third-placed team is sent to <i>which</i> group
           winner is not free-form. Only 8 group winners host a third-placed team - the winners of groups{" "}
           <b>A, B, D, E, G, I, K, L</b> - while the winners of C, F, H and J face runners-up instead. FIFA published a
           fixed table (Annex C) with all <b>495</b> possible combinations (one per set of which 8 groups produced a

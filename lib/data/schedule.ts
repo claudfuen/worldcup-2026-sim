@@ -1,5 +1,5 @@
 // AUTO-GENERATED. Full 104-match schedule. Times = UTC (render in America/New_York).
-// Group fixtures + venues + times cross-validated vs ESPN (71/72 exact; M31 deferred to ESPN). Knockout slots from verified bracket.
+// Group fixtures + venues + times cross-validated vs ESPN (home/away orientation matches ESPN, incl. M9 & M31). Knockout slots from verified bracket.
 export interface ScheduleMatch {
   match: number; round: 'GROUP'|'R32'|'R16'|'QF'|'SF'|'3P'|'FINAL'; group?: string;
   utc: string; venue: string; city: string;
@@ -14,7 +14,7 @@ export const SCHEDULE: ScheduleMatch[] = [
   { match:6, round:'GROUP', group:'D', utc:'2026-06-14T04:00:00Z', venue:"BC Place Stadium", city:"Vancouver", home:'AUS', away:'TUR' },
   { match:7, round:'GROUP', group:'C', utc:'2026-06-13T22:00:00Z', venue:"MetLife Stadium", city:"East Rutherford", home:'BRA', away:'MAR' },
   { match:8, round:'GROUP', group:'B', utc:'2026-06-13T19:00:00Z', venue:"Levi's Stadium", city:"Santa Clara", home:'QAT', away:'SUI' },
-  { match:9, round:'GROUP', group:'E', utc:'2026-06-14T23:00:00Z', venue:"Lincoln Financial Field", city:"Philadelphia", home:'ECU', away:'CIV' },
+  { match:9, round:'GROUP', group:'E', utc:'2026-06-14T23:00:00Z', venue:"Lincoln Financial Field", city:"Philadelphia", home:'CIV', away:'ECU' },
   { match:10, round:'GROUP', group:'E', utc:'2026-06-14T17:00:00Z', venue:"NRG Stadium", city:"Houston", home:'GER', away:'CUW' },
   { match:11, round:'GROUP', group:'F', utc:'2026-06-14T20:00:00Z', venue:"AT&T Stadium", city:"Arlington", home:'NED', away:'JPN' },
   { match:12, round:'GROUP', group:'F', utc:'2026-06-15T02:00:00Z', venue:"Estadio BBVA", city:"Monterrey", home:'SWE', away:'TUN' },
@@ -36,7 +36,7 @@ export const SCHEDULE: ScheduleMatch[] = [
   { match:28, round:'GROUP', group:'A', utc:'2026-06-19T01:00:00Z', venue:"Estadio Akron", city:"Guadalajara", home:'MEX', away:'KOR' },
   { match:29, round:'GROUP', group:'C', utc:'2026-06-20T00:30:00Z', venue:"Lincoln Financial Field", city:"Philadelphia", home:'BRA', away:'HAI' },
   { match:30, round:'GROUP', group:'C', utc:'2026-06-19T22:00:00Z', venue:"Gillette Stadium", city:"Foxborough", home:'SCO', away:'MAR' },
-  { match:31, round:'GROUP', group:'D', utc:'2026-06-20T03:00:00Z', venue:"Levi's Stadium", city:"Santa Clara", home:'PAR', away:'TUR' },
+  { match:31, round:'GROUP', group:'D', utc:'2026-06-20T03:00:00Z', venue:"Levi's Stadium", city:"Santa Clara", home:'TUR', away:'PAR' },
   { match:32, round:'GROUP', group:'D', utc:'2026-06-19T19:00:00Z', venue:"Lumen Field", city:"Seattle", home:'USA', away:'AUS' },
   { match:33, round:'GROUP', group:'E', utc:'2026-06-20T20:00:00Z', venue:"BMO Field", city:"Toronto", home:'GER', away:'CIV' },
   { match:34, round:'GROUP', group:'E', utc:'2026-06-21T00:00:00Z', venue:"GEHA Field at Arrowhead Stadium", city:"Kansas City", home:'ECU', away:'CUW' },
