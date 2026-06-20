@@ -28,6 +28,8 @@ export interface SimResult {
   r32Opponents: Record<string, Record<string, number>>;
   // per knockout match number: probability each team fills the home/away slot
   matchProjection: Record<number, { home: Record<string, number>; away: Record<string, number> }>;
+  // per knockout match number: probability of each exact matchup, keyed "home|away"
+  matchPairs: Record<number, Record<string, number>>;
 }
 
 // Round-robin fixtures (6 per group) from a list of 4 team codes.
@@ -48,6 +50,7 @@ export function runMonteCarlo(
   const teams: Record<string, TeamProb> = {};
   const r32Opp: Record<string, Record<string, number>> = {};
   const matchAgg: Record<number, { home: Record<string, number>; away: Record<string, number> }> = {};
+  const pairAgg: Record<number, Record<string, number>> = {};
   for (const g of GROUPS)
     for (const m of groupMatches[g]) for (const c of [m.home, m.away]) {
       if (!teams[c]) {
@@ -97,6 +100,9 @@ export function runMonteCarlo(
       if (!matchAgg[m]) matchAgg[m] = { home: {}, away: {} };
       matchAgg[m].home[h] = (matchAgg[m].home[h] ?? 0) + 1;
       matchAgg[m].away[a] = (matchAgg[m].away[a] ?? 0) + 1;
+      if (!pairAgg[m]) pairAgg[m] = {};
+      const key = `${h}|${a}`;
+      pairAgg[m][key] = (pairAgg[m][key] ?? 0) + 1;
     }
     for (const c of ko.reached.R16) teams[c].r16++;
     for (const c of ko.reached.QF) teams[c].qf++;
@@ -124,5 +130,11 @@ export function runMonteCarlo(
     for (const c in matchAgg[m].home) matchProjection[m].home[c] = matchAgg[m].home[c] / N;
     for (const c in matchAgg[m].away) matchProjection[m].away[c] = matchAgg[m].away[c] / N;
   }
-  return { iterations: N, teams, r32Opponents, matchProjection };
+  const matchPairs: Record<number, Record<string, number>> = {};
+  for (const mn in pairAgg) {
+    const m = Number(mn);
+    matchPairs[m] = {};
+    for (const k in pairAgg[m]) matchPairs[m][k] = pairAgg[m][k] / N;
+  }
+  return { iterations: N, teams, r32Opponents, matchProjection, matchPairs };
 }

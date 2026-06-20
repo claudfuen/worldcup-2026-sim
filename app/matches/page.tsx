@@ -15,8 +15,8 @@ export default async function MatchesPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">My matches</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          {data.myMatches.length} matches · {totalTickets} tickets. For undefined knockout slots, the most likely teams
-          you&apos;ll see, per the model.
+          {`${data.myMatches.length} matches · ${totalTickets} tickets.`} For undefined knockout slots, the most likely
+          teams you&apos;ll see, per the model.
         </p>
       </div>
       <div className="space-y-4">
@@ -39,9 +39,26 @@ function TicketCard({ m }: { m: MyMatch }) {
         <span className="text-muted-foreground text-xs">{etDateTime(m.utc)}</span>
       </div>
       <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-2">
-        <SideBlock label={m.defined ? "" : "Likely"} title={m.homeName} candidates={m.projHome} slot={m.slotHome} />
-        <SideBlock label={m.defined ? "" : "Likely"} title={m.awayName} candidates={m.projAway} slot={m.slotAway} />
+        <SideBlock label={m.defined ? "" : "Likely"} code={m.home} title={m.homeName} candidates={m.projHome} slot={m.slotHome} />
+        <SideBlock label={m.defined ? "" : "Likely"} code={m.away} title={m.awayName} candidates={m.projAway} slot={m.slotAway} />
       </div>
+      {!m.defined && m.topMatchups && m.topMatchups.length > 0 && (
+        <div className="border-border/50 border-t px-4 py-3">
+          <div className="text-muted-foreground mb-2 text-[10px] tracking-wider uppercase">Most likely matchups</div>
+          <div className="space-y-1.5">
+            {m.topMatchups.map((mu) => (
+              <div key={`${mu.home}|${mu.away}`} className="flex items-center gap-2 text-sm">
+                <Flag code={mu.home} size={16} />
+                <span className="truncate">{mu.homeName}</span>
+                <span className="text-muted-foreground text-xs">v</span>
+                <Flag code={mu.away} size={16} />
+                <span className="flex-1 truncate">{mu.awayName}</span>
+                <span className="text-muted-foreground font-mono text-xs tabular-nums">{pct(mu.prob)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="border-border/50 text-muted-foreground border-t px-4 py-2 text-xs">
         📍 {m.ticketVenue ?? m.venue}{m.note ? ` · ${m.note}` : ""}
       </div>
@@ -49,11 +66,11 @@ function TicketCard({ m }: { m: MyMatch }) {
   );
 }
 
-function SideBlock({ label, title, candidates, slot }: { label: string; title: string | null; candidates?: SlotCandidate[]; slot?: string }) {
+function SideBlock({ label, code, title, candidates, slot }: { label: string; code: string | null; title: string | null; candidates?: SlotCandidate[]; slot?: string }) {
   if (title) {
     return (
       <div className="flex items-center gap-2">
-        <Flag code={null} size={26} />
+        <Flag code={code} size={26} />
         <span className="text-lg font-semibold">{title}</span>
       </div>
     );

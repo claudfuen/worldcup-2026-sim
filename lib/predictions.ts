@@ -17,7 +17,7 @@ export interface GroupTeamView {
   code: string; name: string; played: number; w: number; d: number; l: number;
   gf: number; ga: number; gd: number; pts: number; winGroup: number; advance: number;
   // certainty flips from probability to a definitive state once locked
-  status: "won_group" | "advanced" | "eliminated" | "live";
+  status: "won_group" | "second" | "advanced" | "eliminated" | "live";
 }
 export interface GroupView {
   group: string;
@@ -26,6 +26,7 @@ export interface GroupView {
 }
 export interface OpponentProb { code: string; name: string; prob: number }
 export interface SlotCandidate { code: string; name: string; prob: number }
+export interface Matchup { home: string; away: string; homeName: string; awayName: string; prob: number }
 
 export interface MatchInfo {
   match: number;
@@ -44,6 +45,8 @@ export interface MatchInfo {
   // projected candidates for undefined slots
   projHome?: SlotCandidate[];
   projAway?: SlotCandidate[];
+  // most likely exact matchups (joint probability), knockout only
+  topMatchups?: Matchup[];
   defined: boolean; // both participants known
   // live result
   status: "scheduled" | "final";
@@ -125,6 +128,7 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
         // Definitive states come from math; otherwise it's a probability (never shown as 100%/✓).
         const status: GroupTeamView["status"] =
           cl.winner ? "won_group"
+            : cl.second ? "second"
             : cl.top2 || advancedByThird ? "advanced"
             : eliminated ? "eliminated"
             : "live";
@@ -177,6 +181,16 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
       const proj = sim.matchProjection[s.match];
       info.projHome = topCandidates(proj?.home);
       info.projAway = topCandidates(proj?.away);
+      const pairs = sim.matchPairs[s.match];
+      if (pairs) {
+        info.topMatchups = Object.entries(pairs)
+          .map(([k, prob]) => {
+            const [h, a] = k.split("|");
+            return { home: h, away: a, homeName: TEAM_BY_CODE[h]?.name ?? h, awayName: TEAM_BY_CODE[a]?.name ?? a, prob };
+          })
+          .sort((x, y) => y.prob - x.prob)
+          .slice(0, 4);
+      }
       // A slot resolves to a definite team only when mathematically locked (clinched group winner).
       const rh = s.homeSlot ? wonSlot[s.homeSlot] : undefined;
       const ra = s.awaySlot ? wonSlot[s.awaySlot] : undefined;

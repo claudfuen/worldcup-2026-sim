@@ -5,7 +5,13 @@
 import { rankGroup } from "./standings";
 import type { GroupMatch, Ratings } from "./types";
 
-export interface TeamClinch { winner: boolean; top2: boolean; eliminatedTop2: boolean; guaranteedTop3: boolean }
+export interface TeamClinch {
+  winner: boolean; // clinched 1st
+  second: boolean; // clinched exactly 2nd (guaranteed top-2 and can no longer finish 1st)
+  top2: boolean; // clinched top-2 (position may still be open)
+  eliminatedTop2: boolean;
+  guaranteedTop3: boolean;
+}
 export type GroupClinch = Record<string, TeamClinch>;
 
 function enumerate(matches: GroupMatch[], cap: number, cb: (filled: GroupMatch[]) => void) {
@@ -129,9 +135,11 @@ export function computeClinch(codes: string[], matches: GroupMatch[], ratings: R
 
   const out: GroupClinch = {};
   for (const c of codes) {
+    const top2 = canTop2.has(c) && !canMiss.has(c);
     out[c] = {
       winner: canWin.has(c) && !canNotWin.has(c),
-      top2: canTop2.has(c) && !canMiss.has(c),
+      second: top2 && !canWin.has(c), // guaranteed top-2 and can never finish 1st => clinched exactly 2nd
+      top2,
       eliminatedTop2: !canTop2.has(c),
       guaranteedTop3: !canBe4th.has(c),
     };

@@ -74,7 +74,7 @@ function Row({ t, pos, cut }: { t: GroupTeamView; pos: number; cut: "qualify" | 
           <Flag code={t.code} size={20} />
           <span className={`truncate text-[13px] font-medium ${elim ? "line-through" : ""}`}>{t.name}</span>
           {t.status === "won_group" && <span title="Won the group" className="text-[10px]">👑</span>}
-          {t.status === "advanced" && <span title="Advanced" className="text-[9px] font-bold text-emerald-400">✓</span>}
+          {(t.status === "second" || t.status === "advanced") && <span title="Advanced" className="text-[9px] font-bold text-emerald-400">✓</span>}
         </div>
       </td>
       <Cell v={t.played} muted />
@@ -88,6 +88,8 @@ function Row({ t, pos, cut }: { t: GroupTeamView; pos: number; cut: "qualify" | 
       <td className="px-1 pr-3 text-right font-mono text-xs font-semibold tabular-nums">
         {t.status === "won_group" ? (
           <span className="text-emerald-400">✓ 1st</span>
+        ) : t.status === "second" ? (
+          <span className="text-emerald-400">✓ 2nd</span>
         ) : t.status === "advanced" ? (
           <span className="text-emerald-400">✓ in</span>
         ) : t.status === "eliminated" ? (

@@ -48,13 +48,18 @@ function Node({ m, hasTicket, highlightCode }: { m: MatchInfo; hasTicket: boolea
         hi ? "border-primary/60 ring-primary/20 ring-1" : hasTicket ? "border-amber-500/50" : "border-border"
       }`}
     >
-      <div className="text-muted-foreground flex items-center justify-between px-2 pt-1 text-[9px]">
-        <span>M{m.match} · {etDay(m.utc)}</span>
-        {hasTicket && <span title="You have tickets">🎟️</span>}
+      <div className="text-muted-foreground flex items-center justify-between gap-1 px-2 pt-1 text-[9px]">
+        <span className="truncate">M{m.match} · {etDay(m.utc)} · {m.city}</span>
+        {hasTicket && <span title="You have tickets" className="shrink-0">🎟️</span>}
       </div>
       <Side m={m} side="home" highlightCode={highlightCode} />
       <div className="border-border/40 border-t" />
       <Side m={m} side="away" highlightCode={highlightCode} />
+      {!m.defined && m.topMatchups?.[0] && (
+        <div className="text-muted-foreground/60 border-border/30 border-t px-2 py-0.5 text-[9px]">
+          top matchup {pct(m.topMatchups[0].prob)}
+        </div>
+      )}
     </div>
   );
 }
