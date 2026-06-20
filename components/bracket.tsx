@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "./flag";
 import { pct, etDay } from "@/lib/format";
@@ -43,8 +44,9 @@ function Node({ m, hasTicket, highlightCode, firstCol, lastCol }: { m: MatchInfo
     highlightCode &&
     [m.home, m.away, m.projHome?.[0]?.code, m.projAway?.[0]?.code].includes(highlightCode);
   return (
-    <div
-      className={`bg-card relative rounded-lg border text-xs ${
+    <Link
+      href={`/match/${m.match}`}
+      className={`bg-card hover:bg-muted/30 relative block rounded-lg border text-xs transition-colors ${
         hi ? "border-primary/60 ring-primary/20 ring-1" : hasTicket ? "border-amber-500/50" : "border-border"
       }`}
     >
@@ -62,7 +64,7 @@ function Node({ m, hasTicket, highlightCode, firstCol, lastCol }: { m: MatchInfo
           top matchup {pct(m.topMatchups[0].prob)}
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 

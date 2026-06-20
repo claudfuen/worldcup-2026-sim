@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "./flag";
 import { etTime, etDay, etDayKey, pct } from "@/lib/format";
@@ -96,7 +97,7 @@ function Row({ m, hasTicket }: { m: MatchInfo; hasTicket: boolean }) {
   const awayLabel = m.awayName ?? (m.projAway?.[0] ? `${m.projAway[0].name}` : m.slotAway ?? "TBD");
   const final = m.status === "final";
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+    <Link href={`/match/${m.match}`} className="hover:bg-muted/30 flex items-center gap-3 px-3 py-2.5 transition-colors sm:px-4">
       <div className="text-muted-foreground w-14 shrink-0 text-xs">
         <div className="font-mono">{etTime(m.utc)}</div>
         <div className="text-[10px]">{ROUND_NAME[m.round]}{m.group ? ` ${m.group}` : ""}</div>
@@ -118,7 +119,7 @@ function Row({ m, hasTicket }: { m: MatchInfo; hasTicket: boolean }) {
         )}
         <div className="text-muted-foreground/60 truncate text-[10px]">{m.venue}</div>
       </div>
-    </div>
+    </Link>
   );
 }
 

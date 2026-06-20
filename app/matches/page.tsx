@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getPredictions } from "@/lib/getPredictions";
 import type { MyMatch, SlotCandidate } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
@@ -28,7 +29,7 @@ export default async function MatchesPage() {
 function TicketCard({ m }: { m: MyMatch }) {
   const roundName: Record<string, string> = { GROUP: m.group ? `Group ${m.group}` : "Group", R32: "Round of 32", R16: "Round of 16", QF: "Quarter-final", SF: "Semi-final", FINAL: "Final" };
   return (
-    <div className="border-border bg-card overflow-hidden rounded-2xl border">
+    <Link href={`/match/${m.match}`} className="border-border bg-card hover:border-primary/40 block overflow-hidden rounded-2xl border transition-colors">
       <div className="border-border/60 flex items-center justify-between border-b px-4 py-2.5">
         <div className="flex items-center gap-2">
           <span className="bg-amber-500/15 text-amber-400 rounded-full px-2 py-0.5 text-[11px] font-semibold">🎟️ {m.tickets}</span>
@@ -61,7 +62,7 @@ function TicketCard({ m }: { m: MyMatch }) {
       <div className="border-border/50 text-muted-foreground border-t px-4 py-2 text-xs">
         📍 {m.ticketVenue ?? m.venue}{m.note ? ` · ${m.note}` : ""}
       </div>
-    </div>
+    </Link>
   );
 }
 
