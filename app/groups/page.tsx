@@ -24,6 +24,10 @@ export default async function GroupsPage() {
         ))}
       </div>
       <Legend />
+      <p className="text-muted-foreground/70 mt-3 max-w-3xl text-xs">
+        Advance % blends each team&apos;s strength with results so far, so early in the group a strong side can show
+        higher odds than a team placed above it - 3 of every 4 advance, and there are still games to play.
+      </p>
       <ThirdPlaceRace entries={data.thirdPlaceRace ?? []} />
     </main>
   );
