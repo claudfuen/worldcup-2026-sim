@@ -1,0 +1,38 @@
+// AUTO-GENERATED, red-team verified. 2026 WC knockout bracket (match numbers + feeders).
+// Slot refs: '1X'/'2X' = winner/runner-up group X; '3:G1,G2..' = third from one of listed groups; 'W##'/'L##' = winner/loser of match.
+export interface KMatch { match: number; round: string; home: string; away: string }
+export const KNOCKOUT: KMatch[] = [
+  { match: 73, round: "R32", home: "2A", away: "2B" },
+  { match: 74, round: "R32", home: "1E", away: "3:A,B,C,D,F" },
+  { match: 75, round: "R32", home: "1F", away: "2C" },
+  { match: 76, round: "R32", home: "1C", away: "2F" },
+  { match: 77, round: "R32", home: "1I", away: "3:C,D,F,G,H" },
+  { match: 78, round: "R32", home: "2E", away: "2I" },
+  { match: 79, round: "R32", home: "1A", away: "3:C,E,F,H,I" },
+  { match: 80, round: "R32", home: "1L", away: "3:E,H,I,J,K" },
+  { match: 81, round: "R32", home: "1D", away: "3:B,E,F,I,J" },
+  { match: 82, round: "R32", home: "1G", away: "3:A,E,H,I,J" },
+  { match: 83, round: "R32", home: "2K", away: "2L" },
+  { match: 84, round: "R32", home: "1H", away: "2J" },
+  { match: 85, round: "R32", home: "1B", away: "3:E,F,G,I,J" },
+  { match: 86, round: "R32", home: "1J", away: "2H" },
+  { match: 87, round: "R32", home: "1K", away: "3:D,E,I,J,L" },
+  { match: 88, round: "R32", home: "2D", away: "2G" },
+  { match: 89, round: "R16", home: "W74", away: "W77" },
+  { match: 90, round: "R16", home: "W73", away: "W75" },
+  { match: 91, round: "R16", home: "W76", away: "W78" },
+  { match: 92, round: "R16", home: "W79", away: "W80" },
+  { match: 93, round: "R16", home: "W83", away: "W84" },
+  { match: 94, round: "R16", home: "W81", away: "W82" },
+  { match: 95, round: "R16", home: "W86", away: "W88" },
+  { match: 96, round: "R16", home: "W85", away: "W87" },
+  { match: 97, round: "QF", home: "W89", away: "W90" },
+  { match: 98, round: "QF", home: "W93", away: "W94" },
+  { match: 99, round: "QF", home: "W91", away: "W92" },
+  { match: 100, round: "QF", home: "W95", away: "W96" },
+  { match: 101, round: "SF", home: "W97", away: "W98" },
+  { match: 102, round: "SF", home: "W99", away: "W100" },
+  { match: 103, round: "3P", home: "L101", away: "L102" },
+  { match: 104, round: "F", home: "W101", away: "W102" },
+];
+export const THIRD_HOST_SLOTS = ["1A", "1B", "1D", "1E", "1G", "1I", "1K", "1L"] as const;

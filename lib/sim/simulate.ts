@@ -1,0 +1,112 @@
+// Monte Carlo: simulate all remaining matches many times; aggregate group + knockout probabilities.
+import type { GroupMatch, Ratings } from "./types";
+import { rankGroup } from "./standings";
+import { selectAndAssignThirds, type ThirdTeam } from "./thirdPlace";
+import { buildR32, simulateKnockout, type GroupOutcome } from "./knockout";
+import { sampleScoreline } from "./poisson";
+import { mulberry32 } from "./rng";
+import { GROUPS } from "../data/teams";
+
+export interface TeamProb {
+  code: string;
+  group: string;
+  winGroup: number;
+  runnerUp: number;
+  third: number;
+  advance: number; // reach R32 (top 2 or selected best-third)
+  r16: number;
+  qf: number;
+  sf: number;
+  final: number;
+  title: number;
+}
+
+export interface SimResult {
+  iterations: number;
+  teams: Record<string, TeamProb>;
+  // per team: distribution of Round-of-32 opponents (probability)
+  r32Opponents: Record<string, Record<string, number>>;
+}
+
+// Round-robin fixtures (6 per group) from a list of 4 team codes.
+export function roundRobin(group: string, codes: string[]): GroupMatch[] {
+  const ms: GroupMatch[] = [];
+  for (let i = 0; i < codes.length; i++)
+    for (let j = i + 1; j < codes.length; j++) ms.push({ group, home: codes[i], away: codes[j], played: false });
+  return ms;
+}
+
+export function runMonteCarlo(
+  groupMatches: Record<string, GroupMatch[]>,
+  ratings: Ratings,
+  iterations: number,
+  seed = 12345,
+): SimResult {
+  const rand = mulberry32(seed);
+  const teams: Record<string, TeamProb> = {};
+  const r32Opp: Record<string, Record<string, number>> = {};
+  for (const g of GROUPS)
+    for (const m of groupMatches[g]) for (const c of [m.home, m.away]) {
+      if (!teams[c]) {
+        teams[c] = { code: c, group: g, winGroup: 0, runnerUp: 0, third: 0, advance: 0, r16: 0, qf: 0, sf: 0, final: 0, title: 0 };
+        r32Opp[c] = {};
+      }
+    }
+
+  for (let it = 0; it < iterations; it++) {
+    const groupOutcome: GroupOutcome = {};
+    const thirds: ThirdTeam[] = [];
+    for (const g of GROUPS) {
+      // realize this group's matches (played -> actual; unplayed -> sampled neutral scoreline)
+      const realized = groupMatches[g].map((m) => {
+        if (m.played) return m;
+        const [hg, ag] = sampleScoreline((ratings[m.home] ?? 1500) - (ratings[m.away] ?? 1500), rand);
+        return { ...m, played: true, homeGoals: hg, awayGoals: ag };
+      });
+      const codes = groupMatches[g].reduce<string[]>((acc, m) => {
+        if (!acc.includes(m.home)) acc.push(m.home);
+        if (!acc.includes(m.away)) acc.push(m.away);
+        return acc;
+      }, []);
+      const ranked = rankGroup(codes, realized, ratings);
+      const order = ranked.map((r) => r.code);
+      groupOutcome[g] = order;
+      teams[order[0]].winGroup++;
+      teams[order[1]].runnerUp++;
+      teams[order[2]].third++;
+      teams[order[0]].advance++;
+      teams[order[1]].advance++;
+      thirds.push({ group: g, row: ranked[2] });
+    }
+
+    const { advancingByGroup, slotToTeam } = selectAndAssignThirds(thirds, ratings);
+    for (const code of Object.values(advancingByGroup)) teams[code].advance++;
+
+    const r32 = buildR32(groupOutcome, slotToTeam);
+    for (const [, [h, a]] of Object.entries(r32)) {
+      r32Opp[h][a] = (r32Opp[h][a] ?? 0) + 1;
+      r32Opp[a][h] = (r32Opp[a][h] ?? 0) + 1;
+    }
+
+    const ko = simulateKnockout(r32, ratings, rand);
+    for (const c of ko.reached.R16) teams[c].r16++;
+    for (const c of ko.reached.QF) teams[c].qf++;
+    for (const c of ko.reached.SF) teams[c].sf++;
+    for (const c of ko.reached.F) teams[c].final++;
+    teams[ko.champion].title++;
+  }
+
+  // normalize
+  const N = iterations;
+  for (const c in teams) {
+    const t = teams[c];
+    t.winGroup /= N; t.runnerUp /= N; t.third /= N; t.advance /= N;
+    t.r16 /= N; t.qf /= N; t.sf /= N; t.final /= N; t.title /= N;
+  }
+  const r32Opponents: Record<string, Record<string, number>> = {};
+  for (const c in r32Opp) {
+    r32Opponents[c] = {};
+    for (const opp in r32Opp[c]) r32Opponents[c][opp] = r32Opp[c][opp] / N;
+  }
+  return { iterations: N, teams, r32Opponents };
+}

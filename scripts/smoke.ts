@@ -1,0 +1,20 @@
+import { computePredictions } from "../lib/predictions";
+import { kvSetJSON, kvGetJSON, KV_CONFIGURED } from "../lib/kv";
+import { fetchResults } from "../lib/espn";
+
+const results = await fetchResults();
+console.log(`ESPN completed matches: ${results.length} (group-stage: ${results.filter(r=>r.group).length})`);
+const t0 = performance.now();
+const p = await computePredictions(20000, 20260611);
+console.log(`computePredictions: ${(performance.now()-t0).toFixed(0)}ms | played ${p.matchesPlayed}/72`);
+console.log("Top title odds:");
+for (const t of p.teams.slice(0,8)) console.log(`  ${t.name.padEnd(16)} title ${(t.title*100).toFixed(1)}%  advance ${(t.advance*100).toFixed(0)}%  rating ${t.rating}`);
+const gc = p.groups.find(g=>g.group==="C")!;
+console.log("\nGroup C (Brazil) — current table + odds:");
+for (const t of gc.teams) console.log(`  ${t.name.padEnd(10)} ${t.pts}pts gd${t.gd>=0?'+':''}${t.gd}  win-group ${(t.winGroup*100).toFixed(0)}%  advance ${(t.advance*100).toFixed(0)}%`);
+console.log("\nBrazil likely R32 opponents:");
+for (const o of p.r32Opponents["BRA"]) console.log(`  ${o.name.padEnd(14)} ${(o.prob*100).toFixed(1)}%`);
+console.log(`\nKV configured: ${KV_CONFIGURED}`);
+await kvSetJSON("predictions:latest", p);
+const back = await kvGetJSON<{updatedAt:string}>("predictions:latest");
+console.log(`KV roundtrip OK: stored & read back updatedAt=${back?.updatedAt}`);

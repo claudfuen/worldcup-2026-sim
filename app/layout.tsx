@@ -3,6 +3,12 @@ import { Geist, Geist_Mono, Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "World Cup 2026 Oracle",
+  description: "Monte Carlo predictions for the 2026 FIFA World Cup — group winners, advancement, and knockout paths.",
+}
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'})
 

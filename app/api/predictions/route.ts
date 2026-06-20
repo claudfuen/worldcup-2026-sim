@@ -1,24 +1,17 @@
-import { Dashboard } from "@/components/dashboard";
+import { NextResponse } from "next/server";
 import { kvGetJSON, kvSetJSON, KV_CONFIGURED } from "@/lib/kv";
 import { computePredictions, type PredictionsPayload } from "@/lib/predictions";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
-async function getData(): Promise<PredictionsPayload> {
+export async function GET() {
   if (KV_CONFIGURED) {
     const cached = await kvGetJSON<PredictionsPayload>("predictions:latest");
-    if (cached) return cached;
+    if (cached) return NextResponse.json(cached);
   }
-  // Cold start (KV empty): compute once and seed it.
   const fresh = await computePredictions(20000);
   if (KV_CONFIGURED) await kvSetJSON("predictions:latest", fresh).catch(() => {});
-  return fresh;
-}
-
-export default async function Page() {
-  const data = await getData();
-  return <Dashboard data={data} />;
+  return NextResponse.json(fresh);
 }
