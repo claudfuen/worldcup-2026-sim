@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { computePredictions } from "@/lib/predictions";
-import { kvSetJSON } from "@/lib/kv";
+import { kvSetJSON, PRED_KEY } from "@/lib/kv";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   }
   const t0 = Date.now();
   const payload = await computePredictions(20000);
-  await kvSetJSON("predictions:latest", payload);
+  await kvSetJSON(PRED_KEY, payload);
   return NextResponse.json({
     ok: true,
     updatedAt: payload.updatedAt,
