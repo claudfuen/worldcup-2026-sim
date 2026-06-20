@@ -2,6 +2,7 @@ import { Space_Grotesk, Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
 import "flag-icons/css/flag-icons.min.css"
+import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Nav } from "@/components/nav"
 import { cn } from "@/lib/utils";
@@ -77,6 +78,7 @@ export default function RootLayout({
           <Nav />
           {children}
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
