@@ -73,6 +73,11 @@ export default async function Page() {
           <NavCard href="/groups" title="Groups" desc="Standings, qualification odds & cut-offs" />
           <NavCard href="/bracket" title="Bracket" desc="Projected knockout tree to the final" />
           <NavCard href="/schedule" title="Schedule" desc="All 104 matches in ET" />
+          <NavCard
+            href={user ? "/matches" : "/signin?next=/matches"}
+            title="My Matches"
+            desc={user ? "The games you're tracking" : "Sign in to save the games you're going to"}
+          />
         </section>
       </div>
 

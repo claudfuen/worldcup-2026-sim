@@ -21,7 +21,7 @@ export default async function BracketPage() {
           tickets to. Scroll horizontally to follow the path to the final.
         </p>
       </div>
-      <Bracket matches={data.matches} myMatchNumbers={myMatchNumbers} highlightCode="BRA" />
+      <Bracket matches={data.matches} myMatchNumbers={myMatchNumbers} />
       <div className="border-border bg-card mt-6 rounded-xl border p-4">
         <h2 className="mb-1 text-sm font-semibold">Third-place play-off</h2>
         <ThirdPlace matches={data.matches} />
