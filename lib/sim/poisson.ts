@@ -49,12 +49,23 @@ export function wdlProbs(
 
 // Probability the home/first side ADVANCES in a knockout: regulation, then ~1/3-length extra time,
 // then a coin-flip shootout on the remaining tie mass. Removes the favorite over-statement of bare Elo We.
-export function koAdvanceProb(ratingDiff: number, cfg: { supDiv?: number; totalGoals?: number; rho?: number } = {}): number {
+function koAdvanceRaw(ratingDiff: number, cfg: { supDiv?: number; totalGoals?: number; rho?: number }): number {
   const [lh, la] = eloToLambdas(ratingDiff, cfg);
   const rho = cfg.rho ?? POISSON_CONFIG.rho;
-  const reg = wdlFromLambdas(lh, la, rho);
-  const et = wdlFromLambdas(lh * 0.33, la * 0.33, rho); // extra time ~ 1/3 of a match
+  const reg = wdlFromLambdas(lh, la, rho, 8);
+  const et = wdlFromLambdas(lh * 0.33, la * 0.33, rho, 8); // extra time ~ 1/3 of a match
   return reg.win + reg.draw * (et.win + et.draw * 0.5);
+}
+// Memoized on the default config (smooth in ratingDiff; bucket to 4 Elo for a large Monte Carlo speedup).
+const koCache = new Map<number, number>();
+export function koAdvanceProb(ratingDiff: number, cfg: { supDiv?: number; totalGoals?: number; rho?: number } = {}): number {
+  if (cfg.supDiv == null && cfg.totalGoals == null && cfg.rho == null) {
+    const key = Math.round(ratingDiff / 4);
+    let v = koCache.get(key);
+    if (v === undefined) { v = koAdvanceRaw(key * 4, cfg); koCache.set(key, v); }
+    return v;
+  }
+  return koAdvanceRaw(ratingDiff, cfg);
 }
 
 function dcTau(i: number, j: number, lh: number, la: number, rho: number): number {
