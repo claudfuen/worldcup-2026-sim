@@ -22,6 +22,22 @@ export default function MethodologyPage() {
           selects the 8 best third-placed teams, applies the official 495-row Annex C assignment table, then plays out the
           full knockout bracket to a champion. Probabilities are the share of runs in which each outcome occurs.
         </Section>
+        <Section title="How third-placed teams reach the bracket">
+          With 12 groups, the top 2 of each (24 teams) advance automatically. To fill the 32-team Round of 32, the{" "}
+          <b>8 best of the 12 third-placed teams</b> also go through, ranked across groups by points → goal difference →
+          goals scored → fair-play → FIFA ranking. The twist: <i>which</i> third-placed team is sent to <i>which</i> group
+          winner is not free-form. Only 8 group winners host a third-placed team — the winners of groups{" "}
+          <b>A, B, D, E, G, I, K, L</b> — while the winners of C, F, H and J face runners-up instead. FIFA published a
+          fixed table (Annex C) with all <b>495</b> possible combinations (one per set of which 8 groups produced a
+          qualifying third), assigning each third to a specific winner so that no team meets a side from its own group too
+          early. This simulator applies that exact 495-row table every iteration.
+        </Section>
+        <Section title="Certainty vs. probability">
+          A percentage is a forecast; a checkmark is a fact. Group outcomes (win group, advance, eliminated) flip to a
+          definitive state only when <b>mathematically</b> guaranteed — verified by brute-forcing every remaining
+          scoreline under the real tiebreakers, including the cross-group math for best-third elimination. Until then it
+          stays a probability and is never shown as 100%.
+        </Section>
         <Section title="Data">
           Live results, fixtures and venues come from ESPN&apos;s public feed; the bracket structure and third-place table
           were verified against FIFA regulations and Wikipedia. Recomputed periodically. Not affiliated with FIFA.

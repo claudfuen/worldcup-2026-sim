@@ -93,7 +93,7 @@ function Row({ t, pos, cut }: { t: GroupTeamView; pos: number; cut: "qualify" | 
         ) : t.status === "eliminated" ? (
           <span className="text-muted-foreground/70">out</span>
         ) : (
-          <span className={pos <= 2 ? "text-emerald-400" : pos === 3 ? "text-amber-400" : "text-muted-foreground"}>{pct(t.advance)}</span>
+          <span className={pos <= 2 ? "text-emerald-400" : pos === 3 ? "text-amber-400" : "text-muted-foreground"}>{pct(Math.min(t.advance, 0.99))}</span>
         )}
       </td>
     </tr>
