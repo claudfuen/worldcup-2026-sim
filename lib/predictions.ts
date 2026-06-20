@@ -237,6 +237,25 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
     return info;
   });
 
+  // A team projected into the FINAL cannot also appear in the third-place play-off: both matches are fed by
+  // the same two semifinals (winners -> final, losers -> 3rd place). Projected per slot, the modal "loser" of
+  // a semifinal can be that semifinal's favourite itself (it reaches the game so often it's also the modal
+  // loser), which would show e.g. Argentina in both the final and the 3rd-place match. Drop the projected
+  // finalists from M103's loser-slot distributions so the third-place projection stays consistent.
+  {
+    const m103 = matches.find((m) => m.match === 103);
+    const m104 = matches.find((m) => m.match === 104);
+    if (m103 && m104) {
+      const finalists = new Set(
+        [m104.home, m104.away, m104.projHome?.[0]?.code, m104.projAway?.[0]?.code].filter(Boolean) as string[],
+      );
+      const drop = (list?: SlotCandidate[]) => (list ?? []).filter((c) => !finalists.has(c.code));
+      m103.projHome = drop(m103.projHome);
+      m103.projAway = drop(m103.projAway);
+      m103.topMatchups = (m103.topMatchups ?? []).filter((mu) => !finalists.has(mu.home) && !finalists.has(mu.away));
+    }
+  }
+
   const matchesPlayed = results.filter((r) => r.group != null && r.date.slice(0, 10) <= "2026-06-27").length;
 
   // Third-place race: rank the 12 current 3rd-placed teams; top 8 advance; apply Annex C for slot assignment.
