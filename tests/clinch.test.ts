@@ -30,8 +30,9 @@ describe("computeClinch — real Group B (the Canada/Switzerland red-team case)"
 describe("computeClinch — bottom team that can never finish top-3 (Haiti-style)", () => {
   // Group C live: BRA 4(+3), MAR 4(+1), SCO 3, HAI 0(-4). Remaining: SCO-BRA, HAI-MAR.
   // Haiti max 3 pts; BRA/MAR have 4; SCO beat HAI head-to-head -> HAI can never finish top-3.
+  // BRA 4, MAR 4, SCO 3, HAI 0; Scotland beat Haiti head-to-head. Remaining: SCO-BRA, HAI-MAR.
   const matches: GroupMatch[] = [
-    gm("BRA", "MAR", 2, 1), gm("SCO", "HAI", 2, 0), gm("BRA", "HAI", 1, 0), gm("MAR", "SCO", 1, 1),
+    gm("BRA", "MAR", 1, 1), gm("BRA", "HAI", 1, 0), gm("MAR", "SCO", 1, 0), gm("SCO", "HAI", 1, 0),
     gm("SCO", "BRA"), gm("HAI", "MAR"),
   ];
   const R2 = { BRA: 2208, MAR: 2073, SCO: 1876, HAI: 1691 };
