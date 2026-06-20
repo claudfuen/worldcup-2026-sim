@@ -11,8 +11,10 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
+    // Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`. `?secret=` is a manual-trigger fallback.
     const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
+    const qp = new URL(req.url).searchParams.get("secret");
+    if (auth !== `Bearer ${secret}` && qp !== secret) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
   }
