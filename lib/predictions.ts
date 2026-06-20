@@ -3,9 +3,11 @@ import { fetchResults, liveRatings, buildGroupMatches, type FetchedMatch } from 
 import { runMonteCarlo } from "./sim/simulate";
 import { rankGroup } from "./sim/standings";
 import { computeClinch, minThirdPlacePoints, maxThirdPlacePoints, maxReachablePoints } from "./sim/clinch";
+import { rankThirds, selectAndAssignThirds, type ThirdTeam } from "./sim/thirdPlace";
 import { wdlProbs } from "./sim/poisson";
 import { TEAMS, TEAM_BY_CODE, GROUPS } from "./data/teams";
 import { SCHEDULE } from "./data/schedule";
+import { KNOCKOUT } from "./data/bracket";
 import { MY_MATCHES } from "./data/tickets";
 import type { TeamProb } from "./sim/simulate";
 
@@ -63,6 +65,20 @@ export interface MyMatch extends MatchInfo {
   note?: string;
 }
 
+export interface ThirdPlaceEntry {
+  rank: number;
+  group: string;
+  code: string;
+  name: string;
+  pts: number;
+  gd: number;
+  gf: number;
+  advancing: boolean; // currently among the best 8
+  slot?: string; // winner-slot it is assigned to (e.g. "1A"), if advancing
+  match?: number; // R32 match number
+  facesGroup?: string; // the group whose winner it would face
+}
+
 export interface PredictionsPayload {
   updatedAt: string;
   iterations: number;
@@ -73,6 +89,7 @@ export interface PredictionsPayload {
   r32Opponents: Record<string, OpponentProb[]>;
   matches: MatchInfo[];
   myMatches: MyMatch[];
+  thirdPlaceRace: ThirdPlaceEntry[];
 }
 
 function topCandidates(dist: Record<string, number> | undefined, n = 4): SlotCandidate[] {
@@ -102,9 +119,11 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
     maxThirdByGroup[g] = maxThirdPlacePoints(codes, groupMatches[g]);
   }
 
+  const thirdRows: ThirdTeam[] = [];
   const groups: GroupView[] = GROUPS.map((g) => {
     const codes = TEAMS.filter((t) => t.group === g).map((t) => t.code);
     const rows = rankGroup(codes, groupMatches[g], ratings);
+    thirdRows.push({ group: g, row: rows[2] });
     const decided = groupMatches[g].every((m) => m.played);
     const clinch = computeClinch(codes, groupMatches[g], ratings); // mathematical certainty, not sim probability
     return {
@@ -220,6 +239,33 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
 
   const matchesPlayed = results.filter((r) => r.group != null && r.date.slice(0, 10) <= "2026-06-27").length;
 
+  // Third-place race: rank the 12 current 3rd-placed teams; top 8 advance; apply Annex C for slot assignment.
+  const rankedThirds = rankThirds(thirdRows, ratings);
+  const advancingGroups = new Set(rankedThirds.slice(0, 8).map((t) => t.group));
+  const teamSlot: Record<string, string> = {};
+  try {
+    const { slotToTeam } = selectAndAssignThirds(thirdRows, ratings);
+    for (const [slot, code] of Object.entries(slotToTeam)) teamSlot[code] = slot;
+  } catch {
+    /* needs >=8 distinct group thirds; always true with 12 groups */
+  }
+  const thirdHostMatch: Record<string, number> = {};
+  for (const m of KNOCKOUT) {
+    if (m.round !== "R32") continue;
+    if (m.away.startsWith("3:")) thirdHostMatch[m.home] = m.match;
+    else if (m.home.startsWith("3:")) thirdHostMatch[m.away] = m.match;
+  }
+  const thirdPlaceRace: ThirdPlaceEntry[] = rankedThirds.map((t, i) => {
+    const code = t.row.code;
+    const advancing = advancingGroups.has(t.group);
+    const slot = advancing ? teamSlot[code] : undefined;
+    return {
+      rank: i + 1, group: t.group, code, name: TEAM_BY_CODE[code].name,
+      pts: t.row.pts, gd: t.row.gd, gf: t.row.gf, advancing,
+      slot, match: slot ? thirdHostMatch[slot] : undefined, facesGroup: slot ? slot[1] : undefined,
+    };
+  });
+
   return {
     updatedAt: new Date().toISOString(),
     iterations,
@@ -230,5 +276,6 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
     r32Opponents,
     matches,
     myMatches,
+    thirdPlaceRace,
   };
 }

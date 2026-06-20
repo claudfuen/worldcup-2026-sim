@@ -1,5 +1,5 @@
 import { getPredictions } from "@/lib/getPredictions";
-import type { GroupTeamView } from "@/lib/predictions";
+import type { GroupTeamView, ThirdPlaceEntry } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
 import { pct } from "@/lib/format";
 
@@ -24,7 +24,60 @@ export default async function GroupsPage() {
         ))}
       </div>
       <Legend />
+      <ThirdPlaceRace entries={data.thirdPlaceRace} />
     </main>
+  );
+}
+
+function ThirdPlaceRace({ entries }: { entries: ThirdPlaceEntry[] }) {
+  return (
+    <section className="mt-10">
+      <h2 className="text-lg font-semibold tracking-tight">Third-place race</h2>
+      <p className="text-muted-foreground mt-1 mb-3 text-sm">
+        The <span className="text-foreground">8 best</span> of the 12 third-placed teams also reach the Round of 32,
+        ranked across groups by points → goal difference → goals scored. Each qualifier is slotted to a specific group
+        winner by FIFA&apos;s fixed Annex C table (shown as the R32 match it feeds).
+      </p>
+      <div className="border-border bg-card overflow-hidden rounded-2xl border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-muted-foreground border-border/60 border-b text-[10px] tracking-wide uppercase">
+              <th className="py-2 pr-1 pl-3 text-left font-medium">#</th>
+              <th className="py-2 text-left font-medium">Third-placed team</th>
+              <th className="w-8 px-1 text-center font-medium">GF</th>
+              <th className="w-8 px-1 text-center font-medium">GD</th>
+              <th className="w-8 px-1 text-center font-semibold">Pts</th>
+              <th className="px-2 pr-3 text-right font-medium">Round of 32</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e) => (
+              <tr key={e.code} className={`border-l-2 ${e.advancing ? "border-l-amber-500" : "border-l-transparent opacity-50"} ${e.rank === 8 ? "border-b-primary/50 border-b border-dashed" : ""}`}>
+                <td className="py-2 pr-1 pl-3 text-muted-foreground font-mono text-[11px]">{e.rank}</td>
+                <td className="py-2">
+                  <div className="flex items-center gap-2">
+                    <Flag code={e.code} size={20} />
+                    <span className="text-[13px] font-medium">{e.name}</span>
+                    <span className="text-muted-foreground text-[11px]">Grp {e.group}</span>
+                  </div>
+                </td>
+                <td className="px-1 text-center font-mono text-xs tabular-nums text-muted-foreground">{e.gf}</td>
+                <td className="px-1 text-center font-mono text-xs tabular-nums">{e.gd >= 0 ? "+" : ""}{e.gd}</td>
+                <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{e.pts}</td>
+                <td className="px-2 pr-3 text-right text-xs">
+                  {e.advancing && e.match ? (
+                    <span className="text-amber-400">M{e.match} · vs {e.facesGroup} winner</span>
+                  ) : (
+                    <span className="text-muted-foreground/60">out (9th-12th)</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-muted-foreground/60 mt-2 text-xs">Live order based on current standings; the slot assignment updates as the qualifying set of groups changes (495 possible combinations).</p>
+    </section>
   );
 }
 
