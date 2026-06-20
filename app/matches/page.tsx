@@ -15,8 +15,7 @@ export default async function MatchesPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">My matches</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          {`${data.myMatches.length} matches · ${totalTickets} tickets.`} For undefined knockout slots, the most likely
-          teams you&apos;ll see, per the model.
+          {`${data.myMatches.length} matches · ${totalTickets} tickets. For undefined knockout slots, the most likely teams you'll see, per the model.`}
         </p>
       </div>
       <div className="space-y-4">
