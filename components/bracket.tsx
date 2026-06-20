@@ -75,8 +75,12 @@ function Side({ m, side, highlightCode }: { m: MatchInfo; side: "home" | "away";
   return (
     <div className={`flex items-center gap-1.5 px-2 py-1.5 ${isHi ? "bg-primary/10" : ""}`}>
       <Flag code={code} size={18} />
-      <span className={`min-w-0 flex-1 truncate ${resolved ? "font-medium" : "text-foreground/80"}`}>{label}</span>
-      {prob != null && <span className="text-muted-foreground shrink-0 font-mono text-[10px] tabular-nums">{pct(prob)}</span>}
+      <span className={`min-w-0 flex-1 truncate ${resolved ? "font-semibold" : "text-foreground/80"}`}>{label}</span>
+      {resolved ? (
+        <span className="shrink-0 text-[10px] font-bold text-emerald-400" title="Confirmed">✓</span>
+      ) : (
+        prob != null && <span className="text-muted-foreground shrink-0 font-mono text-[10px] tabular-nums">{pct(Math.min(prob, 0.99))}</span>
+      )}
     </div>
   );
 }

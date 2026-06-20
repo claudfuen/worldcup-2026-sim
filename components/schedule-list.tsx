@@ -105,7 +105,7 @@ function TeamRow({ code, label, score, win, projected, prob }: { code: string | 
       <Flag code={code} size={18} />
       <span className={`min-w-0 flex-1 truncate text-sm ${win ? "font-semibold" : projected ? "text-foreground/75" : ""}`}>
         {label}
-        {projected && prob != null && <span className="text-muted-foreground/60 ml-1 font-mono text-[10px]">{pct(prob)}</span>}
+        {projected && prob != null && <span className="text-muted-foreground/60 ml-1 font-mono text-[10px]">{pct(Math.min(prob, 0.99))}</span>}
       </span>
       {score != null && <span className={`shrink-0 font-mono text-sm tabular-nums ${win ? "font-bold" : "text-muted-foreground"}`}>{score}</span>}
     </div>

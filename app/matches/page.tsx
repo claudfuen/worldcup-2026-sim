@@ -83,7 +83,7 @@ function SideBlock({ label, code, title, candidates, slot }: { label: string; co
           <div key={c.code} className="flex items-center gap-2">
             <Flag code={c.code} size={18} />
             <span className="flex-1 truncate text-sm">{c.name}</span>
-            <span className="text-muted-foreground font-mono text-xs tabular-nums">{pct(c.prob)}</span>
+            <span className="text-muted-foreground font-mono text-xs tabular-nums">{pct(Math.min(c.prob, 0.99))}</span>
           </div>
         ))}
         {list.length === 0 && <span className="text-muted-foreground text-sm">TBD</span>}

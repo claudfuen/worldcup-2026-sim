@@ -149,11 +149,13 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
   }
 
   // Knockout slots resolve to a definite team only when mathematically locked: a clinched group winner
-  // fills its "1X" slot. (Runner-up / W## slots stay projected until decided — honest, no over-claiming.)
-  const wonSlot: Record<string, string> = {};
+  // fills its "1X" slot, a clinched runner-up its "2X" slot. (W## / 3rd slots stay projected — no over-claiming.)
+  const lockedSlot: Record<string, string> = {};
   for (const gv of groups) {
     const w = gv.teams.find((t) => t.status === "won_group");
-    if (w) wonSlot["1" + gv.group] = w.code;
+    if (w) lockedSlot["1" + gv.group] = w.code;
+    const s = gv.teams.find((t) => t.status === "second");
+    if (s) lockedSlot["2" + gv.group] = s.code;
   }
 
   // live results indexed by sorted team-pair (group matches)
@@ -191,9 +193,9 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
           .sort((x, y) => y.prob - x.prob)
           .slice(0, 4);
       }
-      // A slot resolves to a definite team only when mathematically locked (clinched group winner).
-      const rh = s.homeSlot ? wonSlot[s.homeSlot] : undefined;
-      const ra = s.awaySlot ? wonSlot[s.awaySlot] : undefined;
+      // A slot resolves to a definite team only when mathematically locked (clinched winner/runner-up).
+      const rh = s.homeSlot ? lockedSlot[s.homeSlot] : undefined;
+      const ra = s.awaySlot ? lockedSlot[s.awaySlot] : undefined;
       if (rh) { info.home = rh; info.homeName = TEAM_BY_CODE[rh].name; }
       if (ra) { info.away = ra; info.awayName = TEAM_BY_CODE[ra].name; }
       info.defined = Boolean(info.home && info.away);
