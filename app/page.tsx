@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPredictions } from "@/lib/getPredictions";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
+import { Delta } from "@/components/delta";
 import { etDateTime, etTime, etDayKey, pct } from "@/lib/format";
 import { getSessionUser, getUserMatchNumbers } from "@/lib/userMatches";
 
@@ -50,7 +51,9 @@ export default async function Page() {
                 <div className="bg-muted/40 relative h-2 flex-1 overflow-hidden rounded-full">
                   <div className="bg-primary absolute inset-y-0 left-0 rounded-full" style={{ width: `${(t.title / maxTitle) * 100}%` }} />
                 </div>
-                <span className="w-12 shrink-0 text-right font-mono text-sm font-semibold tabular-nums">{pct(t.title)}</span>
+                <span className="flex w-16 shrink-0 items-center justify-end font-mono text-sm font-semibold tabular-nums">
+                  {pct(t.title)}<Delta v={t.titleDelta} />
+                </span>
               </Link>
             ))}
           </div>

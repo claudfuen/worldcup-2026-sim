@@ -1,6 +1,7 @@
 import { getPredictions } from "@/lib/getPredictions";
 import type { GroupTeamView, ThirdPlaceEntry } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
+import { Delta } from "@/components/delta";
 import { pct } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -167,7 +168,9 @@ function Row({ t, pos, cut }: { t: GroupTeamView; pos: number; cut: "qualify" | 
         ) : t.status === "eliminated" ? (
           <span className="text-muted-foreground/70">out</span>
         ) : (
-          <span className={pos <= 2 ? "text-emerald-400" : pos === 3 ? "text-amber-400" : "text-muted-foreground"}>{pct(Math.min(t.advance, 0.99))}</span>
+          <span className={pos <= 2 ? "text-emerald-400" : pos === 3 ? "text-amber-400" : "text-muted-foreground"}>
+            {pct(Math.min(t.advance, 0.99))}<Delta v={t.advanceDelta} />
+          </span>
         )}
       </td>
     </tr>

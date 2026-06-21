@@ -15,6 +15,7 @@ import type { TeamProb } from "./sim/simulate";
 export interface TeamPrediction extends TeamProb {
   name: string;
   rating: number;
+  titleDelta?: number; // change in title odds since the start of today (ET)
 }
 export interface GroupTeamView {
   code: string; name: string; played: number; w: number; d: number; l: number;
@@ -22,6 +23,7 @@ export interface GroupTeamView {
   // certainty flips from probability to a definitive state once locked
   status: "won_group" | "second" | "advanced" | "eliminated" | "live";
   need?: string; // plain-language 'what you need in your last match', when there's a clean answer
+  advanceDelta?: number; // change in advance % since the start of today (ET)
 }
 export interface GroupView {
   group: string;
@@ -87,6 +89,34 @@ export interface PredictionsPayload {
   r32Opponents: Record<string, OpponentProb[]>;
   matches: MatchInfo[];
   thirdPlaceRace: ThirdPlaceEntry[];
+}
+
+// Start-of-day odds snapshot, for "moved since yesterday" deltas.
+export interface BaselineSnapshot {
+  dateET: string; // ET calendar day this baseline represents
+  title: Record<string, number>;
+  advance: Record<string, number>;
+}
+
+export function snapshotOf(p: PredictionsPayload): Pick<BaselineSnapshot, "title" | "advance"> {
+  const title: Record<string, number> = {};
+  for (const t of p.teams) title[t.code] = t.title;
+  const advance: Record<string, number> = {};
+  for (const g of p.groups) for (const t of g.teams) advance[t.code] = t.advance;
+  return { title, advance };
+}
+
+// Attach per-team deltas vs the baseline (in place). No-op if no baseline yet.
+export function applyDeltas(p: PredictionsPayload, base: BaselineSnapshot | null): void {
+  if (!base) return;
+  for (const t of p.teams) {
+    if (base.title[t.code] != null) t.titleDelta = t.title - base.title[t.code];
+  }
+  for (const g of p.groups) {
+    for (const t of g.teams) {
+      if (base.advance[t.code] != null) t.advanceDelta = t.advance - base.advance[t.code];
+    }
+  }
 }
 
 function topCandidates(dist: Record<string, number> | undefined, n = 4): SlotCandidate[] {

@@ -30,3 +30,6 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 // Bump when the payload shape changes so stale cached data is ignored.
 // v4: removed per-user `myMatches` from the shared payload (now stored per-user in Postgres).
 export const PRED_KEY = "predictions:v4";
+
+// Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
+export const BASELINE_KEY = "predictions:baseline:v1";
