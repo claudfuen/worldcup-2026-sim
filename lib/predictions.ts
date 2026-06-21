@@ -6,6 +6,7 @@ import { computeClinch, minThirdPlacePoints, maxThirdPlacePoints, maxReachablePo
 import { rankThirds, selectAndAssignThirds, type ThirdTeam } from "./sim/thirdPlace";
 import { wdlProbs, eloToLambdas, scorelineDist } from "./sim/poisson";
 import { hostEloBoost } from "./sim/hosts";
+import type { GroupMatch } from "./sim/types";
 import { TEAMS, TEAM_BY_CODE, GROUPS } from "./data/teams";
 import { SCHEDULE } from "./data/schedule";
 import { KNOCKOUT } from "./data/bracket";
@@ -20,6 +21,7 @@ export interface GroupTeamView {
   gf: number; ga: number; gd: number; pts: number; winGroup: number; advance: number;
   // certainty flips from probability to a definitive state once locked
   status: "won_group" | "second" | "advanced" | "eliminated" | "live";
+  need?: string; // plain-language 'what you need in your last match', when there's a clean answer
 }
 export interface GroupView {
   group: string;
@@ -95,6 +97,32 @@ function topCandidates(dist: Record<string, number> | undefined, n = 4): SlotCan
     .slice(0, n);
 }
 
+// Plain-language "what your team needs" for its last group match - only when one result gives a
+// clean, mathematically guaranteed answer (otherwise the advance % already tells the story).
+function nextMatchNeed(code: string, codes: string[], gm: GroupMatch[]): string | undefined {
+  const rem = gm.filter((m) => !m.played && (m.home === code || m.away === code));
+  if (rem.length !== 1) return undefined; // only the common one-match-left case
+  const m = rem[0];
+  const oppCode = m.home === code ? m.away : m.home;
+  const opp = TEAM_BY_CODE[oppCode]?.name ?? oppCode;
+  const xHome = m.home === code;
+  const variant = (res: "W" | "D" | "L"): GroupMatch[] =>
+    gm.map((g) => {
+      if (g !== m) return g;
+      const hg = res === "D" ? 0 : xHome ? (res === "W" ? 1 : 0) : res === "W" ? 0 : 1;
+      const ag = res === "D" ? 0 : xHome ? (res === "W" ? 0 : 1) : res === "W" ? 1 : 0;
+      return { ...m, played: true, homeGoals: hg, awayGoals: ag };
+    });
+  const cW = computeClinch(codes, variant("W"))[code];
+  const cD = computeClinch(codes, variant("D"))[code];
+  const cL = computeClinch(codes, variant("L"))[code];
+  const lossOut = cL.eliminatedTop2 && cL.eliminatedTop3;
+  if (cD.top2) return `A draw vs ${opp} secures a top-2 spot.`;
+  if (cW.top2) return lossOut ? `Beat ${opp} to go through - a loss is out.` : `Beat ${opp} to lock a top-2 spot.`;
+  if (lossOut) return `Beat ${opp} to stay alive - a loss is out.`;
+  return undefined; // no single result settles it; the advance % covers this case
+}
+
 export async function computePredictions(iterations = 20000, seed = 20260611): Promise<PredictionsPayload> {
   const results = await fetchResults();
   const ratings = liveRatings(results);
@@ -152,6 +180,7 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
         return {
           code: r.code, name: TEAM_BY_CODE[r.code].name, played: r.played, w: r.w, d: r.d, l: r.l,
           gf: r.gf, ga: r.ga, gd: r.gd, pts: r.pts, winGroup: p.winGroup, advance: p.advance, status,
+          need: status === "live" ? nextMatchNeed(r.code, codes, groupMatches[g]) : undefined,
         };
       }),
     };

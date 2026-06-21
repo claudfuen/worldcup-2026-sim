@@ -118,6 +118,18 @@ function GroupCard({ group, teams, decided }: { group: string; teams: GroupTeamV
           ))}
         </tbody>
       </table>
+      {teams.some((t) => t.need) && (
+        <div className="border-border/60 space-y-1.5 border-t px-4 py-3">
+          {teams.filter((t) => t.need).map((t) => (
+            <div key={t.code} className="flex items-center gap-2 text-xs">
+              <Flag code={t.code} size={14} />
+              <span className="text-muted-foreground">
+                <span className="text-foreground/80 font-medium">{t.name}:</span> {t.need}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
