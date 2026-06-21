@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "@/lib/auth-client";
+import { etTime, etDateTime } from "@/lib/format";
 
 const LINKS = [
   { href: "/", label: "Overview" },
@@ -13,7 +15,7 @@ const LINKS = [
   { href: "/methodology", label: "Method" },
 ];
 
-export function Nav() {
+export function Nav({ updatedAt }: { updatedAt: string | null }) {
   const path = usePathname();
   const router = useRouter();
   const { data: session, isPending } = useSession();
@@ -41,6 +43,7 @@ export function Nav() {
             );
           })}
         </nav>
+        <Freshness updatedAt={updatedAt} />
         <div className="ml-2 flex shrink-0 items-center gap-2">
           {isPending ? null : session ? (
             <>
@@ -71,5 +74,40 @@ export function Nav() {
         </div>
       </div>
     </header>
+  );
+}
+
+// Global data-freshness indicator: a dot (green/amber/grey by age) + how long ago the dataset updated.
+// `now` starts null so SSR and first client render match (both show the absolute ET time); a 30s ticker
+// then switches to a live "Xm ago" relative time without a hydration mismatch.
+function Freshness({ updatedAt }: { updatedAt: string | null }) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  if (!updatedAt) return null;
+  const min = now == null ? null : Math.max(0, (now - new Date(updatedAt).getTime()) / 60000);
+  const rel =
+    min == null
+      ? etTime(updatedAt)
+      : min < 1
+        ? "just now"
+        : min < 60
+          ? `${Math.round(min)}m ago`
+          : min < 1440
+            ? `${Math.round(min / 60)}h ago`
+            : `${Math.round(min / 1440)}d ago`;
+  const dot = min == null || min < 45 ? "bg-emerald-400" : min < 180 ? "bg-amber-400" : "bg-muted-foreground";
+  return (
+    <div
+      className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs"
+      title={`Live data updated ${etDateTime(updatedAt)}`}
+    >
+      <span className={`size-1.5 shrink-0 rounded-full ${dot}`} aria-hidden />
+      <span className="hidden whitespace-nowrap sm:inline">Updated {rel}</span>
+      <span className="whitespace-nowrap sm:hidden">{rel}</span>
+    </div>
   );
 }

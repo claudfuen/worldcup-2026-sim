@@ -15,7 +15,6 @@ const ROUND_SHORT: Record<string, string> = { GROUP: "", R32: "R32", R16: "R16",
 
 export default async function Page() {
   const data = await getPredictions();
-  const updated = new Date(data.updatedAt);
   const contenders = data.teams.slice(0, 8);
   const maxTitle = contenders[0]?.title || 1;
   const user = await getSessionUser();
@@ -34,7 +33,7 @@ export default async function Page() {
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">World Cup 2026 Predictions</h1>
         <p className="text-muted-foreground mt-2 text-sm text-pretty">
           {data.iterations.toLocaleString()} Monte Carlo simulations · {data.matchesPlayed}/{data.totalGroupMatches} group
-          matches played · updated {updated.toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ET
+          matches played · live from real results.
         </p>
       </header>
 

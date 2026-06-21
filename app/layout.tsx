@@ -5,6 +5,7 @@ import "flag-icons/css/flag-icons.min.css"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Nav } from "@/components/nav"
+import { getPredictions } from "@/lib/getPredictions"
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next"
 
@@ -61,11 +62,17 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  let updatedAt: string | null = null
+  try {
+    updatedAt = (await getPredictions()).updatedAt
+  } catch {
+    updatedAt = null
+  }
   return (
     <html
       lang="en"
@@ -75,7 +82,7 @@ export default function RootLayout({
       <body className="bg-background text-foreground min-h-svh">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
         <ThemeProvider defaultTheme="dark" enableSystem={false}>
-          <Nav />
+          <Nav updatedAt={updatedAt} />
           {children}
         </ThemeProvider>
         <Analytics />
