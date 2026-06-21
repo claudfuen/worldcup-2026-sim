@@ -105,8 +105,8 @@ function GroupCard({ group, teams, decided }: { group: string; teams: GroupTeamV
             <th className="w-6 px-1 text-center font-medium" title="Won">W</th>
             <th className="w-6 px-1 text-center font-medium" title="Drawn">D</th>
             <th className="w-6 px-1 text-center font-medium" title="Lost">L</th>
-            <th className="w-7 px-1 text-center font-medium" title="Goals for">GF</th>
-            <th className="w-7 px-1 text-center font-medium" title="Goals against">GA</th>
+            <th className="hidden w-7 px-1 text-center font-medium sm:table-cell" title="Goals for">GF</th>
+            <th className="hidden w-7 px-1 text-center font-medium sm:table-cell" title="Goals against">GA</th>
             <th className="w-7 px-1 text-center font-medium" title="Goal difference">GD</th>
             <th className="w-7 px-1 text-center font-semibold" title="Points">Pts</th>
             <th className="w-12 px-1 pr-3 text-right font-medium" title="Probability of advancing">Adv</th>
@@ -141,8 +141,8 @@ function Row({ t, pos, cut }: { t: GroupTeamView; pos: number; cut: "qualify" | 
       <Cell v={t.w} muted />
       <Cell v={t.d} muted />
       <Cell v={t.l} muted />
-      <Cell v={t.gf} muted />
-      <Cell v={t.ga} muted />
+      <Cell v={t.gf} muted cls="hidden sm:table-cell" />
+      <Cell v={t.ga} muted cls="hidden sm:table-cell" />
       <Cell v={(t.gd >= 0 ? "+" : "") + t.gd} />
       <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{t.pts}</td>
       <td className="px-1 pr-3 text-right font-mono text-xs font-semibold tabular-nums">
@@ -162,8 +162,8 @@ function Row({ t, pos, cut }: { t: GroupTeamView; pos: number; cut: "qualify" | 
   );
 }
 
-function Cell({ v, muted }: { v: number | string; muted?: boolean }) {
-  return <td className={`px-1 text-center font-mono text-xs tabular-nums ${muted ? "text-muted-foreground" : ""}`}>{v}</td>;
+function Cell({ v, muted, cls }: { v: number | string; muted?: boolean; cls?: string }) {
+  return <td className={`px-1 text-center font-mono text-xs tabular-nums ${muted ? "text-muted-foreground" : ""} ${cls ?? ""}`}>{v}</td>;
 }
 
 function Legend() {

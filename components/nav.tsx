@@ -25,7 +25,7 @@ export function Nav() {
           <span className="text-base">🏆</span>
           <span className="font-display hidden text-sm font-semibold tracking-tight sm:inline">World Cup 2026 Predictions</span>
         </Link>
-        <nav className="flex flex-1 items-center gap-0.5 overflow-x-auto">
+        <nav className="flex flex-1 items-center gap-0.5 overflow-x-auto [mask-image:linear-gradient(to_right,#000_86%,transparent)] sm:[mask-image:none]">
           {LINKS.map((l) => {
             const active = l.href === "/" ? path === "/" : path.startsWith(l.href);
             return (
