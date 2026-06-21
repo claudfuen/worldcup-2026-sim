@@ -21,18 +21,48 @@ const ROUND_SHORT: Record<string, string> = { R32: "R32", R16: "R16", QF: "QF", 
 export function Bracket({
   matches,
   myMatchNumbers = [],
-  highlightCode,
 }: {
   matches: MatchInfo[];
   myMatchNumbers?: number[];
-  highlightCode?: string;
 }) {
   const byMatch = new Map(matches.map((m) => [m.match, m]));
   const tickets = new Set(myMatchNumbers);
+  const [highlight, setHighlight] = useState("");
+
+  // Every team that appears anywhere in the knockout projections, for the "trace a team" picker.
+  const teamMap = new Map<string, string>();
+  for (const m of matches) {
+    if (m.home && m.homeName) teamMap.set(m.home, m.homeName);
+    if (m.away && m.awayName) teamMap.set(m.away, m.awayName);
+    for (const c of m.projHome ?? []) teamMap.set(c.code, c.name);
+    for (const c of m.projAway ?? []) teamMap.set(c.code, c.name);
+  }
+  const teamOpts = [...teamMap.entries()].map(([code, name]) => ({ code, name })).sort((a, b) => a.name.localeCompare(b.name));
+  const hl = highlight || undefined;
+
   return (
     <>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-muted-foreground font-mono text-[11px] tracking-wide uppercase">Trace a team</span>
+        <select
+          value={highlight}
+          onChange={(e) => setHighlight(e.target.value)}
+          className="border-border bg-card focus:border-primary/60 rounded-lg border px-2.5 py-1 text-sm outline-none"
+        >
+          <option value="">Pick a team to light up its path</option>
+          {teamOpts.map((t) => (
+            <option key={t.code} value={t.code}>{t.name}</option>
+          ))}
+        </select>
+        {highlight && (
+          <button onClick={() => setHighlight("")} className="text-muted-foreground hover:text-foreground text-xs">
+            Clear
+          </button>
+        )}
+      </div>
+
       {/* Mobile: a full tree doesn't fit a phone, so show one round at a time as a readable list. */}
-      <MobileRounds byMatch={byMatch} tickets={tickets} highlightCode={highlightCode} />
+      <MobileRounds byMatch={byMatch} tickets={tickets} highlightCode={hl} />
 
       {/* Desktop: the full connected tree. */}
       <div className="hidden overflow-x-auto pb-4 md:block">
@@ -48,7 +78,7 @@ export function Bracket({
                     const m = byMatch.get(mn);
                     return (
                       <div key={mn} className="flex flex-1 items-center">
-                        {m && <Node m={m} hasTicket={tickets.has(mn)} highlightCode={highlightCode} final={round === "FINAL"} />}
+                        {m && <Node m={m} hasTicket={tickets.has(mn)} highlightCode={hl} final={round === "FINAL"} />}
                       </div>
                     );
                   })}
@@ -121,8 +151,11 @@ function Connectors({ count }: { count: number }) {
 
 function Node({ m, hasTicket, highlightCode, big, final }: { m: MatchInfo; hasTicket: boolean; highlightCode?: string; big?: boolean; final?: boolean }) {
   const hi =
-    highlightCode &&
-    [m.home, m.away, m.projHome?.[0]?.code, m.projAway?.[0]?.code].includes(highlightCode);
+    !!highlightCode &&
+    (m.home === highlightCode ||
+      m.away === highlightCode ||
+      !!m.projHome?.some((c) => c.code === highlightCode) ||
+      !!m.projAway?.some((c) => c.code === highlightCode));
   return (
     <Link
       href={`/match/${m.match}`}

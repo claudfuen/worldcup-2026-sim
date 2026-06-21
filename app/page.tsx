@@ -81,6 +81,42 @@ export default async function Page() {
         </section>
       </div>
 
+      <section className="mt-10">
+        <h2 className="text-muted-foreground mb-1 font-mono text-xs font-medium tracking-wide uppercase">Chance of reaching each round</h2>
+        <p className="text-muted-foreground/70 mb-3 text-xs">How deep each contender is projected to go, across {data.iterations.toLocaleString()} simulations.</p>
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-muted-foreground border-border/60 border-b text-[11px]">
+                <th className="py-2 pr-2 text-left font-medium">Team</th>
+                <th className="w-12 px-1 text-right font-medium">R16</th>
+                <th className="hidden w-12 px-1 text-right font-medium sm:table-cell">QF</th>
+                <th className="hidden w-12 px-1 text-right font-medium sm:table-cell">SF</th>
+                <th className="w-12 px-1 text-right font-medium">Final</th>
+                <th className="w-16 px-1 pr-2 text-right font-semibold">Champion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.teams.slice(0, 12).map((t) => (
+                <tr key={t.code} className="border-border/40 border-b last:border-0">
+                  <td className="py-2 pr-2">
+                    <div className="flex items-center gap-2">
+                      <Flag code={t.code} size={18} />
+                      <span className="truncate font-medium">{t.name}</span>
+                    </div>
+                  </td>
+                  <RoundCell v={t.r16} />
+                  <RoundCell v={t.qf} hideMobile />
+                  <RoundCell v={t.sf} hideMobile />
+                  <RoundCell v={t.final} />
+                  <td className="text-primary px-1 pr-2 text-right font-mono text-sm font-semibold tabular-nums">{pct(t.title)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {todayMatches.length > 0 && (
         <section className="mt-8">
           <h2 className="text-muted-foreground mb-3 font-mono text-xs font-medium tracking-wide uppercase">
@@ -126,6 +162,14 @@ function Row({ code, name, score, win, projected }: { code: string | null; name:
       <span className={`min-w-0 flex-1 truncate text-sm ${win ? "font-semibold" : projected ? "text-foreground/70" : ""}`}>{name}</span>
       {score != null && <span className={`shrink-0 font-mono text-sm tabular-nums ${win ? "font-bold" : "text-muted-foreground"}`}>{score}</span>}
     </div>
+  );
+}
+
+function RoundCell({ v, hideMobile }: { v: number; hideMobile?: boolean }) {
+  return (
+    <td className={`text-muted-foreground px-1 text-right font-mono text-xs tabular-nums ${hideMobile ? "hidden sm:table-cell" : ""}`}>
+      {pct(v)}
+    </td>
   );
 }
 
