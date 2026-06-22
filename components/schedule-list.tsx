@@ -114,6 +114,8 @@ function Row({ m, hasTicket, isAuthed }: { m: MatchInfo; hasTicket: boolean; isA
   const homeLabel = m.homeName ?? (m.projHome?.[0] ? `${m.projHome[0].name}` : m.slotHome ?? "TBD");
   const awayLabel = m.awayName ?? (m.projAway?.[0] ? `${m.projAway[0].name}` : m.slotAway ?? "TBD");
   const final = m.status === "final";
+  const live = m.status === "live";
+  const showScore = final || live;
   return (
     <Link href={`/match/${m.match}`} className="hover:bg-muted/30 flex items-center gap-3 px-3 py-2.5 sm:px-4">
       <div className="text-muted-foreground w-16 shrink-0 text-xs">
@@ -121,11 +123,15 @@ function Row({ m, hasTicket, isAuthed }: { m: MatchInfo; hasTicket: boolean; isA
         <div className="text-[10px]">{ROUND_NAME[m.round]}{m.group ? ` ${m.group}` : ""}</div>
       </div>
       <div className="min-w-0 flex-1">
-        <TeamRow code={homeCode} label={homeLabel} score={final ? m.homeScore : undefined} win={final && (m.homeScore ?? 0) > (m.awayScore ?? 0)} projected={!m.home} prob={!m.home ? m.projHome?.[0]?.prob : undefined} />
-        <TeamRow code={awayCode} label={awayLabel} score={final ? m.awayScore : undefined} win={final && (m.awayScore ?? 0) > (m.homeScore ?? 0)} projected={!m.away} prob={!m.away ? m.projAway?.[0]?.prob : undefined} />
+        <TeamRow code={homeCode} label={homeLabel} score={showScore ? m.homeScore : undefined} win={final && (m.homeScore ?? 0) > (m.awayScore ?? 0)} projected={!m.home} prob={!m.home ? m.projHome?.[0]?.prob : undefined} />
+        <TeamRow code={awayCode} label={awayLabel} score={showScore ? m.awayScore : undefined} win={final && (m.awayScore ?? 0) > (m.homeScore ?? 0)} projected={!m.away} prob={!m.away ? m.projAway?.[0]?.prob : undefined} />
       </div>
       <div className="hidden w-32 shrink-0 text-right sm:block">
-        {final ? (
+        {live ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400">
+            <span className="size-1.5 animate-pulse rounded-full bg-red-500" />LIVE {m.liveDetail}
+          </span>
+        ) : final ? (
           <span className="text-[11px] font-medium text-emerald-400">FT</span>
         ) : m.favorite ? (
           <span className="text-muted-foreground text-[11px]">

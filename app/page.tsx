@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getPredictions } from "@/lib/getPredictions";
+import { getLiveMatches, overlayLive } from "@/lib/live";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
 import { Delta } from "@/components/delta";
+import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { etDateTime, etTime, etDayKey, pct } from "@/lib/format";
 import { getSessionUser, getUserMatchNumbers } from "@/lib/userMatches";
 
@@ -14,20 +16,23 @@ export const revalidate = 0;
 const ROUND_SHORT: Record<string, string> = { GROUP: "", R32: "R32", R16: "R16", QF: "QF", SF: "SF", "3P": "3rd", FINAL: "Final" };
 
 export default async function Page() {
-  const data = await getPredictions();
+  const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
+  const matches = overlayLive(data.matches, live);
   const contenders = data.teams.slice(0, 8);
   const maxTitle = contenders[0]?.title || 1;
   const user = await getSessionUser();
   const myNums = user ? new Set(await getUserMatchNumbers(user.id)) : new Set<number>();
   const now = new Date().getTime();
-  const nextMine = data.matches
+  const nextMine = matches
     .filter((m) => myNums.has(m.match) && new Date(m.utc).getTime() > now)
     .sort((a, b) => a.utc.localeCompare(b.utc))[0];
   const today = etDayKey(new Date().toISOString());
-  const todayMatches = data.matches.filter((m) => etDayKey(m.utc) === today).sort((a, b) => a.utc.localeCompare(b.utc));
+  const todayMatches = matches.filter((m) => etDayKey(m.utc) === today).sort((a, b) => a.utc.localeCompare(b.utc));
+  const hasLive = matches.some((m) => m.status === "live");
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      <LiveAutoRefresh enabled={hasLive} />
       <header className="mb-8">
         <div className="text-primary font-mono text-[11px] font-medium tracking-wide uppercase">Live forecast</div>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">World Cup 2026 Predictions</h1>
@@ -141,18 +146,28 @@ export default async function Page() {
 
 function TodayTile({ m }: { m: MatchInfo }) {
   const final = m.status === "final";
+  const live = m.status === "live";
+  const showScore = final || live;
   const homeCode = m.home ?? m.projHome?.[0]?.code ?? null;
   const awayCode = m.away ?? m.projAway?.[0]?.code ?? null;
   const homeName = m.homeName ?? m.projHome?.[0]?.name ?? m.slotHome ?? "TBD";
   const awayName = m.awayName ?? m.projAway?.[0]?.name ?? m.slotAway ?? "TBD";
   return (
-    <Link href={`/match/${m.match}`} className="border-border bg-card hover:border-primary/40 block rounded-xl border p-3">
+    <Link href={`/match/${m.match}`} className={`bg-card hover:border-primary/40 block rounded-xl border p-3 ${live ? "border-red-500/40" : "border-border"}`}>
       <div className="text-muted-foreground mb-2 flex items-center justify-between text-[11px]">
         <span className="font-mono">{etTime(m.utc)}</span>
-        <span>{final ? <span className="text-emerald-400">FT</span> : (m.group ? `Group ${m.group}` : ROUND_SHORT[m.round])}</span>
+        <span>
+          {live ? (
+            <span className="inline-flex items-center gap-1 font-semibold text-red-400"><span className="size-1.5 animate-pulse rounded-full bg-red-500" />LIVE {m.liveDetail}</span>
+          ) : final ? (
+            <span className="text-emerald-400">FT</span>
+          ) : (
+            m.group ? `Group ${m.group}` : ROUND_SHORT[m.round]
+          )}
+        </span>
       </div>
-      <Row code={homeCode} name={homeName} score={final ? m.homeScore : undefined} win={final && (m.homeScore ?? 0) > (m.awayScore ?? 0)} projected={!m.home && m.round !== "GROUP"} />
-      <Row code={awayCode} name={awayName} score={final ? m.awayScore : undefined} win={final && (m.awayScore ?? 0) > (m.homeScore ?? 0)} projected={!m.away && m.round !== "GROUP"} />
+      <Row code={homeCode} name={homeName} score={showScore ? m.homeScore : undefined} win={final && (m.homeScore ?? 0) > (m.awayScore ?? 0)} projected={!m.home && m.round !== "GROUP"} />
+      <Row code={awayCode} name={awayName} score={showScore ? m.awayScore : undefined} win={final && (m.awayScore ?? 0) > (m.homeScore ?? 0)} projected={!m.away && m.round !== "GROUP"} />
     </Link>
   );
 }

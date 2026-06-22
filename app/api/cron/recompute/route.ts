@@ -6,7 +6,11 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-// Vercel Cron hits this every 30 min. It pulls live ESPN results, rebuilds ratings,
+// Final is 2026-07-19; stop recomputing a couple of days after, so we don't poll ESPN forever once the
+// tournament is over. The last computed payload stays frozen in KV (pages keep serving the final state).
+const STOP_RECOMPUTE_AFTER = "2026-07-21"; // UTC date (YYYY-MM-DD)
+
+// Vercel Cron hits this frequently (see vercel.json). It pulls live ESPN results, rebuilds ratings,
 // runs the Monte Carlo, and stores the payload in KV.
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -17,6 +21,10 @@ export async function GET(req: Request) {
     if (auth !== `Bearer ${secret}` && qp !== secret) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
+  }
+  // Natural stopping point: once the World Cup is over, no-op (data is final, no reason to keep updating).
+  if (new Date().toISOString().slice(0, 10) > STOP_RECOMPUTE_AFTER) {
+    return NextResponse.json({ ok: true, skipped: "tournament complete; predictions frozen" });
   }
   const t0 = Date.now();
   const payload = await computePredictions(20000);

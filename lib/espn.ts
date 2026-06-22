@@ -51,6 +51,45 @@ export async function fetchResults(): Promise<FetchedMatch[]> {
   return out;
 }
 
+export interface LiveMatch {
+  homeCode: string;
+  awayCode: string;
+  group: string | null;
+  homeGoals: number;
+  awayGoals: number;
+  detail: string; // e.g. "45'+3'", "HT" - the live clock/state from ESPN
+}
+
+// In-progress matches only (ESPN state "in"). Fetched fresh per request so live scores are real-time,
+// separate from the 30-min prediction cron. A live result does NOT move standings/ratings (FIFA tables
+// update at full time); it's surfaced as a live score on the schedule/match pages.
+export async function fetchLive(): Promise<LiveMatch[]> {
+  const res = await fetch(`${SCOREBOARD}?dates=20260611-20260719`, { cache: "no-store" });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { events?: EspnEvent[] };
+  const out: LiveMatch[] = [];
+  for (const e of data.events ?? []) {
+    const comp = e.competitions?.[0];
+    if (!comp || comp.status?.type?.state !== "in") continue; // in-progress only
+    const cs = comp.competitors ?? [];
+    if (cs.length !== 2) continue;
+    const home = cs.find((c) => c.homeAway === "home") ?? cs[0];
+    const away = cs.find((c) => c.homeAway === "away") ?? cs[1];
+    const ht = TEAM_BY_ESPN[home.team.displayName];
+    const at = TEAM_BY_ESPN[away.team.displayName];
+    if (!ht || !at) continue;
+    out.push({
+      homeCode: ht.code,
+      awayCode: at.code,
+      group: ht.group === at.group ? ht.group : null,
+      homeGoals: Number(home.score),
+      awayGoals: Number(away.score),
+      detail: comp.status?.type?.shortDetail ?? comp.status?.type?.detail ?? comp.status?.displayClock ?? "LIVE",
+    });
+  }
+  return out;
+}
+
 // Live ratings = pre-tournament Elo with every completed match replayed (deterministic, no drift).
 export function liveRatings(results: FetchedMatch[]): Ratings {
   const R: Ratings = Object.fromEntries(TEAMS.map((t) => [t.code, t.rating]));
@@ -110,7 +149,7 @@ export function buildGroupMatches(results: FetchedMatch[]): Record<string, Group
 interface EspnEvent {
   date: string;
   competitions?: {
-    status?: { type?: { state?: string } };
+    status?: { displayClock?: string; type?: { state?: string; detail?: string; shortDetail?: string } };
     competitors?: { homeAway?: string; score?: string | number; team: { displayName: string } }[];
   }[];
 }

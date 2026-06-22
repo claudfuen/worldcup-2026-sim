@@ -55,10 +55,11 @@ export interface MatchInfo {
   // most likely exact matchups (joint probability), knockout only
   topMatchups?: Matchup[];
   defined: boolean; // both participants known
-  // live result
-  status: "scheduled" | "final";
+  // live result / in-progress overlay
+  status: "scheduled" | "live" | "final";
   homeScore?: number;
   awayScore?: number;
+  liveDetail?: string; // clock/state for in-progress matches, e.g. "45'+3'"
   // forecast for DEFINED matches only
   favorite?: { code: string; name: string; winProb: number };
   probs?: { home: number; draw: number; away: number };

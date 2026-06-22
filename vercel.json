@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/recompute",
-      "schedule": "*/30 * * * *"
+      "schedule": "*/10 * * * *"
     }
   ]
 }

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPredictions } from "@/lib/getPredictions";
+import { getLiveMatches, overlayLive } from "@/lib/live";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
 import { etDateTime, pct } from "@/lib/format";
 import { MatchFlagButton } from "@/components/match-flag-button";
+import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { getSessionUser, getUserMatchNumbers } from "@/lib/userMatches";
 
 export const runtime = "nodejs";
@@ -17,15 +19,18 @@ const ROUND_NAME: Record<string, string> = {
 
 export default async function MatchPage({ params }: { params: Promise<{ match: string }> }) {
   const { match } = await params;
-  const data = await getPredictions();
-  const m = data.matches.find((x) => x.match === Number(match));
-  if (!m) notFound();
+  const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
+  const base = data.matches.find((x) => x.match === Number(match));
+  if (!base) notFound();
+  const m = overlayLive([base], live)[0];
   const user = await getSessionUser();
   const hasTicket = user ? (await getUserMatchNumbers(user.id)).includes(m.match) : false;
-  const state: "final" | "defined" | "undefined" = m.status === "final" ? "final" : m.defined ? "defined" : "undefined";
+  const state: "final" | "live" | "defined" | "undefined" =
+    m.status === "final" ? "final" : m.status === "live" ? "live" : m.defined ? "defined" : "undefined";
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <LiveAutoRefresh enabled={state === "live"} />
       <Link href="/schedule" className="text-muted-foreground hover:text-foreground text-sm">← Schedule</Link>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
@@ -38,7 +43,17 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       {/* Matchup header */}
       <div className="border-border bg-card mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border p-6">
         <SideHeader m={m} side="home" />
-        <div className="text-muted-foreground text-center text-xs">{m.status === "final" ? "FT" : "vs"}</div>
+        <div className="text-center text-xs">
+          {m.status === "final" ? (
+            <span className="text-muted-foreground">FT</span>
+          ) : m.status === "live" ? (
+            <span className="inline-flex items-center gap-1 font-semibold text-red-400">
+              <span className="size-1.5 animate-pulse rounded-full bg-red-500" />{m.liveDetail}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">vs</span>
+          )}
+        </div>
         <SideHeader m={m} side="away" right />
       </div>
 
@@ -66,16 +81,25 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
         </section>
       )}
 
-      {state === "defined" && m.probs && (
+      {(state === "defined" || state === "live") && m.probs && (
         <section className="mt-6">
-          <h2 className="text-muted-foreground mb-2 text-xs font-semibold font-mono tracking-wide uppercase">Win probability</h2>
+          <h2 className="text-muted-foreground mb-2 text-xs font-semibold font-mono tracking-wide uppercase">
+            {state === "live" ? "Pre-match win probability" : "Win probability"}
+          </h2>
           <div className="border-border bg-card space-y-3 rounded-2xl border p-5">
+            {state === "live" && (
+              <p className="text-red-400 pb-1 text-xs font-medium">
+                Live: {m.homeName} {m.homeScore}–{m.awayScore} {m.awayName} · {m.liveDetail}
+              </p>
+            )}
             <ProbRow label={m.homeName!} value={m.probs.home} />
             <ProbRow label="Draw" value={m.probs.draw} tone="muted" />
             <ProbRow label={m.awayName!} value={m.probs.away} />
-            {m.round !== "GROUP" && (
+            {state === "live" ? (
+              <p className="text-muted-foreground/70 pt-1 text-xs">The forecast updates once the match is final.</p>
+            ) : m.round !== "GROUP" ? (
               <p className="text-muted-foreground/70 pt-1 text-xs">Regulation result; knockout ties are decided by extra time and penalties.</p>
-            )}
+            ) : null}
           </div>
         </section>
       )}
@@ -146,9 +170,10 @@ function SideHeader({ m, side, right }: { m: MatchInfo; side: "home" | "away"; r
   const name = side === "home" ? m.homeName : m.awayName;
   const slot = side === "home" ? m.slotHome : m.slotAway;
   const top = (side === "home" ? m.projHome : m.projAway)?.[0];
-  const score = m.status === "final" ? (side === "home" ? m.homeScore : m.awayScore) : undefined;
-  const other = m.status === "final" ? (side === "home" ? m.awayScore : m.homeScore) : undefined;
-  const win = score != null && other != null && score > other;
+  const hasScore = m.status === "final" || m.status === "live";
+  const score = hasScore ? (side === "home" ? m.homeScore : m.awayScore) : undefined;
+  const other = hasScore ? (side === "home" ? m.awayScore : m.homeScore) : undefined;
+  const win = m.status === "final" && score != null && other != null && score > other; // no "winner" while live
   return (
     <div className={`flex items-center gap-3 ${right ? "flex-row-reverse text-right" : ""}`}>
       <Flag code={resolved ?? null} size={40} />
