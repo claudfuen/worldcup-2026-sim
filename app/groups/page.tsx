@@ -1,7 +1,11 @@
 import { getPredictions } from "@/lib/getPredictions";
+import { getLiveMatches, overlayLive } from "@/lib/live";
 import type { GroupTeamView, ThirdPlaceEntry } from "@/lib/predictions";
+import { provisionalGroup, ratingsFromTeams, type ProvisionalGroup } from "@/lib/liveProjection";
 import { Flag } from "@/components/flag";
 import { Delta } from "@/components/delta";
+import { ProvisionalStandings } from "@/components/provisional-standings";
+import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { pct } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -9,9 +13,21 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function GroupsPage() {
-  const data = await getPredictions();
+  const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
+  const overlaid = overlayLive(data.matches, live);
+  const ratings = ratingsFromTeams(data.teams);
+  const provByGroup: Record<string, ProvisionalGroup | null> = {};
+  for (const g of data.groups) {
+    provByGroup[g.group] = provisionalGroup(
+      g.group,
+      overlaid.filter((x) => x.round === "GROUP" && x.group === g.group),
+      ratings,
+    );
+  }
+  const hasLive = overlaid.some((m) => m.status === "live");
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <LiveAutoRefresh enabled={hasLive} />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Groups</h1>
         <p className="text-muted-foreground mt-1 text-sm">
@@ -21,7 +37,7 @@ export default async function GroupsPage() {
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {data.groups.map((g) => (
-          <GroupCard key={g.group} group={g.group} teams={g.teams} decided={g.decided} />
+          <GroupCard key={g.group} group={g.group} teams={g.teams} decided={g.decided} prov={provByGroup[g.group]} />
         ))}
       </div>
       <Legend />
@@ -90,14 +106,21 @@ function ThirdPlaceRace({ entries }: { entries: ThirdPlaceEntry[] }) {
   );
 }
 
-function GroupCard({ group, teams, decided }: { group: string; teams: GroupTeamView[]; decided: boolean }) {
+function GroupCard({ group, teams, decided, prov }: { group: string; teams: GroupTeamView[]; decided: boolean; prov?: ProvisionalGroup | null }) {
+  const live = !!prov;
   return (
-    <div className="border-border bg-card overflow-hidden rounded-2xl border">
+    <div className={`bg-card overflow-hidden rounded-2xl border ${live ? "border-red-500/30" : "border-border"}`}>
       <div className="border-border/60 flex items-center justify-between border-b px-4 py-2.5">
         <h2 className="font-semibold">Group {group}</h2>
-        <span className={`text-[10px] font-medium font-mono tracking-wide uppercase ${decided ? "text-emerald-400" : "text-muted-foreground"}`}>
-          {decided ? "Final" : "In progress"}
-        </span>
+        {live ? (
+          <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold tracking-wide text-red-400 uppercase">
+            <span className="size-1.5 animate-pulse rounded-full bg-red-500" />Live
+          </span>
+        ) : (
+          <span className={`font-mono text-[10px] font-medium tracking-wide uppercase ${decided ? "text-emerald-400" : "text-muted-foreground"}`}>
+            {decided ? "Final" : "In progress"}
+          </span>
+        )}
       </div>
       <table className="w-full text-sm">
         <thead>
@@ -130,6 +153,11 @@ function GroupCard({ group, teams, decided }: { group: string; teams: GroupTeamV
               </span>
             </div>
           ))}
+        </div>
+      )}
+      {prov && (
+        <div className="border-border/60 border-t pt-2">
+          <ProvisionalStandings proj={prov} bare />
         </div>
       )}
     </div>

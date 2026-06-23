@@ -7,6 +7,8 @@ import { Flag } from "@/components/flag";
 import { pct } from "@/lib/format";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { LocalTime } from "@/components/local-time";
+import { provisionalGroup, ratingsFromTeams } from "@/lib/liveProjection";
+import { ProvisionalStandings } from "@/components/provisional-standings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,11 +21,21 @@ const ROUND_NAME: Record<string, string> = {
 export default async function MatchPage({ params }: { params: Promise<{ match: string }> }) {
   const { match } = await params;
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
-  const base = data.matches.find((x) => x.match === Number(match));
-  if (!base) notFound();
-  const m = overlayLive([base], live)[0];
+  const allMatches = overlayLive(data.matches, live);
+  const m = allMatches.find((x) => x.match === Number(match));
+  if (!m) notFound();
   const state: "final" | "live" | "defined" | "undefined" =
     m.status === "final" ? "final" : m.status === "live" ? "live" : m.defined ? "defined" : "undefined";
+
+  // "If the live score holds" provisional group standings, for an in-progress group-stage match.
+  const proj =
+    state === "live" && m.group
+      ? provisionalGroup(
+          m.group,
+          allMatches.filter((x) => x.round === "GROUP" && x.group === m.group),
+          ratingsFromTeams(data.teams),
+        )
+      : null;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -92,11 +104,20 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
             <ProbRow label="Draw" value={m.probs.draw} tone="muted" />
             <ProbRow label={m.awayName!} value={m.probs.away} />
             {state === "live" ? (
-              <p className="text-muted-foreground/70 pt-1 text-xs">The forecast updates once the match is final.</p>
+              <p className="text-muted-foreground/70 pt-1 text-xs">The full tournament forecast updates once the match is final.</p>
             ) : m.round !== "GROUP" ? (
               <p className="text-muted-foreground/70 pt-1 text-xs">Regulation result; knockout ties are decided by extra time and penalties.</p>
             ) : null}
           </div>
+        </section>
+      )}
+
+      {proj && (
+        <section className="mt-6">
+          <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">
+            Group {proj.group} if it ends like this
+          </h2>
+          <ProvisionalStandings proj={proj} />
         </section>
       )}
 
