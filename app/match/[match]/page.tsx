@@ -153,13 +153,13 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
                 <span className="w-10 font-mono text-sm font-bold tabular-nums">{s.h}–{s.a}</span>
                 <Flag code={m.away} size={16} />
                 <div className="bg-muted/40 relative ml-1 h-1.5 flex-1 overflow-hidden rounded-full">
-                  <div className="bg-emerald-500/70 absolute inset-y-0 left-0 rounded-full" style={{ width: `${(s.prob / m.topScores![0].prob) * 100}%` }} />
+                  <div className="bg-primary/70 absolute inset-y-0 left-0 rounded-full" style={{ width: `${(s.prob / m.topScores![0].prob) * 100}%` }} />
                 </div>
                 <span className="text-muted-foreground w-10 text-right font-mono text-xs tabular-nums">{pct(s.prob)}</span>
               </div>
             ))}
           </div>
-          <p className="text-muted-foreground/60 mt-2 text-xs">
+          <p className="text-muted-2 mt-2 text-xs">
             Top {m.topScores.length} of every possible scoreline · all other scorelines{" "}
             {pct(Math.max(0, 1 - m.topScores.reduce((acc, s) => acc + s.prob, 0)))} combined.
           </p>
