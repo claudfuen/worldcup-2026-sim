@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPredictions } from "@/lib/getPredictions";
+import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { TEAMS } from "@/lib/data/teams";
 import { teamSlug, teamFromSlug } from "@/lib/slug";
 import { Flag } from "@/components/flag";
 import { ShareBar } from "@/components/share-bar";
+import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { LocalTime } from "@/components/local-time";
 import { AdvanceBadge } from "@/components/view/advance-badge";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
@@ -12,7 +14,7 @@ import { isClinched } from "@/lib/view/types";
 import { forecastPct } from "@/lib/format";
 
 export const runtime = "nodejs";
-export const revalidate = 300; // ISR: cron data tolerates a 5-min cache; fast + crawlable
+export const dynamic = "force-dynamic"; // per-request live overlay: a finished match shows its score at once
 
 export function generateStaticParams() {
   return TEAMS.map((t) => ({ slug: teamSlug(t.name) }));
@@ -48,12 +50,12 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const team = teamFromSlug(slug);
   if (!team) notFound();
-  const data = await getPredictions();
+  const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const pred = data.teams.find((t) => t.code === team.code);
   const rank = data.teams.findIndex((t) => t.code === team.code) + 1;
   const groupView = data.groups.find((g) => g.group === team.group);
   const row = groupView?.teams.find((t) => t.code === team.code);
-  const fixtures = data.matches
+  const fixtures = overlayLive(data.matches, live)
     .filter((m) => m.round === "GROUP" && (m.home === team.code || m.away === team.code))
     .sort((a, b) => a.utc.localeCompare(b.utc));
   const opp = (data.r32Opponents[team.code] ?? [])[0];
@@ -74,6 +76,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
       <Link href="/groups" className="text-muted-foreground hover:text-foreground text-sm">← Groups</Link>
       <header className="mt-3">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026 · Group {team.group}</div>

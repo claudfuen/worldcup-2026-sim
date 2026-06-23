@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPredictions } from "@/lib/getPredictions";
-import { getLiveMatches, overlayLive } from "@/lib/live";
+import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
 import { pct } from "@/lib/format";
@@ -85,7 +85,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       {eventLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventLd) }} />}
-      <LiveAutoRefresh enabled={state === "live"} />
+      <LiveAutoRefresh enabled={liveActivity(data.matches.filter((x) => x.match === m.match), live)} />
       <h1 className="sr-only">
         {(m.homeName ?? prettySlot(m.slotHome))} vs {(m.awayName ?? prettySlot(m.slotAway))} prediction - World Cup 2026 {ROUND_NAME[m.round]}
       </h1>

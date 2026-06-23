@@ -57,12 +57,15 @@ export interface LiveMatch {
   group: string | null;
   homeGoals: number;
   awayGoals: number;
-  detail: string; // e.g. "45'+3'", "HT" - the live clock/state from ESPN
+  state: "in" | "post"; // "in" = in-progress, "post" = full-time (just finished)
+  date: string; // ESPN kickoff time (ISO) - lets callers bound "recently finished"
+  detail: string; // e.g. "45'+3'", "HT", "FT" - the clock/state from ESPN
 }
 
-// In-progress matches only (ESPN state "in"). Fetched fresh per request so live scores are real-time,
-// separate from the 30-min prediction cron. A live result does NOT move standings/ratings (FIFA tables
-// update at full time); it's surfaced as a live score on the schedule/match pages.
+// In-progress AND just-finished matches (ESPN state "in" or "post"). Fetched fresh per request so both
+// the live score and the final score surface in real time, separate from the prediction cron. Neither
+// moves standings/ratings (the cron recompute owns the model); this only lets a match show its current
+// or final score the instant it changes, closing the gap between full-time and the next cron tick.
 export async function fetchLive(): Promise<LiveMatch[]> {
   const res = await fetch(`${SCOREBOARD}?dates=20260611-20260719`, { cache: "no-store" });
   if (!res.ok) return [];
@@ -70,7 +73,9 @@ export async function fetchLive(): Promise<LiveMatch[]> {
   const out: LiveMatch[] = [];
   for (const e of data.events ?? []) {
     const comp = e.competitions?.[0];
-    if (!comp || comp.status?.type?.state !== "in") continue; // in-progress only
+    const espnState = comp?.status?.type?.state;
+    if (!comp || (espnState !== "in" && espnState !== "post")) continue; // in-progress or just finished
+    const state: "in" | "post" = espnState === "in" ? "in" : "post";
     const cs = comp.competitors ?? [];
     if (cs.length !== 2) continue;
     const home = cs.find((c) => c.homeAway === "home") ?? cs[0];
@@ -84,7 +89,9 @@ export async function fetchLive(): Promise<LiveMatch[]> {
       group: ht.group === at.group ? ht.group : null,
       homeGoals: Number(home.score),
       awayGoals: Number(away.score),
-      detail: comp.status?.type?.shortDetail ?? comp.status?.type?.detail ?? comp.status?.displayClock ?? "LIVE",
+      state,
+      date: e.date,
+      detail: comp.status?.type?.shortDetail ?? comp.status?.type?.detail ?? comp.status?.displayClock ?? (state === "post" ? "FT" : "LIVE"),
     });
   }
   return out;

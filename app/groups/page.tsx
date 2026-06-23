@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPredictions } from "@/lib/getPredictions";
-import { getLiveMatches, overlayLive } from "@/lib/live";
+import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import type { GroupTeamView, ThirdPlaceEntry } from "@/lib/predictions";
 import { provisionalGroup, ratingsFromTeams, type ProvisionalGroup } from "@/lib/liveProjection";
 import { Flag } from "@/components/flag";
@@ -37,7 +37,7 @@ export default async function GroupsPage() {
       ratings,
     );
   }
-  const hasLive = overlaid.some((m) => m.status === "live");
+  const hasLive = liveActivity(data.matches, live);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />

@@ -1,5 +1,5 @@
 import { getPredictions } from "@/lib/getPredictions";
-import { getLiveMatches } from "@/lib/live";
+import { getLiveMatches, liveActivity } from "@/lib/live";
 import { Bracket } from "@/components/bracket";
 import { Flag } from "@/components/flag";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
@@ -25,7 +25,7 @@ export default async function BracketPage() {
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <LiveAutoRefresh enabled={live.length > 0} />
+      <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">World Cup 2026 bracket</h1>
         <p className="text-muted-foreground mt-1 text-sm">

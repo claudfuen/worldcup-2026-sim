@@ -1,5 +1,5 @@
 import { getPredictions } from "@/lib/getPredictions";
-import { getLiveMatches, overlayLive } from "@/lib/live";
+import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { ScheduleList } from "@/components/schedule-list";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 
@@ -23,7 +23,7 @@ export default async function SchedulePage() {
   const matches = overlayLive(data.matches, live);
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      <LiveAutoRefresh enabled={matches.some((m) => m.status === "live")} />
+      <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">World Cup 2026 schedule</h1>
         <p className="text-muted-foreground mt-1 text-sm">

@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPredictions } from "@/lib/getPredictions";
+import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { GROUPS } from "@/lib/data/teams";
 import { teamSlug } from "@/lib/slug";
 import { Flag } from "@/components/flag";
 import { ShareBar } from "@/components/share-bar";
+import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { LocalTime } from "@/components/local-time";
 import { AdvanceBadge } from "@/components/view/advance-badge";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { pct } from "@/lib/format";
 
 export const runtime = "nodejs";
-export const revalidate = 300;
+export const dynamic = "force-dynamic"; // per-request live overlay: a finished match shows its score at once
 
 export function generateStaticParams() {
   return GROUPS.map((g) => ({ letter: g.toLowerCase() }));
@@ -37,16 +39,17 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
   const { letter } = await params;
   const L = letter.toUpperCase();
   if (!GROUPS.includes(L)) notFound();
-  const data = await getPredictions();
+  const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const gv = data.groups.find((g) => g.group === L);
   if (!gv) notFound();
-  const fixtures = data.matches
+  const fixtures = overlayLive(data.matches, live)
     .filter((m) => m.round === "GROUP" && m.group === L)
     .sort((a, b) => a.utc.localeCompare(b.utc));
   const leader = gv.teams[0];
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
       <Link href="/groups" className="text-muted-foreground hover:text-foreground text-sm">← All groups</Link>
       <header className="mt-3">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026</div>
