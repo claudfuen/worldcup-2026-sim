@@ -18,6 +18,14 @@ export default async function Page() {
   const contenders = data.teams.slice(0, 8);
   const maxTitle = contenders[0]?.title || 1;
   const hasLive = matches.some((m) => m.status === "live");
+  // Teams that have mathematically clinched a Round-of-32 place: their R32 cell shows a ✓ (locked),
+  // never a capped forecast %. Sourced from the group clinch status, not the sim frequency.
+  const advanceClinched = new Set<string>();
+  for (const g of data.groups) {
+    for (const t of g.teams) {
+      if (t.status === "won_group" || t.status === "second" || t.status === "advanced") advanceClinched.add(t.code);
+    }
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -86,7 +94,7 @@ export default async function Page() {
                       <span className="truncate font-medium">{t.name}</span>
                     </div>
                   </td>
-                  <RoundCell v={t.advance} hideMobile />
+                  <RoundCell v={t.advance} hideMobile clinched={advanceClinched.has(t.code)} />
                   <RoundCell v={t.r16} />
                   <RoundCell v={t.qf} hideMobile />
                   <RoundCell v={t.sf} hideMobile />
@@ -110,10 +118,10 @@ export default async function Page() {
   );
 }
 
-function RoundCell({ v, hideMobile }: { v: number; hideMobile?: boolean }) {
+function RoundCell({ v, hideMobile, clinched }: { v: number; hideMobile?: boolean; clinched?: boolean }) {
   return (
-    <td className={`text-muted-foreground px-1 text-right font-mono text-xs tabular-nums ${hideMobile ? "hidden sm:table-cell" : ""}`}>
-      {forecastPct(v)}
+    <td className={`px-1 text-right font-mono text-xs tabular-nums ${clinched ? "text-emerald-400" : "text-muted-foreground"} ${hideMobile ? "hidden sm:table-cell" : ""}`}>
+      {clinched ? <span title="Clinched a Round-of-32 place">✓</span> : forecastPct(v)}
     </td>
   );
 }
