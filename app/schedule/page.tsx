@@ -17,7 +17,7 @@ export default async function SchedulePage() {
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const matches = overlayLive(data.matches, live);
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={matches.some((m) => m.status === "live")} />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Schedule</h1>

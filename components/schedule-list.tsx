@@ -111,11 +111,11 @@ function Row({ m, zone }: { m: MatchInfo; zone?: import("@/lib/format").Zone }) 
         <div className="font-mono whitespace-nowrap" suppressHydrationWarning>{fmtTimeShort(m.utc, zone)}</div>
         <div className="text-[10px]">{ROUND_NAME[m.round]}{m.group ? ` ${m.group}` : ""}</div>
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 sm:flex-none sm:w-64">
         <TeamRow code={homeCode} label={homeLabel} score={showScore ? m.homeScore : undefined} win={final && (m.homeScore ?? 0) > (m.awayScore ?? 0)} projected={!m.home} prob={!m.home ? m.projHome?.[0]?.prob : undefined} />
         <TeamRow code={awayCode} label={awayLabel} score={showScore ? m.awayScore : undefined} win={final && (m.awayScore ?? 0) > (m.homeScore ?? 0)} projected={!m.away} prob={!m.away ? m.projAway?.[0]?.prob : undefined} />
       </div>
-      <div className="hidden w-32 shrink-0 text-right sm:block">
+      <div className="hidden w-44 shrink-0 sm:block">
         {live ? (
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-live">
             <span className="size-1.5 animate-pulse rounded-full bg-live" />LIVE {m.liveDetail}
