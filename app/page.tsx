@@ -8,6 +8,7 @@ import { TodaySection } from "@/components/today-section";
 import { ShareBar } from "@/components/share-bar";
 import { teamSlug } from "@/lib/slug";
 import { forecastPct } from "@/lib/format";
+import { clinchesR32 } from "@/lib/view/advance";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -25,7 +26,7 @@ export default async function Page() {
   const advanceClinched = new Set<string>();
   for (const g of data.groups) {
     for (const t of g.teams) {
-      if (t.status === "won_group" || t.status === "second" || t.status === "advanced") advanceClinched.add(t.code);
+      if (clinchesR32(t.status)) advanceClinched.add(t.code);
     }
   }
   const [c1, c2, c3] = data.teams;

@@ -40,7 +40,8 @@ export default async function Image({ params }: { params: Promise<{ match: strin
   const group = m?.group ? ` · Group ${m.group}` : "";
   const final = m?.status === "final";
   const probs = m?.probs;
-  const pc = (v: number) => `${Math.max(1, Math.round(v * 100))}%`;
+  // A single-match win probability is a forecast, never a certainty - cap at 99% (mirrors forecastPct).
+  const pc = (v: number) => `${Math.max(1, Math.round(Math.min(v, 0.99) * 100))}%`;
 
   return new ImageResponse(
     (

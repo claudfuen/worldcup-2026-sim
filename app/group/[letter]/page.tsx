@@ -21,10 +21,15 @@ export async function generateMetadata({ params }: { params: Promise<{ letter: s
   const { letter } = await params;
   const L = letter.toUpperCase();
   if (!GROUPS.includes(L)) return { title: "Group" };
+  const canonical = `/group/${L.toLowerCase()}`;
+  const title = `World Cup 2026 Group ${L}: Standings, Odds & Schedule`;
+  const description = `2026 World Cup Group ${L}: live standings, each team's probability of advancing, the 2026 head-to-head tiebreakers, and all six fixtures.`;
   return {
-    title: { absolute: `World Cup 2026 Group ${L}: Standings, Odds & Schedule` },
-    description: `2026 World Cup Group ${L}: live standings, each team's probability of advancing, the 2026 head-to-head tiebreakers, and all six fixtures.`,
-    alternates: { canonical: `/group/${letter.toLowerCase()}` },
+    title: { absolute: title },
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, type: "article" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

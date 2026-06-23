@@ -10,11 +10,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const BRACKET_TITLE = "World Cup 2026 Bracket Predictor - Live Knockout Simulation";
+const BRACKET_DESC =
+  "Projected 2026 World Cup knockout bracket: the most likely team in every Round-of-32 to Final slot, with full FIFA Annex C third-place modelling, updated live.";
 export const metadata = {
-  title: { absolute: "World Cup 2026 Bracket Predictor - Live Knockout Simulation" },
-  description:
-    "Projected 2026 World Cup knockout bracket: the most likely team in every Round-of-32 to Final slot, with full FIFA Annex C third-place modelling, updated live.",
+  title: { absolute: BRACKET_TITLE },
+  description: BRACKET_DESC,
   alternates: { canonical: "/bracket" },
+  openGraph: { title: BRACKET_TITLE, description: BRACKET_DESC, url: "/bracket", type: "website" },
+  twitter: { card: "summary_large_image", title: BRACKET_TITLE, description: BRACKET_DESC },
 };
 
 export default async function BracketPage() {

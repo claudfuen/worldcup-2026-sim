@@ -14,11 +14,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const GROUPS_TITLE = "World Cup 2026 Groups, Standings & Qualification Odds";
+const GROUPS_DESC =
+  "Live 2026 World Cup group standings with each team's probability of advancing, the 2026 head-to-head tiebreakers, and the best-third-place race for the Round of 32.";
 export const metadata = {
-  title: { absolute: "World Cup 2026 Groups, Standings & Qualification Odds" },
-  description:
-    "Live 2026 World Cup group standings with each team's probability of advancing, the 2026 head-to-head tiebreakers, and the best-third-place race for the Round of 32.",
+  title: { absolute: GROUPS_TITLE },
+  description: GROUPS_DESC,
   alternates: { canonical: "/groups" },
+  openGraph: { title: GROUPS_TITLE, description: GROUPS_DESC, url: "/groups", type: "website" },
+  twitter: { card: "summary_large_image", title: GROUPS_TITLE, description: GROUPS_DESC },
 };
 
 export default async function GroupsPage() {

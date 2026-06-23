@@ -9,7 +9,7 @@ import { LocalTime } from "@/components/local-time";
 import { AdvanceBadge } from "@/components/view/advance-badge";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { isClinched } from "@/lib/view/types";
-import { forecastPct, pct } from "@/lib/format";
+import { forecastPct } from "@/lib/format";
 
 export const runtime = "nodejs";
 export const revalidate = 300; // ISR: cron data tolerates a 5-min cache; fast + crawlable
@@ -22,10 +22,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const team = teamFromSlug(slug);
   if (!team) return { title: "Team" };
+  const canonical = `/team/${teamSlug(team.name)}`;
+  const title = `${team.name} World Cup 2026 - Odds, Group & Path to the Final`;
+  const description = `${team.name}'s 2026 World Cup chances: live title odds, advancement probability, Group ${team.group} standing, and projected knockout path, from 20,000 Monte Carlo simulations.`;
   return {
-    title: { absolute: `${team.name} World Cup 2026 - Odds, Group & Path to the Final` },
-    description: `${team.name}'s 2026 World Cup chances: live title odds, advancement probability, Group ${team.group} standing, and projected knockout path, from 20,000 Monte Carlo simulations.`,
-    alternates: { canonical: `/team/${slug}` },
+    title: { absolute: title },
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, type: "article" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -93,18 +98,20 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
             )}
           </p>
         )}
-        <div className="mt-4">
-          <ShareBar
-            text={
-              advanceClinched
-                ? `${team.name} are through to the World Cup 2026 knockouts, with a ${titlePct} chance to win it (model).`
-                : advanceOut
-                  ? `${team.name} are out of the 2026 World Cup.`
-                  : `${team.name}: ${advancePct} to reach the World Cup 2026 knockouts, ${titlePct} to win it (model).`
-            }
-            path={`/team/${slug}`}
-          />
-        </div>
+        {pred && (
+          <div className="mt-4">
+            <ShareBar
+              text={
+                advanceClinched
+                  ? `${team.name} are through to the World Cup 2026 knockouts, with a ${titlePct} chance to win it (model).`
+                  : advanceOut
+                    ? `${team.name} are out of the 2026 World Cup.`
+                    : `${team.name}: ${advancePct} to reach the World Cup 2026 knockouts, ${titlePct} to win it (model).`
+              }
+              path={`/team/${slug}`}
+            />
+          </div>
+        )}
       </header>
 
       {pred && (
@@ -160,9 +167,9 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
               </tbody>
             </table>
           </div>
-          {opp && (
+          {opp && !advanceOut && (
             <p className="text-muted-2 mt-3 text-xs">
-              Most likely Round-of-32 opponent: <span className="text-foreground/80">{opp.name}</span> ({pct(Math.min(opp.prob, 0.99))}).
+              Most likely Round-of-32 opponent: <span className="text-foreground/80">{opp.name}</span> ({forecastPct(opp.prob)}).
             </p>
           )}
         </section>

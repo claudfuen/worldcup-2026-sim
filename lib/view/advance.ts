@@ -2,6 +2,13 @@ import type { GroupTeamView } from "@/lib/predictions";
 import { forecastPct } from "@/lib/format";
 import type { AdvanceDisplay, Tone } from "./types";
 
+// The ONE definition of "this team has mathematically locked a Round-of-32 place" - the three clinch
+// statuses. Any surface that needs the boolean (e.g. the homepage funnel's ✓) calls this instead of
+// re-listing the statuses inline, so the ladder lives in exactly one place.
+export function clinchesR32(status: GroupTeamView["status"]): boolean {
+  return status === "won_group" || status === "second" || status === "advanced";
+}
+
 // THE single mapping from a group row's clinch status -> how its advancement renders. Every
 // standings/advance surface calls this; none re-derives the ladder. `rank` is the 0-based finishing
 // position in the (already-ranked) group, used only to tone a non-clinched forecast.

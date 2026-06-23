@@ -28,10 +28,14 @@ export async function generateMetadata({ params }: { params: Promise<{ match: st
     if (!m) return { title: `Match ${match}` };
     const home = m.homeName ?? (m.slotHome ? prettySlot(m.slotHome) : "TBD");
     const away = m.awayName ?? (m.slotAway ? prettySlot(m.slotAway) : "TBD");
+    const title = `${home} vs ${away} Prediction & Odds - World Cup 2026`;
+    const description = `Win probability, expected goals and likely scorelines for ${home} vs ${away} at the 2026 World Cup, from 20,000 Monte Carlo simulations.`;
     return {
-      title: { absolute: `${home} vs ${away} Prediction & Odds - World Cup 2026` },
-      description: `Win probability, expected goals and likely scorelines for ${home} vs ${away} at the 2026 World Cup, from 20,000 Monte Carlo simulations.`,
-      alternates: { canonical: `/match/${match}` },
+      title: { absolute: title },
+      description,
+      alternates: { canonical: `/match/${m.match}` },
+      openGraph: { title, description, url: `/match/${m.match}`, type: "article" },
+      twitter: { card: "summary_large_image", title, description },
     };
   } catch {
     return { title: `Match ${match}` };

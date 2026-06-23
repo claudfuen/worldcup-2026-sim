@@ -5,12 +5,13 @@ export function Delta({ v }: { v?: number }) {
   const pp = Math.round(v * 100);
   if (pp === 0) return null;
   const up = pp > 0;
+  const mag = Math.abs(pp);
   return (
     <span
       className={`ml-1 font-mono text-[10px] ${up ? "text-win" : "text-destructive"}`}
-      title="Change since the start of today"
+      title={`${up ? "Up" : "Down"} ${mag} percentage point${mag === 1 ? "" : "s"} since the start of today`}
     >
-      {up ? "▲" : "▼"}{Math.abs(pp)}
+      {up ? "▲" : "▼"}{mag}
     </span>
   );
 }
