@@ -309,13 +309,15 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
     const m103 = matches.find((m) => m.match === 103);
     const m104 = matches.find((m) => m.match === 104);
     if (m103 && m104) {
-      const finalists = new Set(
-        [m104.home, m104.away, m104.projHome?.[0]?.code, m104.projAway?.[0]?.code].filter(Boolean) as string[],
-      );
-      const drop = (list?: SlotCandidate[]) => (list ?? []).filter((c) => !finalists.has(c.code));
-      m103.projHome = drop(m103.projHome);
-      m103.projAway = drop(m103.projAway);
-      m103.topMatchups = (m103.topMatchups ?? []).filter((mu) => !finalists.has(mu.home) && !finalists.has(mu.away));
+      // Filter each side INDEPENDENTLY: M103's home slot (SF1 loser) and M104's home slot (SF1 winner) are
+      // the same semifinal, so the projected final-home team can't also be the 3rd-place home team - but it
+      // CAN legitimately appear in M103's away slot (the other semifinal). A blanket finalist set wrongly
+      // dropped such cross-side candidates.
+      const homeFinalists = new Set([m104.home, m104.projHome?.[0]?.code].filter(Boolean) as string[]);
+      const awayFinalists = new Set([m104.away, m104.projAway?.[0]?.code].filter(Boolean) as string[]);
+      m103.projHome = (m103.projHome ?? []).filter((c) => !homeFinalists.has(c.code));
+      m103.projAway = (m103.projAway ?? []).filter((c) => !awayFinalists.has(c.code));
+      m103.topMatchups = (m103.topMatchups ?? []).filter((mu) => !homeFinalists.has(mu.home) && !awayFinalists.has(mu.away));
     }
   }
 

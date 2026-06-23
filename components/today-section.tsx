@@ -11,7 +11,11 @@ const ROUND_SHORT: Record<string, string> = { GROUP: "", R32: "R32", R16: "R16",
 // "Today's" matches in the viewer's local day, with local kickoff times. Client-side so the
 // day boundary follows the viewer's timezone, not the host region.
 export function TodaySection({ matches }: { matches: MatchInfo[] }) {
-  const { zone } = useViewerZone();
+  const { zone, ready } = useViewerZone();
+  // The whole point of this block is the viewer's local day, so don't paint an ET-day guess on the
+  // server and swap it after mount. Render nothing until the zone resolves, then the first painted set
+  // is already correct (and immune to the near-midnight hydration mismatch).
+  if (!ready) return null;
   const today = fmtDayKey(new Date().toISOString(), zone);
   const todayMatches = matches
     .filter((m) => fmtDayKey(m.utc, zone) === today)

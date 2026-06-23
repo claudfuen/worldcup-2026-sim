@@ -6,6 +6,11 @@ import { usePathname } from "next/navigation";
 import { fmtTime, fmtDateTime } from "@/lib/format";
 import { useViewerZone } from "@/lib/useViewerZone";
 
+// The final is 2026-07-19; after it, the cron stops and the payload is the frozen final state. Past
+// this instant the freshness indicator reads "Final" rather than an ever-growing "Updated Xd ago",
+// which would wrongly signal neglected/stale data.
+const TOURNAMENT_OVER_MS = Date.parse("2026-07-20T00:00:00Z");
+
 const LINKS = [
   { href: "/", label: "Overview" },
   { href: "/groups", label: "Groups" },
@@ -60,6 +65,17 @@ function Freshness({ updatedAt }: { updatedAt: string | null }) {
     return () => clearInterval(id);
   }, []);
   if (!updatedAt) return null;
+  if (now != null && now >= TOURNAMENT_OVER_MS) {
+    return (
+      <div
+        className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs"
+        title={`Final - predictions frozen at ${fmtDateTime(updatedAt, zone)}`}
+      >
+        <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" aria-hidden />
+        <span className="whitespace-nowrap">Final</span>
+      </div>
+    );
+  }
   const min = now == null ? null : Math.max(0, (now - new Date(updatedAt).getTime()) / 60000);
   const rel =
     min == null

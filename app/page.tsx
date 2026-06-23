@@ -5,7 +5,7 @@ import { Flag } from "@/components/flag";
 import { Delta } from "@/components/delta";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { TodaySection } from "@/components/today-section";
-import { pct } from "@/lib/format";
+import { forecastPct } from "@/lib/format";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -45,7 +45,7 @@ export default async function Page() {
                   <div className="bg-primary absolute inset-y-0 left-0 rounded-full" style={{ width: `${(t.title / maxTitle) * 100}%` }} />
                 </div>
                 <span className="flex w-16 shrink-0 items-center justify-end font-mono text-sm font-semibold tabular-nums">
-                  {pct(t.title)}<Delta v={t.titleDelta} />
+                  {forecastPct(t.title)}<Delta v={t.titleDelta} />
                 </span>
               </Link>
             ))}
@@ -69,6 +69,7 @@ export default async function Page() {
             <thead>
               <tr className="text-muted-foreground border-border/60 border-b text-[11px]">
                 <th className="py-2 pr-2 text-left font-medium">Team</th>
+                <th className="hidden w-12 px-1 text-right font-medium sm:table-cell">R32</th>
                 <th className="w-12 px-1 text-right font-medium">R16</th>
                 <th className="hidden w-12 px-1 text-right font-medium sm:table-cell">QF</th>
                 <th className="hidden w-12 px-1 text-right font-medium sm:table-cell">SF</th>
@@ -85,11 +86,12 @@ export default async function Page() {
                       <span className="truncate font-medium">{t.name}</span>
                     </div>
                   </td>
+                  <RoundCell v={t.advance} hideMobile />
                   <RoundCell v={t.r16} />
                   <RoundCell v={t.qf} hideMobile />
                   <RoundCell v={t.sf} hideMobile />
                   <RoundCell v={t.final} />
-                  <td className="text-primary px-1 pr-2 text-right font-mono text-sm font-semibold tabular-nums">{pct(t.title)}</td>
+                  <td className="text-primary px-1 pr-2 text-right font-mono text-sm font-semibold tabular-nums">{forecastPct(t.title)}</td>
                 </tr>
               ))}
             </tbody>
@@ -111,7 +113,7 @@ export default async function Page() {
 function RoundCell({ v, hideMobile }: { v: number; hideMobile?: boolean }) {
   return (
     <td className={`text-muted-foreground px-1 text-right font-mono text-xs tabular-nums ${hideMobile ? "hidden sm:table-cell" : ""}`}>
-      {pct(v)}
+      {forecastPct(v)}
     </td>
   );
 }

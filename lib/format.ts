@@ -45,3 +45,9 @@ export function pct(v: number): string {
   if (v > 0 && v < 0.005) return "<1%";
   return `${Math.round(v * 100)}%`;
 }
+
+// A Monte Carlo frequency is a forecast, never a guarantee, so it must never render as "100%" - only a
+// mathematically-clinched state (shown with a ✓ elsewhere) may. Cap displayed sim probabilities at 99%.
+export function forecastPct(v: number): string {
+  return pct(Math.min(v, 0.99));
+}

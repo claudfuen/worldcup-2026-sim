@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "./flag";
@@ -25,14 +25,21 @@ export function ScheduleList({ matches }: { matches: MatchInfo[] }) {
   const [filter, setFilter] = useState("all");
   const [time, setTime] = useState("upcoming");
   const { zone } = useViewerZone();
-  const today = fmtDayKey(new Date().toISOString(), zone);
+  // "today" depends on the wall clock + viewer zone, both of which differ server vs client. Resolve it
+  // only after mount so SSR and first client render are identical (no midnight hydration mismatch); the
+  // day filter is simply inactive until then.
+  const [nowIso, setNowIso] = useState<string | null>(null);
+  useEffect(() => setNowIso(new Date().toISOString()), []);
+  const today = nowIso ? fmtDayKey(nowIso, zone) : null;
 
   const shown = matches.filter((m) => {
     if (filter === "GROUP" && m.round !== "GROUP") return false;
     if (filter === "KO" && m.round === "GROUP") return false;
-    const day = fmtDayKey(m.utc, zone);
-    if (time === "upcoming" && day < today) return false;
-    if (time === "past" && day >= today) return false;
+    if (today != null) {
+      const day = fmtDayKey(m.utc, zone);
+      if (time === "upcoming" && day < today) return false;
+      if (time === "past" && day >= today) return false;
+    }
     return true;
   });
 
