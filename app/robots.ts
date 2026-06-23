@@ -4,7 +4,7 @@ const SITE_URL = "https://worldcup2026predictions.app";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: "*", allow: "/" },
+    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/signin", "/matches"] },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

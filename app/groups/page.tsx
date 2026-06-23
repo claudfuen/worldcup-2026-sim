@@ -13,9 +13,10 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata = {
-  title: "Groups",
+  title: { absolute: "World Cup 2026 Groups, Standings & Qualification Odds" },
   description:
     "Live 2026 World Cup group standings with each team's probability of advancing, the 2026 head-to-head tiebreakers, and the best-third-place race for the Round of 32.",
+  alternates: { canonical: "/groups" },
 };
 
 export default async function GroupsPage() {
@@ -35,7 +36,7 @@ export default async function GroupsPage() {
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Groups</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">World Cup 2026 groups</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Live standings with each team&apos;s probability of advancing. Top 2 qualify directly; the 8 best third-placed
           teams also reach the Round of 32. Sorted by the 2026 tiebreakers (points → head-to-head → goal difference).

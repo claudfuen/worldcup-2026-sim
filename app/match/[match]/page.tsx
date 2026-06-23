@@ -10,6 +10,7 @@ import { LocalTime } from "@/components/local-time";
 import { provisionalGroup, ratingsFromTeams } from "@/lib/liveProjection";
 import { ProvisionalStandings } from "@/components/provisional-standings";
 import { WinProbBar } from "@/components/win-prob-bar";
+import { ShareBar } from "@/components/share-bar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,8 +29,9 @@ export async function generateMetadata({ params }: { params: Promise<{ match: st
     const home = m.homeName ?? (m.slotHome ? prettySlot(m.slotHome) : "TBD");
     const away = m.awayName ?? (m.slotAway ? prettySlot(m.slotAway) : "TBD");
     return {
-      title: `${home} vs ${away} · ${ROUND_NAME[m.round]}`,
-      description: `Win probability, expected goals and likely scorelines for ${home} vs ${away} at the 2026 World Cup.`,
+      title: { absolute: `${home} vs ${away} Prediction & Odds - World Cup 2026` },
+      description: `Win probability, expected goals and likely scorelines for ${home} vs ${away} at the 2026 World Cup, from 20,000 Monte Carlo simulations.`,
+      alternates: { canonical: `/match/${match}` },
     };
   } catch {
     return { title: `Match ${match}` };
@@ -58,6 +60,9 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={state === "live"} />
+      <h1 className="sr-only">
+        {(m.homeName ?? prettySlot(m.slotHome))} vs {(m.awayName ?? prettySlot(m.slotAway))} prediction - World Cup 2026 {ROUND_NAME[m.round]}
+      </h1>
       <Link href="/schedule" className="text-muted-foreground hover:text-foreground text-sm">← Schedule</Link>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
@@ -86,6 +91,19 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
           ) : null}
         </div>
         <ScoreTeam m={m} side="away" />
+      </div>
+
+      <div className="mt-4 flex justify-center">
+        <ShareBar
+          text={
+            state === "final"
+              ? `${m.homeName} ${m.homeScore}-${m.awayScore} ${m.awayName} - World Cup 2026 ${ROUND_NAME[m.round]}.`
+              : m.favorite && m.home && m.away
+                ? `${m.favorite.name} ${Math.round(m.favorite.winProb * 100)}% to win - ${m.homeName} vs ${m.awayName} World Cup 2026 prediction.`
+                : `${m.homeName ?? prettySlot(m.slotHome)} vs ${m.awayName ?? prettySlot(m.slotAway)} - World Cup 2026 prediction.`
+          }
+          path={`/match/${m.match}`}
+        />
       </div>
 
       {/* State-specific body */}

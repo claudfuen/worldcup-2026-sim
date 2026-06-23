@@ -5,6 +5,7 @@ import { Flag } from "@/components/flag";
 import { Delta } from "@/components/delta";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { TodaySection } from "@/components/today-section";
+import { ShareBar } from "@/components/share-bar";
 import { forecastPct } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -26,17 +27,45 @@ export default async function Page() {
       if (t.status === "won_group" || t.status === "second" || t.status === "advanced") advanceClinched.add(t.code);
     }
   }
+  const [c1, c2, c3] = data.teams;
+  // Biggest title-odds mover today (>= 1pp), for a fresh, shareable hook in the lede.
+  const mover = [...data.teams]
+    .filter((t) => t.titleDelta != null && Math.abs(t.titleDelta) >= 0.01)
+    .sort((a, b) => Math.abs(b.titleDelta!) - Math.abs(a.titleDelta!))[0];
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
-      <header className="mb-8">
+      <header className="mb-8 max-w-3xl">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">Live forecast</div>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">World Cup 2026 Predictions</h1>
         <p className="text-muted-foreground mt-2 text-sm text-pretty">
           {data.iterations.toLocaleString()} Monte Carlo simulations · {data.matchesPlayed}/{data.totalGroupMatches} group
           matches played · live from real results.
         </p>
+        {c1 && (
+          <>
+            <h2 className="mt-5 text-lg font-semibold tracking-tight">Who will win the 2026 World Cup?</h2>
+            <p className="text-muted-foreground mt-1.5 text-sm text-pretty">
+              The model&apos;s favorite is <span className="text-foreground font-medium">{c1.name} ({forecastPct(c1.title)})</span>
+              {c2 && <>, ahead of {c2.name} ({forecastPct(c2.title)})</>}
+              {c3 && <> and {c3.name} ({forecastPct(c3.title)})</>}, across {data.iterations.toLocaleString()} simulations
+              updated live from real results.
+              {mover && (
+                <>
+                  {" "}Biggest move today: <span className="text-foreground font-medium">{mover.name}</span>{" "}
+                  <span className={mover.titleDelta! > 0 ? "text-win" : "text-destructive"}>
+                    {mover.titleDelta! > 0 ? "▲" : "▼"}{Math.abs(Math.round(mover.titleDelta! * 100))}
+                  </span>{" "}
+                  to {forecastPct(mover.title)}.
+                </>
+              )}
+            </p>
+            <div className="mt-4">
+              <ShareBar text={`${c1.name} are the ${forecastPct(c1.title)} favorite to win the World Cup 2026, per 20,000 Monte Carlo sims.`} path="/" />
+            </div>
+          </>
+        )}
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

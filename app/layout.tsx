@@ -17,6 +17,7 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
   title: { default: TITLE, template: `%s · ${SITE_NAME}` },
   description: DESCRIPTION,
   applicationName: SITE_NAME,
