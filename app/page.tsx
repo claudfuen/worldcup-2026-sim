@@ -58,6 +58,10 @@ export default async function Page() {
               </Link>
             ))}
           </div>
+          <p className="text-muted-2 mt-2 text-[11px]">
+            <span className="text-win">▲</span>
+            <span className="text-destructive">▼</span> change since the start of today
+          </p>
         </section>
 
         {/* Side column - eyebrow mirrors "Title odds" so the card tops align across the two columns */}
