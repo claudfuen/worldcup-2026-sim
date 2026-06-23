@@ -7,11 +7,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const SCHED_TITLE = "World Cup 2026 Schedule & Predictions - All 104 Matches";
+const SCHED_DESC =
+  "All 104 matches of the 2026 World Cup in your local time, with the model favorite and live scores - group stage through the final.";
 export const metadata = {
-  title: { absolute: "World Cup 2026 Schedule & Predictions - All 104 Matches" },
-  description:
-    "All 104 matches of the 2026 World Cup in your local time, with the model favorite and live scores - group stage through the final.",
+  title: { absolute: SCHED_TITLE },
+  description: SCHED_DESC,
   alternates: { canonical: "/schedule" },
+  openGraph: { title: SCHED_TITLE, description: SCHED_DESC, url: "/schedule", type: "website" },
+  twitter: { card: "summary_large_image", title: SCHED_TITLE, description: SCHED_DESC },
 };
 
 export default async function SchedulePage() {

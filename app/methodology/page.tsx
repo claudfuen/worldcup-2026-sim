@@ -1,10 +1,14 @@
 export const dynamic = "force-dynamic";
 
+const METHOD_TITLE = "How the World Cup 2026 Prediction Model Works";
+const METHOD_DESC =
+  "How the 2026 World Cup model works: World Football Elo ratings, a Poisson/Dixon-Coles scoreline model, 20,000 Monte Carlo simulations, 2026 tiebreakers, and FIFA Annex C third-place assignment.";
 export const metadata = {
-  title: { absolute: "How the World Cup 2026 Prediction Model Works" },
-  description:
-    "How the 2026 World Cup model works: World Football Elo ratings, a Poisson/Dixon-Coles scoreline model, 20,000 Monte Carlo simulations, 2026 tiebreakers, and FIFA Annex C third-place assignment.",
+  title: { absolute: METHOD_TITLE },
+  description: METHOD_DESC,
   alternates: { canonical: "/methodology" },
+  openGraph: { title: METHOD_TITLE, description: METHOD_DESC, url: "/methodology", type: "article" },
+  twitter: { card: "summary_large_image", title: METHOD_TITLE, description: METHOD_DESC },
 };
 
 // One source for the FAQ: rendered visibly below AND emitted as FAQPage JSON-LD, so the rich-result
