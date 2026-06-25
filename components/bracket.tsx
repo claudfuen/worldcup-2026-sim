@@ -79,7 +79,7 @@ export function Bracket({
                   {ROUND_LABEL[round]}
                 </div>
                 {round === "FINAL" && champion && <ChampionCard champion={champion} />}
-                <div className="flex flex-1 flex-col">
+                <div className="flex flex-1 flex-col gap-y-2.5">
                   {ORDER[round].map((mn) => {
                     const m = byMatch.get(mn);
                     return (
@@ -162,7 +162,8 @@ function Connectors({ count }: { count: number }) {
   return (
     <div className="flex w-4 shrink-0 flex-col">
       <div className="mb-3 h-4" />
-      <div className="flex flex-1 flex-col">
+      {/* gap-y matches the node columns so each ⊐ bracket stays centered on its two feeders' midpoint. */}
+      <div className="flex flex-1 flex-col gap-y-2.5">
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="flex flex-1 items-center">
             <div className="border-muted-foreground/30 h-1/2 w-full rounded-r-md border-t border-r border-b" />
