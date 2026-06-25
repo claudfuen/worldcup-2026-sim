@@ -82,6 +82,85 @@ describe("computeClinch — fully decided group", () => {
   });
 });
 
+describe("computeClinch — decided group, 1st/2nd split ONLY by goal difference", () => {
+  // All games played. A & B both 7 pts and drew head-to-head 0-0 (level on H2H), so the title is
+  // decided by OVERALL goal difference: A +6 beats B +2. Since the group is OVER, that GD is final —
+  // A has definitively won the group and B is definitively 2nd (this is the bug: a completed group was
+  // still shown as a probability because the enumerator ignored now-settled goal difference).
+  const matches: GroupMatch[] = [
+    gm("A", "B", 0, 0), gm("A", "C", 3, 0), gm("A", "D", 3, 0),
+    gm("B", "C", 1, 0), gm("B", "D", 1, 0), gm("C", "D", 1, 0),
+  ];
+  const c = computeClinch(["A", "B", "C", "D"], matches, R);
+  it("locks A as group winner on settled goal difference", () => {
+    expect(c.A.winner).toBe(true);
+    expect(c.A.top2).toBe(true);
+    expect(c.A.second).toBe(false);
+  });
+  it("locks B as clinched runner-up (exactly 2nd)", () => {
+    expect(c.B.winner).toBe(false);
+    expect(c.B.top2).toBe(true);
+    expect(c.B.second).toBe(true);
+  });
+});
+
+describe("computeClinch — decided group, top-2 cut decided ONLY by goal difference", () => {
+  // All games played. A wins the group (9). B & C both 4 pts and drew head-to-head 0-0, so the second
+  // qualifying spot comes down to overall GD: B +2 is in, C 0 is out. Group is over => B has clinched
+  // top-2 and C is mathematically eliminated from top-2 (it can only be a best-third candidate).
+  const matches: GroupMatch[] = [
+    gm("A", "B", 1, 0), gm("A", "C", 1, 0), gm("A", "D", 1, 0),
+    gm("B", "C", 0, 0), gm("B", "D", 3, 0), gm("C", "D", 1, 0),
+  ];
+  const c = computeClinch(["A", "B", "C", "D"], matches, R);
+  it("A wins the group", () => {
+    expect(c.A.winner).toBe(true);
+  });
+  it("B has clinched top-2 (2nd) on settled goal difference", () => {
+    expect(c.B.top2).toBe(true);
+    expect(c.B.second).toBe(true);
+    expect(c.B.eliminatedTop2).toBe(false);
+  });
+  it("C is out of top-2 but still a guaranteed top-3 (best-third candidate)", () => {
+    expect(c.C.top2).toBe(false);
+    expect(c.C.eliminatedTop2).toBe(true);
+    expect(c.C.guaranteedTop3).toBe(true);
+    expect(c.C.eliminatedTop3).toBe(false);
+  });
+  it("D is fully eliminated", () => {
+    expect(c.D.eliminatedTop2).toBe(true);
+    expect(c.D.eliminatedTop3).toBe(true);
+  });
+});
+
+describe("computeClinch — decided group, a tie unresolved except by ranking/lots stays unclinched", () => {
+  // All games played. D wins all (9, 1st). A & B are IDENTICAL through every settled criterion: both 4
+  // pts, drew head-to-head 0-0, both overall GD 0 and GF 1. Only conduct / FIFA ranking / drawing of
+  // lots can separate them — none a real settled criterion here — so NEITHER has clinched 2nd, and
+  // neither is eliminated from top-2. Both ARE guaranteed top-3 (C is certainly last).
+  const matches: GroupMatch[] = [
+    gm("A", "B", 0, 0), gm("A", "C", 1, 0), gm("D", "A", 1, 0),
+    gm("B", "C", 1, 0), gm("D", "B", 1, 0), gm("D", "C", 1, 0),
+  ];
+  const c = computeClinch(["A", "B", "C", "D"], matches, R);
+  it("D has clinched the group", () => {
+    expect(c.D.winner).toBe(true);
+  });
+  it("neither A nor B is clinched 2nd nor eliminated from top-2 (only lots separates them)", () => {
+    expect(c.A.second).toBe(false);
+    expect(c.B.second).toBe(false);
+    expect(c.A.top2).toBe(false);
+    expect(c.B.top2).toBe(false);
+    expect(c.A.eliminatedTop2).toBe(false);
+    expect(c.B.eliminatedTop2).toBe(false);
+  });
+  it("both A and B are guaranteed top-3; C is certainly last", () => {
+    expect(c.A.guaranteedTop3).toBe(true);
+    expect(c.B.guaranteedTop3).toBe(true);
+    expect(c.C.eliminatedTop3).toBe(true);
+  });
+});
+
 describe("computeClinch — no false winner-clinch via overall GD (unbounded-goals soundness)", () => {
   // Z 7(+10), Y 4, X 0, W 0. Played: Z-Y 4-4 draw, Z-X 5-0, Z-W 5-0, Y-W 1-0. Remaining: Y-X, X-W.
   // Y can reach 7 by beating X; the Z-Y head-to-head was a 4-4 draw (level on H2H points), so a big

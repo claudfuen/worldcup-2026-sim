@@ -9,6 +9,7 @@
 // "could go either way" (a blowout could decide it) — i.e. NOT a safe clinch. This is both sound and
 // far cheaper than a goal grid, and it never over-claims certainty.
 import type { GroupMatch, Ratings } from "./types";
+import { rankGroup } from "./standings";
 
 export interface TeamClinch {
   winner: boolean; // clinched 1st
@@ -153,13 +154,59 @@ function tierRank(codes: string[], out: MatchOutcome[]): Map<string, { tier: num
   return rank;
 }
 
-// `ratings` is accepted for signature compatibility but is intentionally unused: clinching is decided
-// purely by points and head-to-head points, never by the FIFA-ranking fallback (which is goal/ranking
-// dependent and would itself never produce a guaranteed result here).
+// Once a group has played all its games, goal difference and goals-for are FINAL and settled — there
+// are no more goals to score — so a team separated only by GD/GF IS definitively ahead. The unbounded-
+// goals argument above only applies WHILE matches remain. Here we therefore use the real 2026
+// tiebreakers (rankGroup, incl. GD/GF). The only residual uncertainty is a tie that survives all the
+// way down to conduct / FIFA-ranking / drawing of lots; those are not real settled criteria here, so
+// (consistent with the rest of this module) we treat such a pair as NOT clinched.
+//
+// We detect "separated by a settled criterion" by ranking the group twice with opposite final-tiebreak
+// proxies: identical synthetic ratings, negated. Points/H2H/GD/GF decide identically in both runs; a
+// pair separable ONLY by the proxy flips between them. So one team is *certainly* above another iff it
+// ranks above in BOTH runs.
+function decidedClinch(codes: string[], matches: GroupMatch[]): GroupClinch {
+  const up: Ratings = {};
+  const down: Ratings = {};
+  codes.forEach((c, i) => { up[c] = i; down[c] = -i; });
+  const a = rankGroup(codes, matches, up).map((row) => row.code);
+  const b = rankGroup(codes, matches, down).map((row) => row.code);
+  const posA = new Map(a.map((c, i) => [c, i]));
+  const posB = new Map(b.map((c, i) => [c, i]));
+
+  const out: GroupClinch = {};
+  for (const c of codes) {
+    const certainlyAbove = codes.filter(
+      (o) => o !== c && posA.get(o)! < posA.get(c)! && posB.get(o)! < posB.get(c)!,
+    ).length;
+    const possiblyAbove = codes.filter(
+      (o) => o !== c && (posA.get(o)! < posA.get(c)! || posB.get(o)! < posB.get(c)!),
+    ).length;
+    const bestRank = certainlyAbove + 1; // nobody uncertain pushed above c
+    const worstRank = possiblyAbove + 1; // everyone who could be above c, is
+    const top2 = worstRank <= 2;
+    out[c] = {
+      winner: worstRank === 1, // certainly 1st: no team is ever above it
+      second: top2 && bestRank >= 2, // guaranteed top-2 and at least one team certainly above => exactly 2nd
+      top2,
+      eliminatedTop2: bestRank > 2,
+      eliminatedTop3: bestRank > 3,
+      guaranteedTop3: worstRank <= 3,
+    };
+  }
+  return out;
+}
+
+// `ratings` is accepted for signature compatibility but is intentionally unused: while matches remain,
+// clinching is decided purely by points and head-to-head points, never by the FIFA-ranking fallback
+// (which is goal/ranking dependent and would itself never produce a guaranteed result here). Once the
+// group is fully played, GD/GF are settled and decidedClinch (above) resolves it via the real
+// tiebreakers — still without the ranking proxy, so ratings stay unused.
 export function computeClinch(codes: string[], matches: GroupMatch[], _ratings?: Ratings): GroupClinch {
   const played = matches.filter((m) => m.played);
   const remaining = matches.filter((m) => !m.played);
   const r = remaining.length;
+  if (r === 0) return decidedClinch(codes, matches); // all games played: GD/GF are final, not ambiguous
 
   const canWin = new Set<string>(), canNotWin = new Set<string>();
   const canTop2 = new Set<string>(), canMiss = new Set<string>();

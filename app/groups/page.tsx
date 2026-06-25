@@ -3,7 +3,7 @@ import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { teamSlug } from "@/lib/slug";
 import type { GroupTeamView, ThirdPlaceEntry } from "@/lib/predictions";
-import { provisionalGroup, ratingsFromTeams, type ProvisionalGroup } from "@/lib/liveProjection";
+import { provisionalGroup, ratingsFromTeams, liveThirdPlaceRace, type ProvisionalGroup } from "@/lib/liveProjection";
 import { Flag } from "@/components/flag";
 import { AdvanceBadge } from "@/components/view/advance-badge";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
@@ -39,6 +39,11 @@ export default async function GroupsPage() {
     );
   }
   const hasLive = liveActivity(data.matches, live);
+  // While matches are in progress, re-rank the third-place race over the frozen-live standings so it
+  // matches the live group cards; otherwise the cron snapshot (which also carries Annex-C slot data).
+  const thirdRace = Object.values(provByGroup).some(Boolean)
+    ? liveThirdPlaceRace(data.groups, provByGroup, ratings)
+    : (data.thirdPlaceRace ?? []);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
@@ -63,7 +68,7 @@ export default async function GroupsPage() {
         <span className="text-win">▲</span><span className="text-destructive">▼</span> next to a team show how its
         advance odds have moved since the start of today.
       </p>
-      <ThirdPlaceRace entries={data.thirdPlaceRace ?? []} />
+      <ThirdPlaceRace entries={thirdRace} />
     </main>
   );
 }
