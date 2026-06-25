@@ -8,7 +8,7 @@ import { teamSlug } from "@/lib/slug";
 import { pct } from "@/lib/format";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { LocalTime } from "@/components/local-time";
-import { provisionalGroup, ratingsFromTeams } from "@/lib/liveProjection";
+import { provisionalGroup, ratingsFromTeams, finalizeGroups, finalizeBracket } from "@/lib/liveProjection";
 import { ProvisionalStandings } from "@/components/provisional-standings";
 import { WinProbBar } from "@/components/win-prob-bar";
 import { ShareBar } from "@/components/share-bar";
@@ -46,7 +46,11 @@ export async function generateMetadata({ params }: { params: Promise<{ match: st
 export default async function MatchPage({ params }: { params: Promise<{ match: string }> }) {
   const { match } = await params;
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
-  const allMatches = overlayLive(data.matches, live);
+  const overlaid = overlayLive(data.matches, live);
+  // Lock this match's participants the instant the feeding group(s) decide, ahead of the cron.
+  const hasLive = liveActivity(data.matches, live);
+  const ratings = ratingsFromTeams(data.teams);
+  const allMatches = hasLive ? finalizeBracket(overlaid, finalizeGroups(data.groups, overlaid, ratings), ratings) : overlaid;
   const m = allMatches.find((x) => x.match === Number(match));
   if (!m) notFound();
   const state: "final" | "live" | "defined" | "undefined" =
@@ -79,7 +83,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       ? provisionalGroup(
           m.group,
           allMatches.filter((x) => x.round === "GROUP" && x.group === m.group),
-          ratingsFromTeams(data.teams),
+          ratings,
         )
       : null;
 

@@ -45,27 +45,34 @@ function nextMatchNeed(code: string, codes: string[], gm: GroupMatch[]): string 
 // Build the 12 group views (ranked rows + definitive clinch status) from group matches. Definitive states
 // (won_group/second/advanced/eliminated) come from clinch MATH; everything else stays "live" (a probability,
 // never shown as 100%/✓). Cross-group best-third certainty uses sound min/max third-place point bounds.
+//
+// `groupMatches` is the RANKING set — what the displayed table (order, GD, points) reflects; pass live
+// scores frozen in here to show in-progress standings. `clinchMatches` is the CERTAINTY set — what ✓/out
+// and `decided` are computed from; it must contain only FULL-TIME results so an unfinished live score can
+// never produce a premature clinch. They're the same object for the cron (final-only); the render-time
+// live layer passes live-frozen for ranking and final-only for clinch.
 export function buildGroupViews(
   groupMatches: Record<string, GroupMatch[]>,
   ratings: Ratings,
   probOf: ProbOf,
+  clinchMatches: Record<string, GroupMatch[]> = groupMatches,
 ): { groups: GroupView[]; thirdRows: ThirdTeam[] } {
-  // Worst/best-case 3rd-place points per group — sound bounds for cross-group best-third certainty.
+  // Worst/best-case 3rd-place points per group — sound bounds for cross-group best-third certainty (final-only).
   const minThirdByGroup: Record<string, number> = {};
   const maxThirdByGroup: Record<string, number> = {};
   for (const g of GROUPS) {
     const codes = TEAMS.filter((t) => t.group === g).map((t) => t.code);
-    minThirdByGroup[g] = minThirdPlacePoints(codes, groupMatches[g]);
-    maxThirdByGroup[g] = maxThirdPlacePoints(codes, groupMatches[g]);
+    minThirdByGroup[g] = minThirdPlacePoints(codes, clinchMatches[g]);
+    maxThirdByGroup[g] = maxThirdPlacePoints(codes, clinchMatches[g]);
   }
 
   const thirdRows: ThirdTeam[] = [];
   const groups: GroupView[] = GROUPS.map((g) => {
     const codes = TEAMS.filter((t) => t.group === g).map((t) => t.code);
-    const rows = rankGroup(codes, groupMatches[g], ratings);
+    const rows = rankGroup(codes, groupMatches[g], ratings); // ranking set (may include live-frozen scores)
     thirdRows.push({ group: g, row: rows[2] });
-    const decided = groupMatches[g].every((m) => m.played);
-    const clinch = computeClinch(codes, groupMatches[g], ratings); // mathematical certainty, not sim probability
+    const decided = clinchMatches[g].every((m) => m.played); // "decided" = all FULL-TIME, never live
+    const clinch = computeClinch(codes, clinchMatches[g], ratings); // certainty from full-time results only
     return {
       group: g,
       decided,
@@ -75,7 +82,7 @@ export function buildGroupViews(
         // (>=8 other groups guarantee a 3rd-placed team with more points than this team can reach).
         let eliminated = cl.eliminatedTop3;
         if (!eliminated && cl.eliminatedTop2) {
-          const maxThird = maxReachablePoints(r.code, groupMatches[g]);
+          const maxThird = maxReachablePoints(r.code, clinchMatches[g]);
           const betterGroups = GROUPS.filter((og) => og !== g && minThirdByGroup[og] > maxThird).length;
           eliminated = betterGroups >= 8;
         }
@@ -95,7 +102,7 @@ export function buildGroupViews(
           code: r.code, name: TEAM_BY_CODE[r.code].name, played: r.played, w: r.w, d: r.d, l: r.l,
           gf: r.gf, ga: r.ga, gd: r.gd, pts: r.pts, winGroup: p.winGroup, advance: p.advance,
           advanceDelta: p.advanceDelta, status,
-          need: status === "live" ? nextMatchNeed(r.code, codes, groupMatches[g]) : undefined,
+          need: status === "live" ? nextMatchNeed(r.code, codes, clinchMatches[g]) : undefined,
         };
       }),
     };

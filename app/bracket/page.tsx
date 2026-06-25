@@ -1,5 +1,6 @@
 import { getPredictions } from "@/lib/getPredictions";
-import { getLiveMatches, liveActivity } from "@/lib/live";
+import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
+import { finalizeGroups, finalizeBracket, ratingsFromTeams } from "@/lib/liveProjection";
 import { Bracket } from "@/components/bracket";
 import { Flag } from "@/components/flag";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
@@ -23,9 +24,15 @@ export const metadata = {
 
 export default async function BracketPage() {
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
+  const hasLive = liveActivity(data.matches, live);
+  // Lock knockout participants the instant their group decides (and resolve third-place slots once the
+  // group stage completes), rather than waiting for the next cron tick.
+  const overlaid = overlayLive(data.matches, live);
+  const ratings = ratingsFromTeams(data.teams);
+  const matches = hasLive ? finalizeBracket(overlaid, finalizeGroups(data.groups, overlaid, ratings), ratings) : data.matches;
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
+      <LiveAutoRefresh enabled={hasLive} />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">World Cup 2026 bracket</h1>
         <p className="text-muted-foreground mt-1 text-sm">
@@ -44,12 +51,12 @@ export default async function BracketPage() {
         )}
       </div>
       <Bracket
-        matches={data.matches}
+        matches={matches}
         champion={data.teams[0] ? { code: data.teams[0].code, name: data.teams[0].name, prob: data.teams[0].title } : undefined}
       />
       <div className="border-border bg-card mt-6 rounded-2xl border p-4">
         <h2 className="mb-2 text-base font-semibold tracking-tight">Third-place play-off</h2>
-        <ThirdPlace matches={data.matches} />
+        <ThirdPlace matches={matches} />
       </div>
     </main>
   );

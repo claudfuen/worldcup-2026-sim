@@ -33,7 +33,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //     (over-conservative) clinch so completed groups show definitive states immediately, not on next cron.
 // v6: thirdPlaceRace entries gained advanceProb + status (the calibrated R32 chance, replacing the
 //     misleading binary In/Out snapshot).
-export const PRED_KEY = "predictions:v6";
+// v7: teams gained ratingExact (full-precision Elo) so render-time live finalization reproduces the cron
+//     standings/third-place tiebreaks exactly; live standings now reflect in-progress goal difference.
+export const PRED_KEY = "predictions:v7";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

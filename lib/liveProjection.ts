@@ -3,8 +3,8 @@
 // real 2026 tiebreakers. Deterministic and exact; does NOT touch the official (completed-only) table.
 import { rankGroup } from "./sim/standings";
 import { computeClinch, type GroupClinch } from "./sim/clinch";
-import { rankThirds, type ThirdTeam } from "./sim/thirdPlace";
-import { buildGroupViews, type GroupProb } from "./groupView";
+import { rankThirds, selectAndAssignThirds, type ThirdTeam } from "./sim/thirdPlace";
+import { buildGroupViews, lockedSlotsFromGroups, type GroupProb } from "./groupView";
 import type { GroupMatch, Ratings, TeamRow } from "./sim/types";
 import type { GroupView, MatchInfo, ThirdPlaceEntry } from "./predictions";
 import { TEAMS, TEAM_BY_CODE } from "./data/teams";
@@ -54,28 +54,91 @@ export function provisionalGroup(group: string, groupRows: MatchInfo[], ratings:
 }
 
 // Render-time FINALIZATION: recompute each group's standings + clinch + definitive status from the matches
-// known right now. The overlaid match list reflects full-time results the instant ESPN reports them — before
-// the 30-min prediction cron catches up — so a finished match finalizes the table, ranking and clinch ✓
-// immediately instead of lagging. Only FINAL matches count (the official table is full-time results only;
-// the "if the live score holds" provisional panel handles in-progress games). Monte Carlo probabilities
-// (winGroup/advance) can only be re-run by the cron, so they're carried forward by team code.
-// Idempotent: with no new finals beyond the cron payload, this reproduces the cron groups.
+// known right now. The overlaid match list reflects results the instant ESPN reports them — before the
+// 30-min prediction cron catches up. The displayed STANDINGS (order, GD, points, W/D/L) reflect both
+// full-time AND in-progress matches (a live score is frozen at its current value), so goal difference and
+// positions move while a match is being played. The CLINCH ✓ / "out" / "decided" states are computed from
+// FULL-TIME results only, so an unfinished live score can never produce a premature definitive state.
+// Monte Carlo probabilities (winGroup/advance) can only be re-run by the cron, so they're carried by code.
+// Idempotent: with no live or newly-final matches, this reproduces the cron groups.
 export function finalizeGroups(cronGroups: GroupView[], overlaidMatches: MatchInfo[], ratings: Ratings): GroupView[] {
-  const byGroup: Record<string, GroupMatch[]> = {};
-  for (const g of cronGroups) byGroup[g.group] = [];
+  const rankBy: Record<string, GroupMatch[]> = {}; // ranking set: full-time + live-frozen
+  const clinchBy: Record<string, GroupMatch[]> = {}; // certainty set: full-time only
+  for (const g of cronGroups) { rankBy[g.group] = []; clinchBy[g.group] = []; }
   for (const m of overlaidMatches) {
-    if (m.round !== "GROUP" || !m.group || !m.home || !m.away || !(m.group in byGroup)) continue;
-    const played = m.status === "final";
-    byGroup[m.group].push({
-      group: m.group, home: m.home, away: m.away, played,
-      homeGoals: played ? m.homeScore : undefined,
-      awayGoals: played ? m.awayScore : undefined,
+    if (m.round !== "GROUP" || !m.group || !m.home || !m.away || !(m.group in rankBy)) continue;
+    const final = m.status === "final";
+    const live = m.status === "live" && m.homeScore != null && m.awayScore != null;
+    const base = { group: m.group, home: m.home, away: m.away };
+    rankBy[m.group].push({
+      ...base, played: final || live,
+      homeGoals: final || live ? m.homeScore : undefined,
+      awayGoals: final || live ? m.awayScore : undefined,
+    });
+    clinchBy[m.group].push({
+      ...base, played: final,
+      homeGoals: final ? m.homeScore : undefined,
+      awayGoals: final ? m.awayScore : undefined,
     });
   }
   const prob = new Map<string, GroupProb>();
   for (const g of cronGroups)
     for (const t of g.teams) prob.set(t.code, { winGroup: t.winGroup, advance: t.advance, advanceDelta: t.advanceDelta });
-  return buildGroupViews(byGroup, ratings, (code) => prob.get(code) ?? { winGroup: 0, advance: 0 }).groups;
+  return buildGroupViews(rankBy, ratings, (code) => prob.get(code) ?? { winGroup: 0, advance: 0 }, clinchBy).groups;
+}
+
+// Render-time BRACKET finalization: lock a knockout match's participants the instant the feeding group
+// decides, instead of waiting for the cron. A clinched group winner fills its "1X" slot and a clinched
+// runner-up its "2X" slot (this mirrors the cron's lockedSlot logic over the freshly-finalized groups).
+// Once the WHOLE group stage is decided, the 8 best thirds and their Annex C slots are deterministic, so
+// each third-place R32 slot resolves to its exact team. Only EMPTY slots are filled (cron-locked slots
+// and Monte Carlo projections are preserved); W##/L## knockout feeders stay projected. `groups` must be
+// the finalized group views (see finalizeGroups).
+export function finalizeBracket(matches: MatchInfo[], groups: GroupView[], ratings: Ratings): MatchInfo[] {
+  const lockedSlot = lockedSlotsFromGroups(groups);
+  let thirdSlotToTeam: Record<string, string> = {};
+  if (groups.every((g) => g.decided)) {
+    const thirdRows: ThirdTeam[] = groups.map((g) => {
+      const t = g.teams[2];
+      return { group: g.group, row: { code: t.code, played: t.played, w: t.w, d: t.d, l: t.l, gf: t.gf, ga: t.ga, gd: t.gd, pts: t.pts } };
+    });
+    try {
+      thirdSlotToTeam = selectAndAssignThirds(thirdRows, ratings).slotToTeam;
+    } catch {
+      /* needs >=8 distinct group thirds; always true with 12 groups */
+    }
+  }
+  return matches.map((m) => {
+    if (m.round === "GROUP") return m;
+    let home = m.home;
+    let away = m.away;
+    // clinched group winner/runner-up -> "1X"/"2X" slots
+    const lh = m.slotHome ? lockedSlot[m.slotHome] : undefined;
+    const la = m.slotAway ? lockedSlot[m.slotAway] : undefined;
+    if (lh && !home) home = lh;
+    if (la && !away) away = la;
+    // deterministic third-place assignment, once the group stage is fully decided
+    if (m.round === "R32") {
+      const thirdSide = m.slotHome?.startsWith("3:") ? "home" : m.slotAway?.startsWith("3:") ? "away" : null;
+      if (thirdSide) {
+        const hostSlot = thirdSide === "home" ? m.slotAway : m.slotHome;
+        const code = hostSlot ? thirdSlotToTeam[hostSlot] : undefined;
+        if (code) {
+          if (thirdSide === "home" && !home) home = code;
+          else if (thirdSide === "away" && !away) away = code;
+        }
+      }
+    }
+    if (home === m.home && away === m.away) return m; // nothing newly locked
+    return {
+      ...m,
+      home,
+      away,
+      homeName: home ? TEAM_BY_CODE[home]?.name ?? home : m.homeName,
+      awayName: away ? TEAM_BY_CODE[away]?.name ?? away : m.awayName,
+      defined: Boolean(home && away),
+    };
+  });
 }
 
 // Recompute the cross-group third-place race "if the live scores hold", so it stays consistent with the
@@ -123,9 +186,11 @@ export function liveThirdPlaceRace(
 }
 
 // Build a code->rating map from the prediction payload's team list (rankGroup uses it only as the
-// last-resort FIFA-ranking proxy tiebreak).
-export function ratingsFromTeams(teams: { code: string; rating: number }[]): Ratings {
+// last-resort FIFA-ranking proxy tiebreak). Prefer the FULL-PRECISION ratingExact so render-time
+// standings/third-place tiebreaks match the cron exactly (the rounded `rating` is display-only and could
+// flip a tie the cron broke the other way).
+export function ratingsFromTeams(teams: { code: string; rating: number; ratingExact?: number }[]): Ratings {
   const r: Ratings = {};
-  for (const t of teams) r[t.code] = t.rating;
+  for (const t of teams) r[t.code] = t.ratingExact ?? t.rating;
   return r;
 }

@@ -42,9 +42,10 @@ export default async function GroupsPage() {
       ratings,
     );
   }
-  // While matches are in progress, re-rank the third-place race over the frozen-live standings so it
-  // matches the live group cards; otherwise the cron snapshot (which also carries Annex-C slot data).
-  const thirdRace = Object.values(provByGroup).some(Boolean)
+  // Whenever results are moving (in-progress OR just-finished-before-cron), rebuild the third-place race
+  // from the finalized groups so it stays consistent with the live group cards; otherwise the cron snapshot
+  // (which also carries Annex-C slot data). Gated on hasLive, matching the cards — not just in-progress.
+  const thirdRace = hasLive
     ? liveThirdPlaceRace(groups, provByGroup, ratings)
     : (data.thirdPlaceRace ?? []);
   return (

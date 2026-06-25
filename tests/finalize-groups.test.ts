@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { SCHEDULE } from "../lib/data/schedule";
 import { TEAMS, GROUPS } from "../lib/data/teams";
 import { buildGroupViews } from "../lib/groupView";
-import { finalizeGroups } from "../lib/liveProjection";
+import { finalizeGroups, ratingsFromTeams } from "../lib/liveProjection";
 import type { MatchInfo } from "../lib/predictions";
 import type { GroupMatch, Ratings } from "../lib/sim/types";
 
@@ -89,17 +89,38 @@ describe("finalizeGroups — a match that just went final finalizes instantly", 
   });
 });
 
-describe("finalizeGroups — in-progress matches do NOT count toward the official table", () => {
-  it("a live match is treated as not played (official table = full-time only)", () => {
-    const groupA = GROUP_SCHED.filter((s) => s.group === "A").sort((a, b) => a.utc.localeCompare(b.utc));
-    const lastA = groupA[groupA.length - 1].match;
-    const cron = buildGroupViews(groupMatches((m) => m !== lastA), ratings, dummyProb).groups;
-    // overlay marks the missing match LIVE (in progress), the rest final
-    const overlaid = matchInfos((m) => (m === lastA ? "live" : "final"));
-    const out = finalizeGroups(cron, overlaid, ratings);
-    // Group A still NOT decided (the live game isn't full-time)
-    expect(out.find((g) => g.group === "A")!.decided).toBe(false);
-    // and it equals the cron view (live game ignored), i.e. unchanged
-    expect(sig([out.find((g) => g.group === "A")!])).toEqual(sig([cron.find((g) => g.group === "A")!]));
+describe("finalizeGroups — in-progress matches move the STANDINGS but never the clinch/decided state", () => {
+  const groupA = GROUP_SCHED.filter((s) => s.group === "A").sort((a, b) => a.utc.localeCompare(b.utc));
+  const lastA = groupA[groupA.length - 1].match;
+  // cron knows everything except Group A's last match; the overlay has that match LIVE (in progress).
+  const cron = buildGroupViews(groupMatches((m) => m !== lastA), ratings, dummyProb).groups;
+  const overlaid = matchInfos((m) => (m === lastA ? "live" : "final"));
+  const out = finalizeGroups(cron, overlaid, ratings);
+  const A = out.find((g) => g.group === "A")!;
+
+  it("Group A is NOT decided (a live game is not full-time) and no team clinches off the live score", () => {
+    expect(A.decided).toBe(false);
+    // clinch/status must match the FINAL-ONLY view (live game excluded from certainty)
+    const finalOnly = cron.find((g) => g.group === "A")!;
+    const statusByCode = (gv: typeof A) => Object.fromEntries(gv.teams.map((t) => [t.code, t.status]));
+    expect(statusByCode(A)).toEqual(statusByCode(finalOnly));
+  });
+
+  it("but the live score IS reflected in goal difference / points / order", () => {
+    // Standings (pts/gd, ignoring status) must match the view where the live match counts as played.
+    const asIfPlayed = buildGroupViews(groupMatches(() => true), ratings, dummyProb).groups.find((g) => g.group === "A")!;
+    const standings = (gv: typeof A) => gv.teams.map((t) => `${t.code}:${t.pts}:${t.gd}`);
+    expect(standings(A)).toEqual(standings(asIfPlayed));
+  });
+});
+
+describe("ratingsFromTeams — uses full-precision ratingExact (so render-time tiebreaks match the cron)", () => {
+  it("prefers ratingExact over the rounded rating, falls back when absent", () => {
+    const r = ratingsFromTeams([
+      { code: "AAA", rating: 1850, ratingExact: 1850.73 },
+      { code: "BBB", rating: 1700 }, // no ratingExact -> falls back to rating
+    ]);
+    expect(r.AAA).toBe(1850.73);
+    expect(r.BBB).toBe(1700);
   });
 });

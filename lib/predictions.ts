@@ -12,7 +12,9 @@ import type { TeamProb } from "./sim/simulate";
 
 export interface TeamPrediction extends TeamProb {
   name: string;
-  rating: number;
+  rating: number; // rounded, for display
+  ratingExact: number; // full-precision live Elo — the FIFA-ranking tiebreak proxy; lets the render-time
+  // finalization reproduce the cron's standings/third-place tiebreaks exactly (no rounding divergence)
   titleDelta?: number; // change in title odds since the start of today (ET)
 }
 export interface GroupTeamView {
@@ -136,7 +138,10 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
   const sim = runMonteCarlo(groupMatches, ratings, iterations, seed);
 
   const teams: TeamPrediction[] = Object.values(sim.teams)
-    .map((t) => ({ ...t, name: TEAM_BY_CODE[t.code].name, rating: Math.round(ratings[t.code] ?? TEAM_BY_CODE[t.code].rating) }))
+    .map((t) => {
+      const exact = ratings[t.code] ?? TEAM_BY_CODE[t.code].rating;
+      return { ...t, name: TEAM_BY_CODE[t.code].name, rating: Math.round(exact), ratingExact: exact };
+    })
     .sort((a, b) => b.title - a.title);
 
   // Group standings + definitive clinch states (shared with the render-time live finalization layer).
