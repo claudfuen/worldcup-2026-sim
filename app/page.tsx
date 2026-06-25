@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
+import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { Flag } from "@/components/flag";
 import { Delta } from "@/components/delta";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
@@ -21,10 +22,12 @@ export default async function Page() {
   const contenders = data.teams.slice(0, 8);
   const maxTitle = contenders[0]?.title || 1;
   const hasLive = liveActivity(data.matches, live);
+  // Finalize group clinch from results known right now, so a ✓ appears the instant a group locks.
+  const groups = hasLive ? finalizeGroups(data.groups, matches, ratingsFromTeams(data.teams)) : data.groups;
   // Teams that have mathematically clinched a Round-of-32 place: their R32 cell shows a ✓ (locked),
   // never a capped forecast %. Sourced from the group clinch status, not the sim frequency.
   const advanceClinched = new Set<string>();
-  for (const g of data.groups) {
+  for (const g of groups) {
     for (const t of g.teams) {
       if (clinchesR32(t.status)) advanceClinched.add(t.code);
     }

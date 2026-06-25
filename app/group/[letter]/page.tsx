@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
+import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { GROUPS } from "@/lib/data/teams";
 import { teamSlug } from "@/lib/slug";
 import { Flag } from "@/components/flag";
@@ -40,16 +41,20 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
   const L = letter.toUpperCase();
   if (!GROUPS.includes(L)) notFound();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
-  const gv = data.groups.find((g) => g.group === L);
+  const overlaid = overlayLive(data.matches, live);
+  const hasLive = liveActivity(data.matches, live);
+  // Finalize standings/clinch from results known right now, so a finished match updates the table instantly.
+  const groups = hasLive ? finalizeGroups(data.groups, overlaid, ratingsFromTeams(data.teams)) : data.groups;
+  const gv = groups.find((g) => g.group === L);
   if (!gv) notFound();
-  const fixtures = overlayLive(data.matches, live)
+  const fixtures = overlaid
     .filter((m) => m.round === "GROUP" && m.group === L)
     .sort((a, b) => a.utc.localeCompare(b.utc));
   const leader = gv.teams[0];
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
+      <LiveAutoRefresh enabled={hasLive} />
       <Link href="/groups" className="text-muted-foreground hover:text-foreground text-sm">← All groups</Link>
       <header className="mt-3">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026</div>

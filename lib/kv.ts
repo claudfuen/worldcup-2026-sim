@@ -31,7 +31,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 // v4: removed per-user `myMatches` from the shared payload (now stored per-user in Postgres).
 // v5: clinch now resolves fully-decided groups via settled GD/GF — drop payloads cached with the old
 //     (over-conservative) clinch so completed groups show definitive states immediately, not on next cron.
-export const PRED_KEY = "predictions:v5";
+// v6: thirdPlaceRace entries gained advanceProb + status (the calibrated R32 chance, replacing the
+//     misleading binary In/Out snapshot).
+export const PRED_KEY = "predictions:v6";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

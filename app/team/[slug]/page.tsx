@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
+import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { TEAMS } from "@/lib/data/teams";
 import { teamSlug, teamFromSlug } from "@/lib/slug";
 import { Flag } from "@/components/flag";
@@ -51,11 +52,14 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   const team = teamFromSlug(slug);
   if (!team) notFound();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
+  const overlaid = overlayLive(data.matches, live);
+  const hasLive = liveActivity(data.matches, live);
+  const groups = hasLive ? finalizeGroups(data.groups, overlaid, ratingsFromTeams(data.teams)) : data.groups;
   const pred = data.teams.find((t) => t.code === team.code);
   const rank = data.teams.findIndex((t) => t.code === team.code) + 1;
-  const groupView = data.groups.find((g) => g.group === team.group);
+  const groupView = groups.find((g) => g.group === team.group);
   const row = groupView?.teams.find((t) => t.code === team.code);
-  const fixtures = overlayLive(data.matches, live)
+  const fixtures = overlaid
     .filter((m) => m.round === "GROUP" && (m.home === team.code || m.away === team.code))
     .sort((a, b) => a.utc.localeCompare(b.utc));
   const opp = (data.r32Opponents[team.code] ?? [])[0];
@@ -76,7 +80,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
+      <LiveAutoRefresh enabled={hasLive} />
       <Link href="/groups" className="text-muted-foreground hover:text-foreground text-sm">← Groups</Link>
       <header className="mt-3">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026 · <Link href={`/group/${team.group.toLowerCase()}`} className="hover:underline">Group {team.group}</Link></div>

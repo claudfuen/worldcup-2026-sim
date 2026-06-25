@@ -3,11 +3,12 @@ import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { teamSlug } from "@/lib/slug";
 import type { GroupTeamView, ThirdPlaceEntry } from "@/lib/predictions";
-import { provisionalGroup, ratingsFromTeams, liveThirdPlaceRace, type ProvisionalGroup } from "@/lib/liveProjection";
+import { provisionalGroup, ratingsFromTeams, liveThirdPlaceRace, finalizeGroups, type ProvisionalGroup } from "@/lib/liveProjection";
 import { Flag } from "@/components/flag";
 import { AdvanceBadge } from "@/components/view/advance-badge";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { isClinched } from "@/lib/view/types";
+import { forecastPct } from "@/lib/format";
 import { ProvisionalStandings } from "@/components/provisional-standings";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 
@@ -30,19 +31,21 @@ export default async function GroupsPage() {
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const overlaid = overlayLive(data.matches, live);
   const ratings = ratingsFromTeams(data.teams);
+  const hasLive = liveActivity(data.matches, live);
+  // Finalize standings/clinch from full-time results known right now (so a finished group locks instantly).
+  const groups = hasLive ? finalizeGroups(data.groups, overlaid, ratings) : data.groups;
   const provByGroup: Record<string, ProvisionalGroup | null> = {};
-  for (const g of data.groups) {
+  for (const g of groups) {
     provByGroup[g.group] = provisionalGroup(
       g.group,
       overlaid.filter((x) => x.round === "GROUP" && x.group === g.group),
       ratings,
     );
   }
-  const hasLive = liveActivity(data.matches, live);
   // While matches are in progress, re-rank the third-place race over the frozen-live standings so it
   // matches the live group cards; otherwise the cron snapshot (which also carries Annex-C slot data).
   const thirdRace = Object.values(provByGroup).some(Boolean)
-    ? liveThirdPlaceRace(data.groups, provByGroup, ratings)
+    ? liveThirdPlaceRace(groups, provByGroup, ratings)
     : (data.thirdPlaceRace ?? []);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -55,7 +58,7 @@ export default async function GroupsPage() {
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {data.groups.map((g) => (
+        {groups.map((g) => (
           <GroupCard key={g.group} group={g.group} teams={g.teams} decided={g.decided} prov={provByGroup[g.group]} />
         ))}
       </div>
@@ -79,10 +82,11 @@ function ThirdPlaceRace({ entries }: { entries: ThirdPlaceEntry[] }) {
     <section className="mt-10">
       <h2 className="text-base font-semibold tracking-tight">Third-place race</h2>
       <p className="text-muted-foreground mt-1 mb-3 text-sm">
-        The <span className="text-foreground">8 best</span>{" "}of the 12 third-placed teams also reach the Round of 32,
-        ranked across groups by points → goal difference → goals scored. This is the standings race as it stands now;
-        the bracket shows each projected third&apos;s Round-of-32 matchup (which group winner it faces depends on the
-        final mix, per FIFA&apos;s Annex C table).
+        The <span className="text-foreground">8 best</span>{" "}of the 12 third-placed teams also reach the Round of 32.
+        Rows are ordered by the current standings (points → goal difference → goals scored), but the{" "}
+        <span className="text-foreground">Chance</span> column is the model&apos;s forecast — and with games still to
+        play it can disagree with today&apos;s order: a team below the line can be likelier to go through than one above
+        it, because the still-undecided groups&apos; thirds will gain points.
       </p>
       <div className="border-border bg-card overflow-hidden rounded-2xl border">
         <table className="w-full text-sm">
@@ -93,38 +97,48 @@ function ThirdPlaceRace({ entries }: { entries: ThirdPlaceEntry[] }) {
               <th className="w-8 px-1 text-center font-medium">GF</th>
               <th className="w-8 px-1 text-center font-medium">GD</th>
               <th className="w-8 px-1 text-center font-semibold">Pts</th>
-              <th className="px-2 pr-3 text-right font-medium">Status</th>
+              <th className="px-2 pr-3 text-right font-medium" title="Model probability of reaching the Round of 32">Chance</th>
             </tr>
           </thead>
           <tbody>
-            {entries.map((e) => (
-              <tr key={e.code} className={`border-l-2 ${e.advancing ? "border-l-contention" : "border-l-transparent opacity-50"} ${e.rank === 8 ? "border-b-primary/50 border-b border-dashed" : ""}`}>
-                <td className="py-2 pr-1 pl-3 text-muted-foreground font-mono text-[11px]">{e.rank}</td>
-                <td className="py-2">
-                  <div className="flex items-center gap-2">
-                    <Link href={`/team/${teamSlug(e.name)}`} className="flex items-center gap-2 hover:underline">
-                      <Flag code={e.code} size={20} />
-                      <span className="text-[13px] font-medium">{e.name}</span>
-                    </Link>
-                    <Link href={`/group/${e.group.toLowerCase()}`} className="text-muted-foreground hover:text-primary text-[11px] hover:underline">Grp {e.group}</Link>
-                  </div>
-                </td>
-                <td className="px-1 text-center font-mono text-xs tabular-nums text-muted-foreground">{e.gf}</td>
-                <td className="px-1 text-center font-mono text-xs tabular-nums">{e.gd >= 0 ? "+" : ""}{e.gd}</td>
-                <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{e.pts}</td>
-                <td className="px-2 pr-3 text-right text-xs">
-                  {e.advancing ? (
-                    <span className="text-contention">In (top 8)</span>
-                  ) : (
-                    <span className="text-muted-2">Out (9th-12th)</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {entries.map((e) => {
+              const elim = e.status === "eliminated";
+              const through = e.status === "won_group" || e.status === "second" || e.status === "advanced";
+              return (
+                <tr key={e.code} className={`border-l-2 ${e.advancing ? "border-l-contention" : "border-l-transparent"} ${e.rank === 8 ? "border-b-primary/50 border-b border-dashed" : ""} ${elim ? "opacity-45" : ""}`}>
+                  <td className="py-2 pr-1 pl-3 text-muted-foreground font-mono text-[11px]">{e.rank}</td>
+                  <td className="py-2">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/team/${teamSlug(e.name)}`} className="flex items-center gap-2 hover:underline">
+                        <Flag code={e.code} size={20} />
+                        <span className={`text-[13px] font-medium ${elim ? "line-through" : ""}`}>{e.name}</span>
+                      </Link>
+                      <Link href={`/group/${e.group.toLowerCase()}`} className="text-muted-foreground hover:text-primary text-[11px] hover:underline">Grp {e.group}</Link>
+                    </div>
+                  </td>
+                  <td className="px-1 text-center font-mono text-xs tabular-nums text-muted-foreground">{e.gf}</td>
+                  <td className="px-1 text-center font-mono text-xs tabular-nums">{e.gd >= 0 ? "+" : ""}{e.gd}</td>
+                  <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{e.pts}</td>
+                  <td className="px-2 pr-3 text-right text-xs tabular-nums">
+                    {through ? (
+                      <span className="text-win font-semibold" title="Clinched a Round-of-32 place">✓ in</span>
+                    ) : elim ? (
+                      <span className="text-muted-2">out</span>
+                    ) : (
+                      <span className={e.advancing ? "text-contention font-medium" : "text-muted-foreground"}>{forecastPct(e.advanceProb)}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-      <p className="text-muted-2 mt-2 text-xs">Live order based on current standings; the slot assignment updates as the qualifying set of groups changes (495 possible combinations).</p>
+      <p className="text-muted-2 mt-2 text-xs">
+        Order is the current standings snapshot; <span className="text-foreground/80">Chance</span> is the Monte Carlo
+        probability of reaching the Round of 32 (a <span className="text-win">✓</span> is mathematically locked). The
+        slot assignment updates as the qualifying set of groups changes (495 possible combinations).
+      </p>
     </section>
   );
 }
