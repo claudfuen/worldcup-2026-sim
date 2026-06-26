@@ -72,3 +72,27 @@ describe("buildGroupViews — best-third clinch respects settled GD/GF tiebreake
     expect(through.length).toBeLessThanOrEqual(8);
   });
 });
+
+describe("buildGroupViews — best-third ELIMINATION respects settled GD/GF tiebreakers", () => {
+  // The mirror of the clinch case. All 12 groups decided. The target third (group A) ties EIGHT other
+  // decided thirds on points but trails them all on goal difference, so those 8 are mathematically above it
+  // — it can finish no better than 9th of 12 thirds and is out. Counting by points alone (the old bug) sees
+  // no group "strictly above" on points and wrongly leaves it alive.
+  const T3_GDm5 = [[0, 0], [1, 0], [3, 0], [1, 0], [1, 0], [3, 0]] as [number, number][]; // 3rd: 3 pts, GD -5
+  const T3_GD0 = [[0, 0], [2, 0], [1, 0], [1, 0], [1, 0], [1, 0]] as [number, number][]; //  3rd: 3 pts, GD  0
+  const T1 = [[0, 0], [1, 1], [1, 0], [1, 0], [1, 0], [1, 0]] as [number, number][]; //      3rd: 1 pt (below)
+
+  const gm: Record<string, GroupMatch[]> = {};
+  gm["A"] = mk("A", T3_GDm5); // target
+  for (const g of ["B", "C", "D", "E", "F", "G", "H", "I"]) gm[g] = mk(g, T3_GD0); // 8 thirds tied on pts, better GD
+  for (const g of ["J", "K", "L"]) gm[g] = mk(g, T1); // 3 thirds below on points
+  const status = statusOfThird(gm);
+
+  it("eliminates a decided 3rd that 8 decided groups outrank on GD despite equal points", () => {
+    expect(status["A"]).toBe("eliminated"); // points-only would leave it "live" (none have strictly more points)
+  });
+
+  it("keeps the eight better thirds advancing (they are the top 8)", () => {
+    for (const g of ["B", "C", "D", "E", "F", "G", "H", "I"]) expect(status[g]).toBe("advanced");
+  });
+});

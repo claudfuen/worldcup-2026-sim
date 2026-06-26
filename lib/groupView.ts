@@ -86,12 +86,24 @@ export function buildGroupViews(
       decided,
       teams: rows.map((r) => {
         const cl = clinch[r.code];
-        // Mathematically eliminated: out of top-2 AND best-3rd path is impossible
-        // (>=8 other groups guarantee a 3rd-placed team with more points than this team can reach).
+        // Mathematically eliminated: out of top-2 AND the best-3rd path is impossible — i.e. >=8 OTHER groups
+        // are GUARANTEED to field a 3rd-placed team ranked above this one. For a group still playing, only a
+        // strict points gap (its worst-case 3rd already beats this team's best-case points) is a guarantee.
+        // For TWO already-decided groups, GD/GF are settled, so a 3rd tied on points but ahead on GD/GF is
+        // also certainly above (compare the real tiebreakers). This is the mirror image of the best-third
+        // clinch above: there we count who COULD be above (>=), here who CERTAINLY is (strict) — so neither
+        // direction over-claims.
         let eliminated = cl.eliminatedTop3;
         if (!eliminated && cl.eliminatedTop2) {
           const maxThird = maxReachablePoints(r.code, clinchMatches[g]);
-          const betterGroups = GROUPS.filter((og) => og !== g && minThirdByGroup[og] > maxThird).length;
+          const betterGroups = GROUPS.filter((og) => {
+            if (og === g) return false;
+            if (decided && decidedByGroup[og]) {
+              const ot = settledThirdByGroup[og]; // both settled: certainly above only if it outranks on pts -> GD -> GF
+              return ot.pts !== r.pts ? ot.pts > r.pts : ot.gd !== r.gd ? ot.gd > r.gd : ot.gf > r.gf;
+            }
+            return minThirdByGroup[og] > maxThird; // still playing: only a strict points gap is guaranteed
+          }).length;
           eliminated = betterGroups >= 8;
         }
         // Clinched via best-third (guaranteed to REACH the Round of 32 — NOT a specific bracket slot, which
