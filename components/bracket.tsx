@@ -234,8 +234,12 @@ function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "a
   const cands = (side === "home" ? m.projHome : m.projAway) ?? [];
   const proj = cands[0];
   const tip = useHoverTip();
-  // An unresolved slot offers a candidate hover; a confirmed (resolved) team does not.
-  const tipProps = !resolved && cands.length > 0 ? tip.triggerProps : {};
+  // An unresolved slot offers a candidate hover; a confirmed (resolved) team does not. `cursor-help` (added
+  // to the row className) hints it's hoverable. No tap-to-pin here — the slot already links to its match
+  // page, which lists candidates, so touch users have a fallback.
+  const hoverable = !resolved && cands.length > 0;
+  const tipProps = hoverable ? tip.triggerProps : {};
+  const hoverCls = hoverable ? " cursor-help" : "";
 
   // Third-place slots: a best-third can come from any of several groups (FIFA Annex C). We show the Monte
   // Carlo's most-likely qualifier with its fill probability, tagged "3rd" so the slot's nature stays clear.
@@ -244,7 +248,7 @@ function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "a
     const groups = slot.slice(2).split(",").join("/");
     const isHi = highlightCode && proj?.code === highlightCode;
     return (
-      <div {...tipProps} className={`flex items-center ${big ? "gap-2.5 px-3 py-2.5" : "gap-1.5 px-2 py-1.5"} ${isHi ? "bg-primary/10" : ""}`}>
+      <div {...tipProps} className={`flex items-center ${big ? "gap-2.5 px-3 py-2.5" : "gap-1.5 px-2 py-1.5"} ${isHi ? "bg-primary/10" : ""}${hoverCls}`}>
         {proj ? <Flag code={proj.code} size={big ? 22 : 18} /> : <span className={`bg-muted/30 shrink-0 rounded-[3px] ${big ? "size-[22px]" : "size-[18px]"}`} aria-hidden />}
         <span className="text-foreground/80 min-w-0 flex-1 truncate">
           <span className="text-muted-2 mr-1 font-mono text-[9px] font-semibold tracking-wide uppercase" title={`Third-placed team from group ${groups}`}>3rd</span>
@@ -261,7 +265,7 @@ function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "a
   const prob = resolved ? null : proj?.prob;
   const isHi = highlightCode && code === highlightCode;
   return (
-    <div {...tipProps} className={`flex items-center ${big ? "gap-2.5 px-3 py-2.5" : "gap-1.5 px-2 py-1.5"} ${isHi ? "bg-primary/10" : ""}`}>
+    <div {...tipProps} className={`flex items-center ${big ? "gap-2.5 px-3 py-2.5" : "gap-1.5 px-2 py-1.5"} ${isHi ? "bg-primary/10" : ""}${hoverCls}`}>
       <Flag code={code} size={big ? 22 : 18} />
       <span className={`min-w-0 flex-1 truncate ${resolved ? "font-semibold" : "text-foreground/80"}`}>{label}</span>
       {resolved ? (

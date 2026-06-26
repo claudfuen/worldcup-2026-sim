@@ -63,6 +63,7 @@ function Row({ e }: { e: ThirdPlaceEntry }) {
   return (
     <tr
       {...tip.triggerProps}
+      {...tip.tapProps}
       className={`cursor-help border-l-2 ${e.advancing ? "border-l-contention" : "border-l-transparent"} ${e.rank === 8 ? "border-b-primary/50 border-b border-dashed" : ""} ${elim ? "opacity-45" : ""} hover:bg-muted/20`}
     >
       <td className="text-muted-foreground py-2 pr-1 pl-3 font-mono text-[11px]">{e.rank}</td>
