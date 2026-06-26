@@ -11,6 +11,7 @@ import { LocalTime } from "@/components/local-time";
 import { provisionalGroup, ratingsFromTeams, finalizeGroups, finalizeBracket } from "@/lib/liveProjection";
 import { ProvisionalStandings } from "@/components/provisional-standings";
 import { WinProbBar } from "@/components/win-prob-bar";
+import { MatchOutlook } from "@/components/match-outlook";
 import { ShareBar } from "@/components/share-bar";
 
 export const runtime = "nodejs";
@@ -55,6 +56,9 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   if (!m) notFound();
   const state: "final" | "live" | "defined" | "undefined" =
     m.status === "final" ? "final" : m.status === "live" ? "live" : m.defined ? "defined" : "undefined";
+  // Both teams' path-to-the-final odds, for the tournament-outlook comparison (only when both are known).
+  const homePred = m.home ? data.teams.find((t) => t.code === m.home) : undefined;
+  const awayPred = m.away ? data.teams.find((t) => t.code === m.away) : undefined;
 
   // SportsEvent structured data - only for a real, named matchup (slot placeholders aren't teams).
   const eventLd =
@@ -188,6 +192,8 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
           </div>
         </section>
       )}
+
+      {homePred && awayPred && <MatchOutlook round={m.round} home={homePred} away={awayPred} />}
 
       {proj && (
         <section className="mt-6">
