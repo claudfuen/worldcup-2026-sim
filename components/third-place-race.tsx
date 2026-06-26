@@ -5,6 +5,7 @@ import type { ThirdPlaceEntry } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
 import { teamSlug } from "@/lib/slug";
 import { forecastPct } from "@/lib/format";
+import { ProbMeter } from "@/components/prob-meter";
 import { useHoverTip, HoverTipPanel } from "@/components/hover-tip";
 
 // One row's hover detail: what (if anything) would still change the team's Round-of-32 fate, plus the
@@ -87,7 +88,7 @@ function Row({ e }: { e: ThirdPlaceEntry }) {
         ) : elim ? (
           <span className="text-muted-2">out</span>
         ) : (
-          <span className={e.advancing ? "text-contention font-medium" : "text-muted-foreground"}>{forecastPct(e.advanceProb)}</span>
+          <ProbMeter p={e.advanceProb} className={`justify-end ${e.advancing ? "text-contention" : "text-muted-foreground"}`} />
         )}
       </td>
       {tip.open && <HoverTipPanel pos={tip.pos}><RowTip e={e} /></HoverTipPanel>}

@@ -8,6 +8,7 @@ import { teamSlug } from "@/lib/slug";
 import { pct, fmtDay } from "@/lib/format";
 import { useViewerZone } from "@/lib/useViewerZone";
 import { useHoverTip, HoverTipPanel } from "./hover-tip";
+import { ProbMeter } from "./prob-meter";
 
 // Column orderings chosen so each match's two feeders are vertically adjacent (top half, then bottom half).
 const ORDER: Record<string, number[]> = {
@@ -254,7 +255,7 @@ function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "a
           <span className="text-muted-2 mr-1 font-mono text-[9px] font-semibold tracking-wide uppercase" title={`Third-placed team from group ${groups}`}>3rd</span>
           {proj?.name ?? groups}
         </span>
-        {proj?.prob != null && <span className={`text-muted-foreground shrink-0 font-mono tabular-nums ${big ? "text-xs" : "text-[10px]"}`}>{pct(Math.min(proj.prob, 0.99))}</span>}
+        {proj?.prob != null && <ProbMeter p={proj.prob} width={big ? 22 : 16} className={`shrink-0 text-muted-foreground ${big ? "text-xs" : "text-[10px]"}`} />}
         {tip.open && <HoverTipPanel pos={tip.pos}><CandidateTip cands={cands} third /></HoverTipPanel>}
       </div>
     );
@@ -271,7 +272,7 @@ function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "a
       {resolved ? (
         <span className={`shrink-0 font-bold text-win ${big ? "text-xs" : "text-[10px]"}`} title="Confirmed">✓</span>
       ) : (
-        prob != null && <span className={`text-muted-foreground shrink-0 font-mono tabular-nums ${big ? "text-xs" : "text-[10px]"}`}>{pct(Math.min(prob, 0.99))}</span>
+        prob != null && <ProbMeter p={prob} width={big ? 22 : 16} className={`shrink-0 text-muted-foreground ${big ? "text-xs" : "text-[10px]"}`} />
       )}
       {!resolved && tip.open && <HoverTipPanel pos={tip.pos}><CandidateTip cands={cands} /></HoverTipPanel>}
     </div>

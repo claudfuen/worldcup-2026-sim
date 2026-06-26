@@ -12,6 +12,7 @@ import { provisionalGroup, ratingsFromTeams, finalizeGroups, finalizeBracket } f
 import { ProvisionalStandings } from "@/components/provisional-standings";
 import { WinProbBar } from "@/components/win-prob-bar";
 import { MatchOutlook } from "@/components/match-outlook";
+import { ProbMeter } from "@/components/prob-meter";
 import { ShareBar } from "@/components/share-bar";
 
 export const runtime = "nodejs";
@@ -211,7 +212,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
             {m.xg && <span className="text-muted-foreground text-xs">xG {m.xg.home.toFixed(1)} – {m.xg.away.toFixed(1)}</span>}
           </div>
           <div className="border-border bg-card divide-border/50 divide-y rounded-2xl border">
-            {m.topScores.map((s, i) => (
+            {m.topScores.map((s) => (
               <div key={`${s.h}-${s.a}`} className="flex items-center gap-2.5 px-4 py-2.5">
                 <Flag code={m.home} size={16} />
                 <span className="w-10 font-mono text-sm font-bold tabular-nums">{s.h}–{s.a}</span>
@@ -240,7 +241,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
                   <Link href={`/team/${teamSlug(mu.homeName)}`} className="flex items-center gap-2 hover:underline"><Flag code={mu.home} size={18} /><span className="truncate">{mu.homeName}</span></Link>
                   <span className="text-muted-foreground text-xs">v</span>
                   <Link href={`/team/${teamSlug(mu.awayName)}`} className="flex flex-1 items-center gap-2 hover:underline"><Flag code={mu.away} size={18} /><span className="truncate">{mu.awayName}</span></Link>
-                  <span className="text-muted-foreground font-mono text-xs tabular-nums">{pct(mu.prob)}</span>
+                  <ProbMeter p={mu.prob} className="text-muted-foreground text-xs" />
                 </div>
               ))}
             </div>
@@ -319,7 +320,7 @@ function Candidates({ title, list }: { title: string; list?: { code: string; nam
         {(list ?? []).slice(0, 5).map((c) => (
           <div key={c.code} className="flex items-center gap-2 text-sm">
             <Link href={`/team/${teamSlug(c.name)}`} className="flex flex-1 items-center gap-2 hover:underline"><Flag code={c.code} size={16} /><span className="truncate">{c.name}</span></Link>
-            <span className="text-muted-foreground font-mono text-xs tabular-nums">{pct(Math.min(c.prob, 0.99))}</span>
+            <ProbMeter p={c.prob} className="text-muted-foreground text-xs" />
           </div>
         ))}
       </div>
