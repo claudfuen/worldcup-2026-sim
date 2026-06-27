@@ -97,26 +97,37 @@ function Row({ m, zone, hotReason }: { m: MatchInfo; zone?: import("@/lib/format
   const upcoming = !final && !live;
   // Full-row link as an overlay so we can also place a real ticket <a> in the row (anchors can't nest).
   // Interactive exceptions (the ticket link) sit above the overlay via relative z-10.
+  const homeWin = final && (m.homeScore ?? 0) > (m.awayScore ?? 0);
+  const awayWin = final && (m.awayScore ?? 0) > (m.homeScore ?? 0);
   return (
-    <div className="hover:bg-muted/30 relative flex items-center gap-2 px-3 py-2.5 transition-colors sm:gap-3 sm:px-4">
+    <div className="hover:bg-muted/30 relative flex items-center gap-3 px-3 py-2.5 transition-colors sm:gap-4 sm:px-4">
       <Link href={localeHref(locale, `/match/${m.match}`)} className="absolute inset-0" aria-label={t("schedule.rowAria", { home: homeLabel, away: awayLabel })} />
-      <div className="text-muted-foreground w-16 shrink-0 text-xs">
+      <div className="text-muted-foreground w-14 shrink-0 text-xs sm:w-16">
         <div className="font-mono whitespace-nowrap" suppressHydrationWarning>{fmtTimeShort(m.utc, zone)}</div>
         <div className="text-[10px] leading-tight">{ROUND_KEY[m.round] ? t(ROUND_KEY[m.round]) : m.round}{m.group ? ` ${m.group}` : ""}</div>
       </div>
-      <div className="min-w-0 flex-1">
-        <TeamRow code={homeCode} label={homeLabel} score={showScore ? m.homeScore : undefined} win={final && (m.homeScore ?? 0) > (m.awayScore ?? 0)} projected={!m.home} prob={!m.home ? m.projHome?.[0]?.prob : undefined} />
-        <TeamRow code={awayCode} label={awayLabel} score={showScore ? m.awayScore : undefined} win={final && (m.awayScore ?? 0) > (m.homeScore ?? 0)} projected={!m.away} prob={!m.away ? m.projAway?.[0]?.prob : undefined} />
+      {/* Tight matchup unit: flag + name + score stay together (no full-width stretch) */}
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className="min-w-0 space-y-0.5">
+          <TeamName code={homeCode} label={homeLabel} win={homeWin} projected={!m.home} prob={!m.home ? m.projHome?.[0]?.prob : undefined} />
+          <TeamName code={awayCode} label={awayLabel} win={awayWin} projected={!m.away} prob={!m.away ? m.projAway?.[0]?.prob : undefined} />
+        </div>
+        {showScore && (
+          <div className="shrink-0 space-y-0.5 text-center font-mono text-sm tabular-nums">
+            <div className={homeWin ? "text-foreground font-bold" : "text-muted-foreground"}>{m.homeScore}</div>
+            <div className={awayWin ? "text-foreground font-bold" : "text-muted-foreground"}>{m.awayScore}</div>
+          </div>
+        )}
       </div>
-      <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
         {hotReason != null && <HotBadge reason={hotReason} />}
-        <div className="max-w-28 text-right sm:max-w-44">
+        <div className="text-right">
           {live ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-live">
-              <span className="size-1.5 animate-pulse rounded-full bg-live" />{t("schedule.liveLabel")} {m.liveDetail}
+            <span className="text-live inline-flex items-center gap-1 text-[11px] font-semibold">
+              <span className="bg-live size-1.5 animate-pulse rounded-full" />{t("schedule.liveLabel")} {m.liveDetail}
             </span>
           ) : final ? (
-            <span className="text-[11px] font-medium text-win">{t("schedule.fullTime")}</span>
+            <span className="text-win text-[11px] font-medium">{t("schedule.fullTime")}</span>
           ) : m.favorite ? (
             <span className="text-muted-foreground text-[11px]">
               <span className="text-foreground/80">{m.favorite.name}</span> {pct(m.favorite.winProb)}
@@ -124,7 +135,7 @@ function Row({ m, zone, hotReason }: { m: MatchInfo; zone?: import("@/lib/format
           ) : (
             <span className="text-muted-2 text-[11px]">{t("common.projected")}</span>
           )}
-          <div className="text-muted-2 hidden truncate text-[10px] sm:block">{m.venue}</div>
+          <div className="text-muted-2 hidden max-w-44 truncate text-[10px] sm:block">{m.venue}</div>
         </div>
         {upcoming && <TicketLink matchNo={m.match} placement="schedule_row" variant="inline" className="relative -my-2 px-1 py-2" />}
       </div>
@@ -132,15 +143,14 @@ function Row({ m, zone, hotReason }: { m: MatchInfo; zone?: import("@/lib/format
   );
 }
 
-function TeamRow({ code, label, score, win, projected, prob }: { code: string | null; label: string; score?: number; win?: boolean; projected?: boolean; prob?: number }) {
+function TeamName({ code, label, win, projected, prob }: { code: string | null; label: string; win?: boolean; projected?: boolean; prob?: number }) {
   return (
-    <div className="flex items-center gap-2 py-0.5">
+    <div className="flex items-center gap-2">
       <Flag code={code} size={18} />
-      <span className={`min-w-0 flex-1 truncate text-sm ${win ? "font-semibold" : projected ? "text-foreground/75" : ""}`}>
+      <span className={`max-w-[150px] truncate text-sm sm:max-w-[260px] ${win ? "font-semibold" : projected ? "text-foreground/75" : ""}`}>
         {label}
         {projected && prob != null && <span className="text-muted-2 ml-1 font-mono text-[10px]">{pct(Math.min(prob, 0.99))}</span>}
       </span>
-      {score != null && <span className={`shrink-0 font-mono text-sm tabular-nums ${win ? "font-bold" : "text-muted-foreground"}`}>{score}</span>}
     </div>
   );
 }
