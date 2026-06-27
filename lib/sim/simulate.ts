@@ -77,7 +77,8 @@ export function runMonteCarlo(
       // not started -> full sampled scoreline (all with host advantage).
       const realized = groupMatches[g].map((m) => {
         if (m.played) return m;
-        const diff = pr[m.home] - pr[m.away] + hostEloBoost(m.home, m.venue ?? "") - hostEloBoost(m.away, m.venue ?? "");
+        let diff = pr[m.home] - pr[m.away] + hostEloBoost(m.home, m.venue ?? "") - hostEloBoost(m.away, m.venue ?? "");
+        if (m.live?.eloAdj) diff += m.live.eloAdj; // in-game state (red cards / dominance), already home-oriented
         const [hg, ag] = m.live
           ? sampleRemainingScoreline(diff, m.live.homeGoals, m.live.awayGoals, m.live.frac, rand)
           : sampleScoreline(diff, rand);

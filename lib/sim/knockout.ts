@@ -8,8 +8,9 @@ import { hostEloBoost } from "./hosts";
 
 // A live (in-progress) knockout match, keyed by its sorted team-pair. The Monte Carlo conditions that
 // match's advancement on the current score + time left instead of a fresh pre-match read, so a live KO
-// result propagates to the rest of the bracket.
-export type KOLive = Record<string, { homeCode: string; homeScore: number; awayScore: number; frac: number }>;
+// result propagates to the rest of the bracket. `eloAdj` is an optional in-game nudge from `homeCode`'s
+// perspective (red cards / dominance).
+export type KOLive = Record<string, { homeCode: string; homeScore: number; awayScore: number; frac: number; eloAdj?: number }>;
 
 export interface GroupOutcome {
   // group letter -> [1st code, 2nd code, 3rd code, 4th code]
@@ -145,7 +146,8 @@ export function simulateKnockout(
         const orient = lk.homeCode === home;
         const hg = orient ? lk.homeScore : lk.awayScore;
         const ag = orient ? lk.awayScore : lk.homeScore;
-        const diff = (ratings[home] ?? 1500) - (ratings[away] ?? 1500) + hostEloBoost(home, venue) - hostEloBoost(away, venue);
+        let diff = (ratings[home] ?? 1500) - (ratings[away] ?? 1500) + hostEloBoost(home, venue) - hostEloBoost(away, venue);
+        if (lk.eloAdj) diff += orient ? lk.eloAdj : -lk.eloAdj; // in-game nudge, oriented to this lineup
         w = rand() < liveKoAdvance(diff, hg, ag, lk.frac) ? home : away;
       } else {
         w = playKO(home, away, ratings, rand, venue);

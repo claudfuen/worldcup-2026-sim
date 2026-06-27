@@ -8,7 +8,8 @@ export interface GroupMatch {
   venue?: string; // for host-advantage in simulation
   // In-progress match: NOT yet played, but each Monte Carlo iteration starts from the current score and
   // samples only the remaining fraction of the match (so a live lead propagates into group/knockout odds).
-  live?: { homeGoals: number; awayGoals: number; frac: number };
+  // `eloAdj` is an optional in-game rating nudge (red cards / shot dominance), oriented to THIS fixture's home.
+  live?: { homeGoals: number; awayGoals: number; frac: number; eloAdj?: number };
 }
 
 export interface TeamRow {

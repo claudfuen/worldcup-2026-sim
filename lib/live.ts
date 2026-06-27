@@ -2,7 +2,7 @@ import { cache } from "react";
 import { fetchLive, type LiveMatch } from "./espn";
 import { liveWdl, liveKoAdvance, fracRemaining, liveEloAdjustment } from "./sim/poisson";
 import { hostEloBoost } from "./sim/hosts";
-import { redCardCount, type MatchSummary } from "./matchEvents";
+import { redCardCount, fetchEventSummary, type MatchSummary } from "./matchEvents";
 import { kvGetJSON, kvSetJSON, KV_CONFIGURED, LIVE_FEED_KEY } from "./kv";
 import type { Ratings } from "./sim/types";
 import type { MatchInfo } from "./predictions";
@@ -53,6 +53,34 @@ export function overlayLive(matches: MatchInfo[], live: Awaited<ReturnType<typeo
     }
     return { ...m, status: "live" as const, homeScore, awayScore, liveDetail: l.detail, liveMinute: l.minute ?? undefined };
   });
+}
+
+// Enrich in-progress matches with an in-game Elo nudge (red cards + shot/possession dominance) by pulling
+// each one's ESPN summary. Home-perspective; consumers orient it to their own home/away. Best-effort: a
+// summary that fails to load just leaves eloAdj unset (the match still conditions on score + time). Called
+// by the cron only when it actually recomputes, so the extra ESPN calls are bounded to live matches.
+export async function withLiveAdjustments(live: LiveMatch[]): Promise<LiveMatch[]> {
+  const inPlay = live.filter((l) => l.state === "in" && l.minute != null && l.eventId);
+  if (!inPlay.length) return live;
+  const summaries = await Promise.all(inPlay.map((l) => fetchEventSummary(l.eventId, l.homeCode, l.awayCode).catch(() => null)));
+  const adj = new Map<string, number>();
+  inPlay.forEach((l, i) => {
+    const s = summaries[i];
+    if (!s) return;
+    const reds = redCardCount(s.events, l.homeCode, l.awayCode);
+    const a = liveEloAdjustment(
+      {
+        redHome: reds.home, redAway: reds.away,
+        possHome: s.stats?.home.possession ?? undefined, possAway: s.stats?.away.possession ?? undefined,
+        shotsHome: s.stats?.home.shots ?? undefined, shotsAway: s.stats?.away.shots ?? undefined,
+        sotHome: s.stats?.home.shotsOnTarget ?? undefined, sotAway: s.stats?.away.shotsOnTarget ?? undefined,
+      },
+      fracRemaining(l.minute!),
+    );
+    if (a !== 0) adj.set(l.eventId, a);
+  });
+  if (!adj.size) return live;
+  return live.map((l) => (adj.has(l.eventId) ? { ...l, eloAdj: adj.get(l.eventId) } : l));
 }
 
 // A compact fingerprint of the current live/just-finished match state. The frequent cron stores this and

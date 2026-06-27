@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { computePredictions, snapshotOf, applyDeltas, type BaselineSnapshot } from "@/lib/predictions";
 import { fetchLive } from "@/lib/espn";
-import { liveSignature } from "@/lib/live";
+import { liveSignature, withLiveAdjustments } from "@/lib/live";
 import { kvSetJSON, kvGetJSON, PRED_KEY, BASELINE_KEY, LIVE_SIG_KEY } from "@/lib/kv";
 
 export const runtime = "nodejs";
@@ -48,7 +48,10 @@ export async function GET(req: Request) {
   }
 
   const t0 = Date.now();
-  const payload = await computePredictions(20000, undefined, live);
+  // Enrich live matches with their in-game Elo nudge (red cards / shot dominance) before simulating, so
+  // those factors flow into every probability — not just the per-match widget. Only runs when recomputing.
+  const enriched = await withLiveAdjustments(live).catch(() => live);
+  const payload = await computePredictions(20000, undefined, enriched);
 
   // Odds-movement deltas: how the odds have moved since the start of the ET day. The baseline rolls
   // once per ET day, anchored to THIS cron's freshly-computed payload at the first tick of the day.

@@ -73,6 +73,8 @@ export interface LiveMatch {
   date: string; // ESPN kickoff time (ISO) - lets callers bound "recently finished"
   detail: string; // e.g. "45'+3'", "HT", "FT" - the clock/state from ESPN
   minute: number | null; // parsed elapsed minute (HT=45, "63'"->63, "45'+2'"->47), for live conditioning
+  eventId: string; // ESPN event id, so callers can pull the match summary (goals/cards/stats) directly
+  eloAdj?: number; // in-game Elo nudge (red cards + shot/possession dominance), home-perspective; filled in later
 }
 
 // Parse ESPN's soccer clock into an ELAPSED minute used for live win-probability conditioning. ESPN gives
@@ -128,6 +130,7 @@ export async function fetchLive(): Promise<LiveMatch[]> {
       date: e.date,
       detail: comp.status?.type?.shortDetail ?? comp.status?.type?.detail ?? comp.status?.displayClock ?? (state === "post" ? "FT" : "LIVE"),
       minute: state === "post" ? 90 : parseLiveMinute(comp.status?.displayClock, comp.status?.type?.shortDetail ?? comp.status?.type?.detail, comp.status?.period),
+      eventId: e.id,
     });
   }
   return out;
@@ -202,7 +205,9 @@ export function buildGroupMatches(results: FetchedMatch[], live: LiveMatch[] = [
         const ag = sameOrient ? l.awayGoals : l.homeGoals;
         // Known clock -> condition on the remaining fraction; unknown clock -> freeze at the current score.
         if (l.minute != null) {
-          return { ...fixture, venue, live: { homeGoals: hg, awayGoals: ag, frac: fracRemaining(l.minute) } };
+          // Orient the in-game nudge (stored home-perspective) to this fixture's home/away.
+          const eloAdj = l.eloAdj != null ? (sameOrient ? l.eloAdj : -l.eloAdj) : undefined;
+          return { ...fixture, venue, live: { homeGoals: hg, awayGoals: ag, frac: fracRemaining(l.minute), eloAdj } };
         }
         return { ...fixture, venue, played: true, homeGoals: hg, awayGoals: ag };
       }
@@ -213,6 +218,7 @@ export function buildGroupMatches(results: FetchedMatch[], live: LiveMatch[] = [
 }
 
 interface EspnEvent {
+  id: string;
   date: string;
   competitions?: {
     status?: { displayClock?: string; period?: number; type?: { state?: string; detail?: string; shortDetail?: string } };

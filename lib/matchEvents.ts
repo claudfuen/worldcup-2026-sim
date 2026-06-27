@@ -140,6 +140,12 @@ export async function fetchMatchSummary(homeCode: string, awayCode: string, utc:
     if (codes.includes(homeCode) && codes.includes(awayCode)) { eventId = e.id; break; }
   }
   if (!eventId) return { events: [], stats: null };
+  return fetchEventSummary(eventId, homeCode, awayCode);
+}
+
+// Pull + parse a summary directly from a known ESPN event id (skips the scoreboard lookup). Used by the cron,
+// which already holds event ids from the live feed.
+export async function fetchEventSummary(eventId: string, homeCode: string, awayCode: string): Promise<MatchSummary> {
   const sum = (await (await fetch(`${SUMMARY}?event=${eventId}`, { cache: "no-store" })).json()) as {
     keyEvents?: EspnKeyEvent[];
     boxscore?: { teams?: EspnBoxTeam[] };

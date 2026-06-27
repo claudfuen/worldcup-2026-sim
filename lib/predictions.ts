@@ -181,7 +181,7 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
   for (const l of live) {
     if (l.state !== "in" || l.minute == null || l.date.slice(0, 10) <= GROUP_STAGE_END) continue;
     koLive[[l.homeCode, l.awayCode].sort().join("-")] = {
-      homeCode: l.homeCode, homeScore: l.homeGoals, awayScore: l.awayGoals, frac: fracRemaining(l.minute),
+      homeCode: l.homeCode, homeScore: l.homeGoals, awayScore: l.awayGoals, frac: fracRemaining(l.minute), eloAdj: l.eloAdj,
     };
   }
 

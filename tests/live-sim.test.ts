@@ -17,8 +17,8 @@ const groupCodes = TEAMS.filter((t) => t.group === GROUP).map((t) => t.code);
 const T = [...groupCodes].sort((a, b) => (ratings[a] as number) - (ratings[b] as number))[0];
 const OPP = groupCodes.find((c) => c !== T)!;
 
-function liveMatch(homeGoals: number, awayGoals: number, minute: number): LiveMatch {
-  return { homeCode: T, awayCode: OPP, group: GROUP, homeGoals, awayGoals, state: "in", date: "", detail: `${minute}'`, minute };
+function liveMatch(homeGoals: number, awayGoals: number, minute: number, eloAdj?: number): LiveMatch {
+  return { homeCode: T, awayCode: OPP, group: GROUP, homeGoals, awayGoals, state: "in", date: "", detail: `${minute}'`, minute, eventId: "x", eloAdj };
 }
 
 function winGroup(live: LiveMatch[]): number {
@@ -72,8 +72,14 @@ describe("live-conditioned Monte Carlo", () => {
     expect(leading).toBeGreaterThan(base);
   });
 
+  it("an in-game Elo nudge (e.g. a red card) shifts the live group odds", () => {
+    const level = winGroup([liveMatch(0, 0, 70)]); // 0-0, 70'
+    const withRed = winGroup([liveMatch(0, 0, 70, -200)]); // same, but a red card against T (home-perspective)
+    expect(withRed).toBeLessThan(level);
+  });
+
   it("a live match with an unknown clock is frozen at its current score (counted as played)", () => {
-    const noMinute: LiveMatch = { homeCode: T, awayCode: OPP, group: GROUP, homeGoals: 3, awayGoals: 0, state: "in", date: "", detail: "LIVE", minute: null };
+    const noMinute: LiveMatch = { homeCode: T, awayCode: OPP, group: GROUP, homeGoals: 3, awayGoals: 0, state: "in", date: "", detail: "LIVE", minute: null, eventId: "x" };
     const built = buildGroupMatches([], [noMinute]);
     const fixture = built[GROUP].find((m) => (m.home === T && m.away === OPP) || (m.home === OPP && m.away === T))!;
     expect(fixture.played).toBe(true);
