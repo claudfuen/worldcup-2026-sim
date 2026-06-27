@@ -28,7 +28,7 @@ export async function TitleOdds({ teams, className = "" }: { teams: TeamPredicti
             </div>
             <span className="flex shrink-0 items-center justify-end font-mono text-sm font-semibold tabular-nums">
               <span className="w-9 text-right">{forecastPct(tm.title)}</span>
-              <span className="ml-1 w-5 text-left">{<Delta v={tm.titleDelta} />}</span>
+              <span className="w-7 text-left">{<Delta v={tm.titleDelta} />}</span>
             </span>
           </Link>
         ))}

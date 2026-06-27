@@ -23,10 +23,19 @@ export async function AdvanceBadge({
     eliminated: t("groups.srBadgeEliminated"),
   };
   if (d.kind === "forecast") {
+    // With deltas (group standings), give the % a fixed right-aligned box and the delta a fixed
+    // left-aligned box so the percentages line up down the column whether or not a row has a delta.
+    if (showDelta) {
+      return (
+        <span className={`inline-flex items-center justify-end font-mono text-xs font-semibold tabular-nums ${TONE_CLASS[d.tone]}`}>
+          <span className="w-8 text-right">{d.pct}</span>
+          <span className="w-7 text-left">{<Delta v={d.delta} />}</span>
+        </span>
+      );
+    }
     return (
       <span className={`font-mono text-xs font-semibold tabular-nums whitespace-nowrap ${TONE_CLASS[d.tone]}`}>
         {d.pct}
-        {showDelta ? <Delta v={d.delta} /> : null}
       </span>
     );
   }

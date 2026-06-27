@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { Countdown } from "@/components/countdown";
-import { pct } from "@/lib/format";
+import { forecastPct } from "@/lib/format";
 import { getT, getLocale } from "@/lib/i18n/server";
 import { localeHref } from "@/lib/i18n/config";
 import type { MatchInfo, TeamPrediction } from "@/lib/predictions";
@@ -50,7 +50,7 @@ function FinalSide({ code, name, reach, reachLabel, align }: { code: string | nu
       <Flag code={code} size={26} />
       <div className="min-w-0">
         <div className="truncate text-sm font-semibold">{name}</div>
-        {reach != null && <div className="text-muted-2 font-mono text-[10px] tabular-nums">{pct(reach)} {reachLabel}</div>}
+        {reach != null && <div className="text-muted-2 font-mono text-[10px] tabular-nums">{forecastPct(reach)} {reachLabel}</div>}
       </div>
     </div>
   );

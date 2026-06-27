@@ -18,7 +18,7 @@ export async function ScoreTicker({ items }: { items: MatchInfo[] }) {
   return (
     <div className="border-border/60 bg-background/70 sticky top-14 z-40 overflow-hidden border-b backdrop-blur-xl">
       <div
-        className="flex w-max [animation:ticker_var(--d)_linear_infinite] hover:[animation-play-state:paused]"
+        className="ticker-track flex w-max [animation:ticker_var(--d)_linear_infinite] hover:[animation-play-state:paused]"
         style={{ "--d": `${dur}s` } as React.CSSProperties}
       >
         <Track items={items} t={t} locale={locale} />

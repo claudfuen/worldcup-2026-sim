@@ -187,9 +187,12 @@
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
     }
-  /* One global transition for interactive surfaces (none existed before) */
+  /* One global transition for interactive surfaces (none existed before). Property-list form so the
+     timing actually applies to every property — the shorthand only bound it to the last one (opacity). */
   a, button, [role="button"], select, summary, input {
-    transition: color, background-color, border-color, box-shadow, transform, opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -207,7 +210,15 @@
 }
 
 /* Score ticker marquee: the track holds two identical copies, so translating by -50% lands copy 2 exactly
-   where copy 1 was — a seamless loop. Paused on hover (set on the element in the component). */
+   where copy 1 was — a seamless loop. Paused on hover (set on the element in the component). In RTL the
+   flex track lays out right-to-left, so it must scroll the other way (+50%) to stay seamless and match
+   the reading direction. */
 @keyframes ticker {
   to { transform: translateX(-50%); }
+}
+@keyframes ticker-rtl {
+  to { transform: translateX(50%); }
+}
+[dir="rtl"] .ticker-track {
+  animation-name: ticker-rtl;
 }

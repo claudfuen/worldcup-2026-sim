@@ -19,8 +19,9 @@ export async function MoverStrip({ teams }: { teams: TeamPrediction[] }) {
     <div className="border-border/60 text-muted-foreground mt-4 border-t pt-3 text-sm">
       {t("home.moverLead")}{" "}
       <Link href={localeHref(locale, `/team/${slugForCode(mover.code)}`)} className="text-foreground font-medium hover:underline">{mover.name}</Link>{" "}
-      <span className={up ? "text-win" : "text-destructive"}>
-        {up ? "▲" : "▼"}{Math.abs(Math.round((mover.titleDelta ?? 0) * 100))}
+      <span className={`whitespace-nowrap ${up ? "text-win" : "text-destructive"}`}>
+        <span className="font-mono text-xs" aria-hidden>{up ? "▲" : "▼"}</span>
+        {Math.abs(Math.round((mover.titleDelta ?? 0) * 100))}
       </span>{" "}
       {t("home.moverTail", { pct: forecastPct(mover.title) })}
     </div>

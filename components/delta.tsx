@@ -8,10 +8,11 @@ export function Delta({ v }: { v?: number }) {
   const mag = Math.abs(pp);
   return (
     <span
-      className={`ml-1 font-mono text-[10px] ${up ? "text-win" : "text-destructive"}`}
+      className={`ms-1 inline-flex items-center gap-px whitespace-nowrap font-mono text-[10px] ${up ? "text-win" : "text-destructive"}`}
       title={`${up ? "Up" : "Down"} ${mag} percentage point${mag === 1 ? "" : "s"} since the start of today`}
     >
-      {up ? "▲" : "▼"}{mag}
+      <span aria-hidden>{up ? "▲" : "▼"}</span>
+      {mag}
     </span>
   );
 }

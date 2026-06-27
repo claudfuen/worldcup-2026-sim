@@ -25,3 +25,30 @@ const FIFA_VENUE: Record<string, string> = {
 export function fifaVenue(venue: string): string {
   return FIFA_VENUE[venue] ?? venue;
 }
+
+// FIFA's official host CITY for each stadium — the recognizable metro a casual browser knows, not the
+// precise municipality stored in schedule.ts (Inglewood, Foxborough, East Rutherford, Santa Clara,
+// Arlington, Miami Gardens…). Keyed by stadium so it stays 1:1 with FIFA_VENUE.
+const FIFA_CITY: Record<string, string> = {
+  "AT&T Stadium": "Dallas",
+  "BC Place Stadium": "Vancouver",
+  "BMO Field": "Toronto",
+  "Estadio Akron": "Guadalajara",
+  "Estadio Azteca": "Mexico City",
+  "Estadio BBVA": "Monterrey",
+  "GEHA Field at Arrowhead Stadium": "Kansas City",
+  "Gillette Stadium": "Boston",
+  "Hard Rock Stadium": "Miami",
+  "Levi's Stadium": "San Francisco Bay Area",
+  "Lincoln Financial Field": "Philadelphia",
+  "Lumen Field": "Seattle",
+  "Mercedes-Benz Stadium": "Atlanta",
+  "MetLife Stadium": "New York New Jersey",
+  "NRG Stadium": "Houston",
+  "SoFi Stadium": "Los Angeles",
+};
+
+/** FIFA official 2026 host city for a stadium (falls back to the stored municipality if unmapped). */
+export function fifaCity(venue: string, fallbackCity: string): string {
+  return FIFA_CITY[venue] ?? fallbackCity;
+}

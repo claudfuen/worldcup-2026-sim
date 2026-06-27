@@ -11,7 +11,7 @@ export async function Breadcrumbs({ items }: { items: Crumb[] }) {
     <nav aria-label={t("breadcrumbs.ariaLabel")} className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-xs">
       {items.map((c, i) => (
         <span key={i} className="inline-flex items-center gap-x-1.5">
-          {i > 0 && <span className="text-muted-2" aria-hidden>›</span>}
+          {i > 0 && <span className="text-muted-2 inline-block rtl:rotate-180" aria-hidden>›</span>}
           {c.href ? (
             <Link href={c.href} className="hover:text-foreground -my-1 py-1 transition-colors">{c.label}</Link>
           ) : (

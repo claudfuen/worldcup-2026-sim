@@ -3,6 +3,7 @@ import type { MatchInfo, TeamPrediction } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
 import { LocalTime } from "@/components/local-time";
 import { forecastPct } from "@/lib/format";
+import { fifaCity } from "@/lib/venues";
 import { getT, getLocale } from "@/lib/i18n/server";
 import { localeHref } from "@/lib/i18n/config";
 
@@ -58,13 +59,14 @@ export async function R32ByFinish({ matches, group, pred }: { matches: MatchInfo
               {f.m ? (
                 <>
                   <span className="text-muted-2 hidden shrink-0 text-xs sm:inline" suppressHydrationWarning>
-                    M{f.m.match} · <LocalTime utc={f.m.utc} mode="day" /> · {f.m.city}
+                    M{f.m.match} · <LocalTime utc={f.m.utc} mode="day" /> · {fifaCity(f.m.venue, f.m.city)}
                   </span>
                   <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm">
                     <span className="text-muted-2 text-xs">{t("common.vs")}</span>
                     {opp?.code ? <Flag code={opp.code} size={16} /> : <span className="bg-muted/40 size-4 shrink-0 rounded-[2px]" aria-hidden />}
                     <span className={`truncate ${opp?.locked ? "font-semibold" : "text-foreground/80"}`}>{opp?.name ?? t("common.tbd")}</span>
-                    {opp?.prob != null && <span className="text-muted-foreground shrink-0 font-mono text-xs tabular-nums">{forecastPct(opp.prob)}</span>}
+                    {/* secondary (most-likely occupant) %, hidden on the tightest widths so the opponent name keeps room */}
+                    {opp?.prob != null && <span className="text-muted-foreground hidden shrink-0 font-mono text-xs tabular-nums sm:inline">{forecastPct(opp.prob)}</span>}
                   </span>
                 </>
               ) : (
@@ -75,7 +77,7 @@ export async function R32ByFinish({ matches, group, pred }: { matches: MatchInfo
             </div>
           );
           return f.m ? (
-            <Link key={f.key} href={localeHref(locale, `/match/${f.m.match}`)} className="hover:bg-muted/20 block transition-none">{inner}</Link>
+            <Link key={f.key} href={localeHref(locale, `/match/${f.m.match}`)} className="hover:bg-muted/20 block transition-colors">{inner}</Link>
           ) : (
             <div key={f.key}>{inner}</div>
           );
