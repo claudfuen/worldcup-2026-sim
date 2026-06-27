@@ -14,6 +14,8 @@ import { getPredictions } from "@/lib/getPredictions"
 import { getLiveMatches, overlayLive } from "@/lib/live"
 import { cn } from "@/lib/utils";
 import { localeConfig } from "@/lib/i18n/config"
+import { getMessages } from "@/lib/i18n/server"
+import { I18nProvider } from "@/lib/i18n/provider"
 import type { MatchInfo } from "@/lib/predictions"
 import type { Metadata, Viewport } from "next"
 
@@ -87,6 +89,7 @@ export default async function RootLayout({
   const { lang } = await params
   // The proxy guarantees lang is a valid locale here; localeConfig falls back to the default otherwise.
   const cfg = localeConfig(lang)
+  const messages = await getMessages()
   let updatedAt: string | null = null
   let tickerItems: MatchInfo[] = []
   try {
@@ -122,11 +125,13 @@ export default async function RootLayout({
       <body className="bg-background text-foreground min-h-svh">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
         <ThemeProvider defaultTheme="dark" enableSystem={false}>
-          <AnalyticsListener />
-          <Nav updatedAt={updatedAt} />
-          <ScoreTicker items={tickerItems} />
-          {children}
-          <InstallPrompt />
+          <I18nProvider messages={messages} intl={cfg.intl}>
+            <AnalyticsListener />
+            <Nav updatedAt={updatedAt} />
+            <ScoreTicker items={tickerItems} />
+            {children}
+            <InstallPrompt />
+          </I18nProvider>
         </ThemeProvider>
         <ServiceWorkerRegister />
         <Analytics />

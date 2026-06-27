@@ -9,8 +9,14 @@ import { DEFAULT_LOCALE, isActiveLocale, LOCALE_HEADER } from "@/lib/i18n/config
 //   /en/bracket     → redirect to /bracket    (strip redundant default prefix → one canonical URL)
 //   /xx/… (inactive)→ treated as English content (rewritten to /en/xx/… → 404 if no such page)
 //
-// Either way we stamp x-locale so server components can read the locale via getLocale() without
-// threading a `lang` prop everywhere.
+// In every served case we stamp the locale onto the *request* headers (so getLocale() in server
+// components can read it via next/headers — response headers wouldn't be visible to the app).
+function withLocale(request: NextRequest, locale: string): Headers {
+  const headers = new Headers(request.headers);
+  headers.set(LOCALE_HEADER, locale);
+  return headers;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const firstSeg = pathname.split("/")[1];
@@ -23,20 +29,16 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  // A launched non-default locale → serve as-is, just record the locale.
+  // A launched non-default locale → serve as-is, recording the locale on the request.
   if (isActiveLocale(firstSeg)) {
-    const res = NextResponse.next();
-    res.headers.set(LOCALE_HEADER, firstSeg);
-    return res;
+    return NextResponse.next({ request: { headers: withLocale(request, firstSeg) } });
   }
 
   // Otherwise it's default-locale (English) content with no prefix → rewrite into the [lang] tree
   // without changing the visible URL.
   const url = request.nextUrl.clone();
   url.pathname = `/${DEFAULT_LOCALE}${pathname === "/" ? "" : pathname}`;
-  const res = NextResponse.rewrite(url);
-  res.headers.set(LOCALE_HEADER, DEFAULT_LOCALE);
-  return res;
+  return NextResponse.rewrite(url, { request: { headers: withLocale(request, DEFAULT_LOCALE) } });
 }
 
 export const config = {

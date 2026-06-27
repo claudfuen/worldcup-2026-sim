@@ -9,6 +9,19 @@
 // which is a moving target right now. This covers our needs with zero runtime dependency and no
 // version-coupling, and the catalogs stay plain JSON that the translation pass can fill mechanically.
 
+/** Nested dotted-key lookup into a (possibly deeply nested) messages object. */
+export function lookupMessage(messages: unknown, key: string): string | undefined {
+  let cur: unknown = messages;
+  for (const part of key.split(".")) {
+    if (cur && typeof cur === "object" && part in (cur as object)) {
+      cur = (cur as Record<string, unknown>)[part];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof cur === "string" ? cur : undefined;
+}
+
 const pluralCache = new Map<string, Intl.PluralRules>();
 function pluralRules(intlLocale: string): Intl.PluralRules {
   let r = pluralCache.get(intlLocale);

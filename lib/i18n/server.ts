@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { headers } from "next/headers";
 import { DEFAULT_LOCALE, isLocale, LOCALE_HEADER, localeConfig, type Locale } from "./config";
-import { formatMessage } from "./format-message";
+import { formatMessage, lookupMessage } from "./format-message";
 import enMessages from "./messages/en.json";
 
 // LOCALE_HEADER (defined in config.ts) is stamped onto every request by the proxy, so any server
@@ -32,17 +32,8 @@ async function loadMessages(locale: Locale): Promise<Messages> {
   }
 }
 
-function lookup(messages: Messages, key: string): string | undefined {
-  let cur: unknown = messages;
-  for (const part of key.split(".")) {
-    if (cur && typeof cur === "object" && part in (cur as object)) {
-      cur = (cur as Record<string, unknown>)[part];
-    } else {
-      return undefined;
-    }
-  }
-  return typeof cur === "string" ? cur : undefined;
-}
+/** The full active-locale messages object — handed to the client I18nProvider for client components. */
+export const getMessages = cache(async (): Promise<Messages> => loadMessages(await getLocale()));
 
 export type TFunction = (key: string, params?: Record<string, string | number>) => string;
 
@@ -56,7 +47,7 @@ export const getT = cache(async (): Promise<TFunction> => {
   const intl = localeConfig(locale).intl;
   const messages = await loadMessages(locale);
   return (key, params) => {
-    const template = lookup(messages, key) ?? lookup(enMessages as Messages, key) ?? key;
+    const template = lookupMessage(messages, key) ?? lookupMessage(enMessages, key) ?? key;
     return formatMessage(template, params, intl);
   };
 });
