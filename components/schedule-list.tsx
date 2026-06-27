@@ -11,6 +11,7 @@ import { useViewerZone } from "@/lib/useViewerZone";
 import { useT } from "@/lib/i18n/provider";
 import { useLocale } from "@/lib/i18n/client";
 import { localeHref } from "@/lib/i18n/config";
+import { fifaVenue } from "@/lib/venues";
 
 const ROUND_KEY: Record<string, string> = {
   GROUP: "rounds.GROUP", R32: "rounds.R32", R16: "rounds.R16", QF: "rounds.QF", SF: "rounds.SF", "3P": "rounds.THIRD", FINAL: "rounds.FINAL",
@@ -135,7 +136,7 @@ function Row({ m, zone, hotReason }: { m: MatchInfo; zone?: import("@/lib/format
           ) : (
             <span className="text-muted-2 text-[11px]">{t("common.projected")}</span>
           )}
-          <div className="text-muted-2 hidden max-w-44 truncate text-[10px] sm:block">{m.venue}</div>
+          <div className="text-muted-2 hidden max-w-44 truncate text-[10px] sm:block">{fifaVenue(m.venue)}</div>
         </div>
         {upcoming && <TicketLink matchNo={m.match} placement="schedule_row" variant="inline" className="relative -my-2 px-1 py-2" />}
       </div>

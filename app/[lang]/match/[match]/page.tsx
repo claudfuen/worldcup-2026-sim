@@ -17,6 +17,7 @@ import { ShareBar } from "@/components/share-bar";
 import { computeWatchability } from "@/lib/watchability";
 import { TicketLink } from "@/components/ticket-link";
 import { hasTickets, TICKET_PROVIDER } from "@/lib/tickets";
+import { fifaVenue } from "@/lib/venues";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Countdown } from "@/components/countdown";
 import { type RelLink } from "@/components/related-links";
@@ -105,7 +106,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
           sport: "Association football",
           startDate: m.utc,
           eventStatus: "https://schema.org/EventScheduled",
-          location: { "@type": "Place", name: m.venue, address: m.city },
+          location: { "@type": "Place", name: fifaVenue(m.venue), address: m.city },
           competitor: [
             { "@type": "SportsTeam", name: m.homeName },
             { "@type": "SportsTeam", name: m.awayName },
@@ -217,7 +218,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       <div className="border-border bg-card/60 mt-3 rounded-2xl border p-4 backdrop-blur-sm sm:p-5 dark:bg-card/50">
         <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-4">
           <Fact label={t("match.factKickoff")} value={<LocalTime utc={m.utc} mode="datetime" />} />
-          <Fact label={t("match.factVenue")} value={t("match.venueCity", { venue: m.venue, city: m.city })} />
+          <Fact label={t("match.factVenue")} value={t("match.venueCity", { venue: fifaVenue(m.venue), city: m.city })} />
           <Fact label={t("match.factStage")} value={
             <>
               {m.round === "GROUP" && m.group ? (

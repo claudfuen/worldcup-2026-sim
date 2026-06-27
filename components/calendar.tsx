@@ -9,6 +9,7 @@ import { useViewerZone } from "@/lib/useViewerZone";
 import { useT, type TFunction } from "@/lib/i18n/provider";
 import { useLocale } from "@/lib/i18n/client";
 import { localeHref, type Locale } from "@/lib/i18n/config";
+import { fifaVenue } from "@/lib/venues";
 
 const ROUND_KEY: Record<string, string> = {
   GROUP: "rounds.GROUP", R32: "rounds.R32", R16: "rounds.R16", QF: "rounds.QF", SF: "rounds.SF", "3P": "rounds.THIRD", FINAL: "rounds.FINAL",
@@ -220,13 +221,14 @@ function MatchCard({ m, zone, locale, t }: { m: MatchInfo; zone: import("@/lib/f
             fmtTimeShort(m.utc, zone)
           )}
         </span>
-        {m.group && <span className="shrink-0 truncate">{m.group}</span>}
+        <span className="shrink-0 truncate">{m.group ? `${m.group} · ` : ""}M{m.match}</span>
       </div>
-      <div className="px-2 pt-1 pb-1.5">
+      <div className="px-2 pt-1 pb-1">
         <Side resolved={!!m.home} code={homeCode} name={homeName} score={final || live ? m.homeScore : undefined} win={homeWin} cands={m.projHome} knockout={m.round !== "GROUP"} />
         <div className="border-border/40 my-1 border-t" />
         <Side resolved={!!m.away} code={awayCode} name={awayName} score={final || live ? m.awayScore : undefined} win={awayWin} cands={m.projAway} knockout={m.round !== "GROUP"} />
       </div>
+      <div className="text-muted-2 border-border/40 truncate border-t px-2 py-1 text-[10px]">{fifaVenue(m.venue)}</div>
     </Link>
   );
 }
