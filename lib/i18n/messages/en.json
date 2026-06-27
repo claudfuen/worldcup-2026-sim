@@ -315,6 +315,7 @@
     "preMatchWinProb": "Pre-match win probability",
     "liveWinProb": "Live win probability",
     "liveNow": "Now · {minute}'",
+    "now": "Now",
     "preMatchLabel": "Pre-match",
     "liveAdvance": "To advance: {home} {homePct} · {away} {awayPct}",
     "liveScoreLine": "Live: {home} {homeScore}–{awayScore} {away} · {detail}",

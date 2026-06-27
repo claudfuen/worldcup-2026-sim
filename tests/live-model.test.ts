@@ -31,11 +31,12 @@ describe("parseLiveMinute", () => {
 });
 
 describe("fracRemaining", () => {
-  it("is 1 at kickoff, 0.5 at half time, 0 at/after full time", () => {
+  it("is 1 at kickoff, 0.5 at half time, a small sliver at/after full time (stoppage variance, never 0)", () => {
     expect(fracRemaining(0)).toBeCloseTo(1, 6);
     expect(fracRemaining(45)).toBeCloseTo(0.5, 6);
-    expect(fracRemaining(90)).toBe(0);
-    expect(fracRemaining(96)).toBe(0); // stoppage time clamps to 0
+    expect(fracRemaining(90)).toBeCloseTo(0.03, 6); // floored, not 0 — there's always stoppage time
+    expect(fracRemaining(96)).toBeCloseTo(0.03, 6);
+    expect(fracRemaining(90)).toBeGreaterThan(0);
   });
   it("defaults to a full match when the minute is unknown", () => {
     expect(fracRemaining(null)).toBe(1);

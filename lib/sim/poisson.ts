@@ -112,10 +112,12 @@ export function sampleScoreline(ratingDiff: number, rand: () => number, cfg = {}
 // side leading 1-0 with little time left is a heavy favourite; at kickoff (frac=1, 0-0) this collapses
 // back to the ordinary pre-match read.
 
-/** Fraction of a 90' match still to play given elapsed minutes (clamped 0..1; stoppage/extra time -> 0). */
+/** Fraction of a 90' match still to play given elapsed minutes. Floored at a small sliver: until the final
+ *  whistle there is always stoppage-time variance, so a live match never reads a definitive 0%/100% — a
+ *  trailing side keeps a "<1%" chance. Unknown minute -> a full match remaining. */
 export function fracRemaining(minute: number | null | undefined): number {
   if (minute == null || !isFinite(minute)) return 1;
-  return Math.max(0, Math.min(1, (90 - minute) / 90));
+  return Math.max(0.03, Math.min(1, (90 - minute) / 90));
 }
 
 // Win/Draw/Loss (home perspective) for the FINAL result given the live score (hg-ag) and the fraction of

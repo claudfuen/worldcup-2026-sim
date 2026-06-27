@@ -322,18 +322,25 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
             </p>
             {liveProbs ? (
               <>
-                {/* Conditioned on the current score + minute — the "now" read */}
-                <div className="text-live mb-2 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.liveNow", { minute: liveProbs.minute })}</div>
+                {/* Conditioned on the current score + minute — the "now" read (primary) */}
+                <div className="text-live mb-2 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.now")}</div>
                 <WinProbBar home={liveProbs.home} draw={liveProbs.draw} away={liveProbs.away} homeName={m.homeName!} awayName={m.awayName!} />
                 {liveProbs.advance && (
                   <p className="text-muted-2 mt-3 text-xs">
                     {t("match.liveAdvance", { home: m.homeName, homePct: forecastPct(liveProbs.advance.home), away: m.awayName, awayPct: forecastPct(liveProbs.advance.away) })}
                   </p>
                 )}
-                {/* The pre-match line, for comparison */}
-                <div className="border-border/50 mt-4 border-t pt-3">
-                  <div className="text-muted-2 mb-2 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.preMatchLabel")}</div>
-                  <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
+                {/* The pre-match line, compact, for comparison (no repeated team legend — NOW carries it) */}
+                <div className="border-border/50 mt-4 flex items-center gap-3 border-t pt-3">
+                  <span className="text-muted-2 w-20 shrink-0 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.preMatchLabel")}</span>
+                  <div className="bg-muted/40 flex h-1.5 flex-1 overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
+                    <div className="bg-primary/55" style={{ width: `${m.probs.home * 100}%` }} />
+                    <div className="bg-muted-foreground/30" style={{ width: `${m.probs.draw * 100}%` }} />
+                    <div className="bg-data-cool/45" style={{ width: `${m.probs.away * 100}%` }} />
+                  </div>
+                  <span className="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums">
+                    {forecastPct(m.probs.home)} · {forecastPct(m.probs.draw)} · {forecastPct(m.probs.away)}
+                  </span>
                 </div>
               </>
             ) : (
