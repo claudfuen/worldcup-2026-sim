@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { localeConfig } from "@/lib/i18n/config"
 import { getMessages } from "@/lib/i18n/server"
 import { I18nProvider } from "@/lib/i18n/provider"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import type { MatchInfo } from "@/lib/predictions"
 import type { Metadata, Viewport } from "next"
 
@@ -130,6 +131,12 @@ export default async function RootLayout({
             <Nav updatedAt={updatedAt} />
             <ScoreTicker items={tickerItems} />
             {children}
+            {/* Site-wide language selector (every page, all breakpoints) */}
+            <div className="border-border/60 mt-4 border-t">
+              <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
+                <LanguageSwitcher variant="footer" />
+              </div>
+            </div>
             <InstallPrompt />
           </I18nProvider>
         </ThemeProvider>

@@ -7,6 +7,7 @@ import { fmtTime, fmtDateTime } from "@/lib/format";
 import { useViewerZone } from "@/lib/useViewerZone";
 import { localeHref, splitLocale } from "@/lib/i18n/config";
 import { useT } from "@/lib/i18n/provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { OPEN_INSTALL_EVENT } from "@/components/install-prompt";
 
 // The final is 2026-07-19; after it, the cron stops and the payload is the frozen final state. Past
@@ -144,6 +145,7 @@ export function Nav({ updatedAt }: { updatedAt: string | null }) {
                 {t("nav.addToHome")}
               </button>
             )}
+            <LanguageSwitcher variant="footer" className="border-border/60 mt-1 border-t px-3 pt-3 pb-1" />
           </nav>
         </>
       )}

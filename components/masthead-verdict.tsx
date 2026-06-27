@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { forecastPct } from "@/lib/format";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import { getT, getLocale, getIntlLocale } from "@/lib/i18n/server";
 import { localeHref } from "@/lib/i18n/config";
 import type { TeamPrediction } from "@/lib/predictions";
@@ -27,7 +27,7 @@ export async function MastheadVerdict({ teams, iterations }: { teams: TeamPredic
           <p className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-lg">
             {top.map((tm, i) => (
               <span key={tm.code} className="inline-flex items-baseline gap-1.5">
-                <Link href={localeHref(locale, `/team/${teamSlug(tm.name)}`)} className={`hover:underline ${i === 0 ? "font-semibold" : ""}`}>{tm.name}</Link>
+                <Link href={localeHref(locale, `/team/${slugForCode(tm.code)}`)} className={`hover:underline ${i === 0 ? "font-semibold" : ""}`}>{tm.name}</Link>
                 <span className={`font-mono text-base tabular-nums ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>{forecastPct(tm.title)}</span>
               </span>
             ))}
@@ -36,7 +36,7 @@ export async function MastheadVerdict({ teams, iterations }: { teams: TeamPredic
       ) : (
         <>
           <h1 className="mt-2 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            <Link href={localeHref(locale, `/team/${teamSlug(c1.name)}`)} className="decoration-primary/40 underline-offset-4 hover:underline">{c1.name}</Link>{" "}
+            <Link href={localeHref(locale, `/team/${slugForCode(c1.code)}`)} className="decoration-primary/40 underline-offset-4 hover:underline">{c1.name}</Link>{" "}
             <span className="text-muted-foreground font-normal">{t("home.toWinItAll")}</span>
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1">

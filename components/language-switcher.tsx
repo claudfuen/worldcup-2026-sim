@@ -8,7 +8,7 @@ import { useT } from "@/lib/i18n/provider";
 // Locale switcher. Each link points to the SAME page in another language (current path, re-prefixed),
 // so a visitor keeps their place when switching. Returns null until more than one locale is launched.
 // `variant`: "footer" = labelled wrap of pills; "inline" = bare wrap (e.g. a menu section).
-export function LanguageSwitcher({ variant = "footer" }: { variant?: "footer" | "inline" }) {
+export function LanguageSwitcher({ variant = "footer", className = "" }: { variant?: "footer" | "inline"; className?: string }) {
   const [current, path] = useLocaleAndPath();
   const t = useT();
   if (ACTIVE_LOCALES.length <= 1) return null;
@@ -43,10 +43,10 @@ export function LanguageSwitcher({ variant = "footer" }: { variant?: "footer" | 
     </ul>
   );
 
-  if (variant === "inline") return links;
+  if (variant === "inline") return <div className={className}>{links}</div>;
 
   return (
-    <nav aria-label={t("nav.language")}>
+    <nav aria-label={t("nav.language")} className={className}>
       <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">
         {t("footer.switchLanguage")}
       </h2>

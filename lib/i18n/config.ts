@@ -33,20 +33,20 @@ export type LocaleConfig = {
 // already-indexed URLs (/bracket, /team/spain, …) keep their rankings. Every other locale is prefixed.
 export const LOCALES: readonly LocaleConfig[] = [
   { id: "en", hreflang: "en", intl: "en-US", label: "English", dir: "ltr", ready: true },
-  { id: "es", hreflang: "es", intl: "es", label: "Español", dir: "ltr", ready: false },
-  { id: "pt", hreflang: "pt-BR", intl: "pt-BR", label: "Português", dir: "ltr", ready: false },
-  { id: "fr", hreflang: "fr", intl: "fr", label: "Français", dir: "ltr", ready: false },
-  { id: "de", hreflang: "de", intl: "de", label: "Deutsch", dir: "ltr", ready: false },
-  { id: "it", hreflang: "it", intl: "it", label: "Italiano", dir: "ltr", ready: false },
-  { id: "ru", hreflang: "ru", intl: "ru", label: "Русский", dir: "ltr", ready: false },
+  { id: "es", hreflang: "es", intl: "es", label: "Español", dir: "ltr", ready: true },
+  { id: "pt", hreflang: "pt-BR", intl: "pt-BR", label: "Português", dir: "ltr", ready: true },
+  { id: "fr", hreflang: "fr", intl: "fr", label: "Français", dir: "ltr", ready: true },
+  { id: "de", hreflang: "de", intl: "de", label: "Deutsch", dir: "ltr", ready: true },
+  { id: "it", hreflang: "it", intl: "it", label: "Italiano", dir: "ltr", ready: true },
+  { id: "ru", hreflang: "ru", intl: "ru", label: "Русский", dir: "ltr", ready: true },
   // Force Latin digits in Arabic (-u-nu-latn): the UI is percentage-dense and modern Arabic data UIs
   // read Western numerals — Arabic-Indic digits in the stat tables would hurt, not help, comprehension.
-  { id: "ar", hreflang: "ar", intl: "ar-u-nu-latn", label: "العربية", dir: "rtl", ready: false },
-  { id: "hi", hreflang: "hi", intl: "hi", label: "हिन्दी", dir: "ltr", ready: false },
-  { id: "id", hreflang: "id", intl: "id", label: "Bahasa Indonesia", dir: "ltr", ready: false },
-  { id: "ja", hreflang: "ja", intl: "ja", label: "日本語", dir: "ltr", ready: false },
-  { id: "ko", hreflang: "ko", intl: "ko", label: "한국어", dir: "ltr", ready: false },
-  { id: "zh", hreflang: "zh-Hans", intl: "zh-CN", label: "中文", dir: "ltr", ready: false },
+  { id: "ar", hreflang: "ar", intl: "ar-u-nu-latn", label: "العربية", dir: "rtl", ready: true },
+  { id: "hi", hreflang: "hi", intl: "hi", label: "हिन्दी", dir: "ltr", ready: true },
+  { id: "id", hreflang: "id", intl: "id", label: "Bahasa Indonesia", dir: "ltr", ready: true },
+  { id: "ja", hreflang: "ja", intl: "ja", label: "日本語", dir: "ltr", ready: true },
+  { id: "ko", hreflang: "ko", intl: "ko", label: "한국어", dir: "ltr", ready: true },
+  { id: "zh", hreflang: "zh-Hans", intl: "zh-CN", label: "中文", dir: "ltr", ready: true },
 ] as const;
 
 export type Locale = (typeof LOCALES)[number]["id"];

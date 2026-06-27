@@ -6,6 +6,7 @@ import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { RelatedLinks } from "@/components/related-links";
 import { computeWatchability } from "@/lib/watchability";
 import { getT, getLocale } from "@/lib/i18n/server";
+import { localizeMatches } from "@/lib/i18n/localize-payload";
 import { buildAlternates } from "@/lib/i18n/links";
 import { localeHref } from "@/lib/i18n/config";
 
@@ -35,6 +36,7 @@ export default async function SchedulePage() {
   const { byMatch } = computeWatchability(matches, data.teams, data.groups);
   const hotReasons: Record<number, string> = {};
   for (const p of byMatch.values()) if (p.hot) hotReasons[p.match.match] = t(p.reason.key, p.reason.params);
+  const localizedMatches = localizeMatches(matches, t);
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
@@ -45,7 +47,7 @@ export default async function SchedulePage() {
           {t("schedule.lede")}
         </p>
       </header>
-      <ScheduleList matches={matches} hotReasons={hotReasons} />
+      <ScheduleList matches={localizedMatches} hotReasons={hotReasons} />
       <RelatedLinks
         links={[
           { label: t("schedule.relatedGroups"), href: localeHref(locale, "/groups") },

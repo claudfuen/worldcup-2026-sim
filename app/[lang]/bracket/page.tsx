@@ -8,9 +8,10 @@ import { Flag } from "@/components/flag";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { ShareBar } from "@/components/share-bar";
 import { forecastPct } from "@/lib/format";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import { RelatedLinks } from "@/components/related-links";
 import { getT, getLocale } from "@/lib/i18n/server";
+import { localizeMatches, localizeTeam } from "@/lib/i18n/localize-payload";
 import { buildAlternates } from "@/lib/i18n/links";
 import { localeHref } from "@/lib/i18n/config";
 
@@ -41,8 +42,10 @@ export default async function BracketPage() {
   // group stage completes), rather than waiting for the next cron tick.
   const overlaid = overlayLive(data.matches, live);
   const ratings = ratingsFromTeams(data.teams);
-  const matches = hasLive ? finalizeBracket(overlaid, finalizeGroups(data.groups, overlaid, ratings), ratings) : data.matches;
-  const champ = data.teams[0];
+  const rawMatches = hasLive ? finalizeBracket(overlaid, finalizeGroups(data.groups, overlaid, ratings), ratings) : data.matches;
+  // Localize team display names AFTER the finalize transforms (which re-derive English names).
+  const matches = localizeMatches(rawMatches, t);
+  const champ = data.teams[0] ? localizeTeam(data.teams[0], t) : undefined;
   const finalM = matches.find((m) => m.round === "FINAL");
   const fHomeName = finalM?.homeName ?? finalM?.projHome?.[0]?.name ?? null;
   const fAwayName = finalM?.awayName ?? finalM?.projAway?.[0]?.name ?? null;
@@ -57,7 +60,7 @@ export default async function BracketPage() {
         {champ && (
           <p className="mt-3 text-base text-pretty">
             {t("bracket.roadIntro")}{" "}
-            <Link href={localeHref(locale, `/team/${teamSlug(champ.name)}`)} className="text-foreground font-semibold hover:underline">{champ.name}</Link>{t("bracket.liftTrophy")}{" "}
+            <Link href={localeHref(locale, `/team/${slugForCode(champ.code)}`)} className="text-foreground font-semibold hover:underline">{champ.name}</Link>{t("bracket.liftTrophy")}{" "}
             <span className="text-primary font-semibold tabular-nums">{forecastPct(champ.title)}</span>
             {fHomeName && fAwayName && <>{t("bracket.withFinalPre")}<span className="text-foreground/90 font-medium">{fHomeName}</span>–<span className="text-foreground/90 font-medium">{fAwayName}</span>{t("bracket.withFinalPost")}</>}.
             <span className="text-muted-foreground"> {t("bracket.confirmedTies", { set: r32Set, total: r32.length })}</span>
@@ -77,7 +80,7 @@ export default async function BracketPage() {
       </header>
       <Bracket
         matches={matches}
-        champion={data.teams[0] ? { code: data.teams[0].code, name: data.teams[0].name, prob: data.teams[0].title } : undefined}
+        champion={champ ? { code: champ.code, name: champ.name, prob: champ.title } : undefined}
       />
       <div className="border-border bg-card mt-6 rounded-2xl border p-4">
         <h2 className="mb-2 text-base font-semibold tracking-tight">{t("rounds.THIRD")}</h2>

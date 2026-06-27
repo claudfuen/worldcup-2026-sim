@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import type { GroupTeamView } from "@/lib/predictions";
 import { provisionalGroup, ratingsFromTeams, liveThirdPlaceRace, finalizeGroups, type ProvisionalGroup } from "@/lib/liveProjection";
 import { Flag } from "@/components/flag";
@@ -14,6 +14,7 @@ import { ProvisionalStandings } from "@/components/provisional-standings";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { RelatedLinks } from "@/components/related-links";
 import { getT, getLocale, type TFunction } from "@/lib/i18n/server";
+import { localizeGroups, localizeThird } from "@/lib/i18n/localize-payload";
 import { buildAlternates } from "@/lib/i18n/links";
 import { localeHref, type Locale } from "@/lib/i18n/config";
 
@@ -67,6 +68,10 @@ export default async function GroupsPage() {
     decidedCount === groups.length
       ? t("groups.verdictAllSettled", { total: groups.length })
       : t("groups.verdictPartial", { settled: decidedCount, total: groups.length, through: qualified });
+  // Localize team display names on the FINAL structures (after finalizeGroups re-derives English names),
+  // right before passing them to components. Slugs/codes/logic are unaffected.
+  const localizedGroups = localizeGroups(groups, t);
+  const localizedThird = localizeThird(thirdRace, t);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
@@ -77,7 +82,7 @@ export default async function GroupsPage() {
         <p className="text-muted-2 mt-2 text-xs text-pretty">{t("groups.subhead")}</p>
       </header>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {groups.map((g) => (
+        {localizedGroups.map((g) => (
           <GroupCard key={g.group} t={t} locale={locale} group={g.group} teams={g.teams} decided={g.decided} prov={provByGroup[g.group]} />
         ))}
       </div>
@@ -87,7 +92,7 @@ export default async function GroupsPage() {
         {t("groups.footnoteClinch")} <span className="text-win">▲</span>
         <span className="text-destructive">▼</span> {t("groups.footnoteDelta")}
       </p>
-      <ThirdPlaceRace entries={thirdRace} />
+      <ThirdPlaceRace entries={localizedThird} />
       <RelatedLinks
         links={[
           { label: t("nav.bracket"), href: localeHref(locale, "/bracket"), hint: t("groups.linkBracketHint") },
@@ -140,7 +145,7 @@ function GroupCard({ t, locale, group, teams, decided, prov }: { t: TFunction; l
         <div className="border-border/60 space-y-1.5 border-t px-4 py-3">
           {teams.filter((team) => team.need).map((team) => (
             <div key={team.code} className="flex items-center gap-2 text-xs">
-              <Link href={localeHref(locale, `/team/${teamSlug(team.name)}`)} className="flex shrink-0 items-center gap-1.5 hover:underline">
+              <Link href={localeHref(locale, `/team/${slugForCode(team.code)}`)} className="flex shrink-0 items-center gap-1.5 hover:underline">
                 <Flag code={team.code} size={14} />
                 <span className="text-foreground/80 font-medium">{team.name}</span>
               </Link>
@@ -166,7 +171,7 @@ function Row({ t, locale, team, pos, cut }: { t: TFunction; locale: Locale; team
   return (
     <tr className={`border-l-2 ${zone} ${cutBorder} ${elim ? "opacity-45" : ""}`}>
       <td className="py-2 pr-1 pl-2.5">
-        <Link href={localeHref(locale, `/team/${teamSlug(team.name)}`)} className="flex items-center gap-2 hover:underline">
+        <Link href={localeHref(locale, `/team/${slugForCode(team.code)}`)} className="flex items-center gap-2 hover:underline">
           <span className="text-muted-foreground w-3 text-center font-mono text-[11px]">{pos}</span>
           <Flag code={team.code} size={20} />
           <span className={`truncate text-[13px] font-medium ${elim ? "line-through" : ""}`}>{team.name}{elim && <span className="sr-only"> {t("groups.srEliminated")}</span>}</span>

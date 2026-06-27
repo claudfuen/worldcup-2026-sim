@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { Delta } from "@/components/delta";
 import { forecastPct } from "@/lib/format";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import { getT, getLocale } from "@/lib/i18n/server";
 import { localeHref } from "@/lib/i18n/config";
 import type { TeamPrediction } from "@/lib/predictions";
@@ -19,7 +19,7 @@ export async function TitleOdds({ teams, className = "" }: { teams: TeamPredicti
       <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">{t("home.titleRace")}</h2>
       <div className="divide-border/50 -mx-1.5 flex-1 divide-y">
         {contenders.map((tm, i) => (
-          <Link key={tm.code} href={localeHref(locale, `/team/${teamSlug(tm.name)}`)} className="hover:bg-muted/20 flex items-center gap-2.5 rounded-md px-1.5 py-2 transition-colors">
+          <Link key={tm.code} href={localeHref(locale, `/team/${slugForCode(tm.code)}`)} className="hover:bg-muted/20 flex items-center gap-2.5 rounded-md px-1.5 py-2 transition-colors">
             <span className="text-muted-2 w-3 text-right font-mono text-[11px] tabular-nums">{i + 1}</span>
             <Flag code={tm.code} size={18} />
             <span className="min-w-0 flex-1 truncate text-sm font-medium">{tm.name}</span>

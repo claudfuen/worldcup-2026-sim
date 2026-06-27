@@ -4,7 +4,7 @@ import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import { pct, forecastPct } from "@/lib/format";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { LocalTime } from "@/components/local-time";
@@ -27,6 +27,7 @@ import { GroupsPreview } from "@/components/groups-preview";
 import { TitleOdds } from "@/components/title-odds";
 import type { Metadata } from "next";
 import { getT, getLocale, type TFunction } from "@/lib/i18n/server";
+import { localizeMatch, localizeTeams } from "@/lib/i18n/localize-payload";
 import { buildAlternates } from "@/lib/i18n/links";
 import { localeHref, type Locale } from "@/lib/i18n/config";
 
@@ -48,8 +49,8 @@ export async function generateMetadata({ params }: { params: Promise<{ match: st
     const data = await getPredictions();
     const m = data.matches.find((x) => x.match === Number(match));
     if (!m) return { title: t("match.metaTitleFallback", { match }) };
-    const home = m.homeName ?? (m.slotHome ? prettySlot(t, m.slotHome) : t("common.tbd"));
-    const away = m.awayName ?? (m.slotAway ? prettySlot(t, m.slotAway) : t("common.tbd"));
+    const home = m.home ? t(`teams.${m.home}`) : m.slotHome ? prettySlot(t, m.slotHome) : t("common.tbd");
+    const away = m.away ? t(`teams.${m.away}`) : m.slotAway ? prettySlot(t, m.slotAway) : t("common.tbd");
     const title = t("match.metaTitle", { home, away });
     const description = t("match.metaDesc", { home, away });
     return {
@@ -74,15 +75,21 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   const hasLive = liveActivity(data.matches, live);
   const ratings = ratingsFromTeams(data.teams);
   const allMatches = hasLive ? finalizeBracket(overlaid, finalizeGroups(data.groups, overlaid, ratings), ratings) : overlaid;
-  const m = allMatches.find((x) => x.match === Number(match));
-  if (!m) notFound();
+  const found = allMatches.find((x) => x.match === Number(match));
+  if (!found) notFound();
+  // Localize display names (home/away, projected candidates, matchups, favorite) right before render —
+  // AFTER the live transforms, which re-derive English names from TEAM_BY_CODE. Slugs/codes stay English.
+  const m = localizeMatch(found, t);
   const state: "final" | "live" | "defined" | "undefined" =
     m.status === "final" ? "final" : m.status === "live" ? "live" : m.defined ? "defined" : "undefined";
   // Is this one of the current watch-plan picks? (same scorer as the homepage "matches to watch")
   const heat = computeWatchability(allMatches, data.teams, data.groups).byMatch.get(m.match);
   // Both teams' path-to-the-final odds, for the tournament-outlook comparison (only when both are known).
-  const homePred = m.home ? data.teams.find((t) => t.code === m.home) : undefined;
-  const awayPred = m.away ? data.teams.find((t) => t.code === m.away) : undefined;
+  // Localized for <MatchOutlook> (which renders their names) while codes/ratings pass through untouched.
+  const homeRaw = m.home ? data.teams.find((p) => p.code === m.home) : undefined;
+  const awayRaw = m.away ? data.teams.find((p) => p.code === m.away) : undefined;
+  const homePred = homeRaw ? localizeTeams([homeRaw], t)[0] : undefined;
+  const awayPred = awayRaw ? localizeTeams([awayRaw], t)[0] : undefined;
   // SportsEvent structured data - only for a real, named matchup (slot placeholders aren't teams).
   const eventLd =
     m.defined && m.homeName && m.awayName
@@ -133,8 +140,8 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   const groupView = m.group ? groups.find((g) => g.group === m.group) : undefined;
   // Secondary pill links beneath the preview cards: both teams (so non-top-6 sides stay reachable) + schedule.
   const exploreLinks: RelLink[] = [];
-  if (m.home && m.homeName) exploreLinks.push({ label: m.homeName, href: localeHref(locale, `/team/${teamSlug(m.homeName)}`), code: m.home });
-  if (m.away && m.awayName) exploreLinks.push({ label: m.awayName, href: localeHref(locale, `/team/${teamSlug(m.awayName)}`), code: m.away });
+  if (m.home && m.homeName) exploreLinks.push({ label: t(`teams.${m.home}`), href: localeHref(locale, `/team/${slugForCode(m.home)}`), code: m.home });
+  if (m.away && m.awayName) exploreLinks.push({ label: t(`teams.${m.away}`), href: localeHref(locale, `/team/${slugForCode(m.away)}`), code: m.away });
   exploreLinks.push({ label: t("match.fullSchedule"), href: localeHref(locale, "/schedule") });
   exploreLinks.push({ label: t("match.howItWorks"), href: localeHref(locale, "/methodology") });
 
@@ -439,7 +446,7 @@ function ScoreTeam({ m, side, locale, t }: { m: MatchInfo; side: "home" | "away"
   }
   return (
     <Link
-      href={localeHref(locale, `/team/${teamSlug(name)}`)}
+      href={localeHref(locale, `/team/${slugForCode(resolved)}`)}
       className="group/team focus-visible:ring-primary/50 focus-visible:ring-offset-surface-raised flex min-w-0 flex-1 flex-col items-center gap-3 rounded-xl text-center transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       <span className={lose ? "opacity-60 saturate-[0.85]" : ""}><Flag code={resolved} size={64} /></span>
@@ -461,7 +468,7 @@ function HeroSlot({ m, side, t, locale }: { m: MatchInfo; side: "home" | "away";
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
         <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(t, slot)}</div>
-        <Link href={localeHref(locale, `/team/${teamSlug(name)}`)} className="group/team flex flex-col items-center gap-3 transition-colors">
+        <Link href={localeHref(locale, `/team/${slugForCode(resolved)}`)} className="group/team flex flex-col items-center gap-3 transition-colors">
           <Flag code={resolved} size={64} />
           <div className="decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl">{name}</div>
         </Link>
@@ -488,7 +495,7 @@ function HeroSlot({ m, side, t, locale }: { m: MatchInfo; side: "home" | "away";
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
       <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(t, slot)}</div>
-      <Link href={localeHref(locale, `/team/${teamSlug(top.name)}`)} className="group/team flex flex-col items-center gap-3 transition-colors">
+      <Link href={localeHref(locale, `/team/${slugForCode(top.code)}`)} className="group/team flex flex-col items-center gap-3 transition-colors">
         <Flag code={top.code} size={64} />
         <div className="decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl">{top.name}</div>
       </Link>
@@ -505,7 +512,7 @@ function HeroSlot({ m, side, t, locale }: { m: MatchInfo; side: "home" | "away";
         <div className="border-border/50 mt-2 w-full max-w-[13rem] space-y-1.5 border-t pt-3">
           <div className="text-muted-2 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{t("match.ifNot")}</div>
           {rest.map((r) => (
-            <Link key={r.code} href={localeHref(locale, `/team/${teamSlug(r.name)}`)} className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors">
+            <Link key={r.code} href={localeHref(locale, `/team/${slugForCode(r.code)}`)} className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors">
               <Flag code={r.code} size={14} />
               <span className="min-w-0 flex-1 truncate text-left">{r.name}</span>
               <span className="shrink-0 font-mono tabular-nums">{forecastPct(r.prob)}</span>

@@ -22,11 +22,11 @@ export async function ProvisionalStandings({ proj, bare }: { proj: ProvisionalGr
             </span>
             <Link href={localeHref(locale, `/team/${teamSlug(TEAM_BY_CODE[l.home]?.name ?? l.home)}`)} className="flex items-center gap-1.5 hover:underline">
               <Flag code={l.home} size={14} />
-              <span className="font-medium">{TEAM_BY_CODE[l.home]?.name ?? l.home}</span>
+              <span className="font-medium">{t(`teams.${l.home}`)}</span>
             </Link>
             <span className="font-mono font-bold tabular-nums">{l.homeGoals}&ndash;{l.awayGoals}</span>
             <Link href={localeHref(locale, `/team/${teamSlug(TEAM_BY_CODE[l.away]?.name ?? l.away)}`)} className="flex items-center gap-1.5 hover:underline">
-              <span className="font-medium">{TEAM_BY_CODE[l.away]?.name ?? l.away}</span>
+              <span className="font-medium">{t(`teams.${l.away}`)}</span>
               <Flag code={l.away} size={14} />
             </Link>
           </div>
@@ -55,7 +55,7 @@ export async function ProvisionalStandings({ proj, bare }: { proj: ProvisionalGr
                   <Link href={localeHref(locale, `/team/${teamSlug(TEAM_BY_CODE[r.code]?.name ?? r.code)}`)} className="flex items-center gap-2 hover:underline">
                     <span className="text-muted-foreground w-3 text-center font-mono text-[11px]">{pos}</span>
                     <Flag code={r.code} size={18} />
-                    <span className={`truncate text-[13px] font-medium ${out ? "line-through" : ""}`}>{TEAM_BY_CODE[r.code]?.name ?? r.code}</span>
+                    <span className={`truncate text-[13px] font-medium ${out ? "line-through" : ""}`}>{t(`teams.${r.code}`)}</span>
                   </Link>
                 </td>
                 <td className="text-muted-foreground px-1 text-center font-mono text-xs tabular-nums">{r.played}</td>

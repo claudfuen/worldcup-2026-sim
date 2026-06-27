@@ -4,7 +4,7 @@ import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { GROUPS } from "@/lib/data/teams";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import { Flag } from "@/components/flag";
 import { ShareBar } from "@/components/share-bar";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
@@ -24,6 +24,7 @@ import { TitleOdds } from "@/components/title-odds";
 import type { GroupTeamView } from "@/lib/predictions";
 import type { Metadata } from "next";
 import { getT, getLocale } from "@/lib/i18n/server";
+import { localizeGroups, localizeMatches, localizeTeams } from "@/lib/i18n/localize-payload";
 import { buildAlternates } from "@/lib/i18n/links";
 import { localeHref } from "@/lib/i18n/config";
 
@@ -62,12 +63,19 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
   const overlaid = overlayLive(data.matches, live);
   const hasLive = liveActivity(data.matches, live);
   // Finalize standings/clinch from results known right now, so a finished match updates the table instantly.
-  const groups = hasLive ? finalizeGroups(data.groups, overlaid, ratingsFromTeams(data.teams)) : data.groups;
+  // Localize team display names on the FINAL groups (finalizeGroups re-derives English names) before render.
+  const groups = localizeGroups(
+    hasLive ? finalizeGroups(data.groups, overlaid, ratingsFromTeams(data.teams)) : data.groups,
+    t,
+  );
   const gv = groups.find((g) => g.group === L);
   if (!gv) notFound();
-  const fixtures = overlaid
-    .filter((m) => m.round === "GROUP" && m.group === L)
-    .sort((a, b) => a.utc.localeCompare(b.utc));
+  const fixtures = localizeMatches(
+    overlaid
+      .filter((m) => m.round === "GROUP" && m.group === L)
+      .sort((a, b) => a.utc.localeCompare(b.utc)),
+    t,
+  );
   const leader = gv.teams[0];
   const hotByMatch = computeWatchability(overlaid, data.teams, groups).byMatch;
 
@@ -133,7 +141,7 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
                 return (
                   <tr key={tm.code} className={`border-border/40 border-b border-l-2 last:border-b-0 ${zone} ${elim ? "opacity-45" : ""}`}>
                     <td className="py-2 pr-1 pl-2.5">
-                      <Link href={localeHref(locale, `/team/${teamSlug(tm.name)}`)} className="flex items-center gap-2 hover:underline">
+                      <Link href={localeHref(locale, `/team/${slugForCode(tm.code)}`)} className="flex items-center gap-2 hover:underline">
                         <span className="text-muted-2 w-3 text-center font-mono text-[11px]">{i + 1}</span>
                         <Flag code={tm.code} size={20} />
                         <span className={`truncate text-[13px] font-medium ${elim ? "line-through" : ""}`}>{tm.name}</span>
@@ -186,8 +194,8 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
 
       <ExploreSection title={t("groupDetail.exploreTitle")} links={related}>
         <GroupsPreview groups={groups} />
-        <BracketTeaser matches={overlaid} teams={data.teams} />
-        <TitleOdds teams={data.teams} />
+        <BracketTeaser matches={localizeMatches(overlaid, t)} teams={localizeTeams(data.teams, t)} />
+        <TitleOdds teams={localizeTeams(data.teams, t)} />
       </ExploreSection>
 
       <p className="text-muted-2 mt-8 text-xs">

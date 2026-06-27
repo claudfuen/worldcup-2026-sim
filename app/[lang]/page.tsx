@@ -13,6 +13,7 @@ import { TitleOdds } from "@/components/title-odds";
 import { LaunchRail } from "@/components/launch-rail";
 import { computeWatchability } from "@/lib/watchability";
 import { getT } from "@/lib/i18n/server";
+import { localizeTeams, localizeMatches, localizeGroups } from "@/lib/i18n/localize-payload";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,6 +35,12 @@ export default async function Page() {
     if (p.hot) hotReasons[p.match.match] = t(p.reason.key, p.reason.params);
   }
 
+  // Localize team display names (codes → native names) on the FINAL structures, after the live
+  // transforms above (which re-derive English names). watchability ran on the raw data, by code.
+  const teams = localizeTeams(data.teams, t);
+  const lMatches = localizeMatches(matches, t);
+  const lGroups = localizeGroups(groups, t);
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
@@ -42,23 +49,23 @@ export default async function Page() {
       <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
           <header>
-            <MastheadVerdict teams={data.teams} iterations={data.iterations} />
-            <MoverStrip teams={data.teams} />
+            <MastheadVerdict teams={teams} iterations={data.iterations} />
+            <MoverStrip teams={teams} />
           </header>
-          <LiveTodayRail matches={matches} hotReasons={hotReasons} />
+          <LiveTodayRail matches={lMatches} hotReasons={hotReasons} />
         </div>
         <aside className="space-y-4">
-          <TournamentStage matches={matches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} />
-          <BracketTeaser matches={matches} teams={data.teams} />
-          <GroupsPreview groups={groups} />
-          <TitleOdds teams={data.teams} />
+          <TournamentStage matches={lMatches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} />
+          <BracketTeaser matches={lMatches} teams={teams} />
+          <GroupsPreview groups={lGroups} />
+          <TitleOdds teams={teams} />
         </aside>
       </div>
 
       {/* What to watch next — the curated plan */}
-      <MatchesToWatch matches={matches} teams={data.teams} groups={groups} className="mt-8" />
+      <MatchesToWatch matches={lMatches} teams={teams} groups={lGroups} className="mt-8" />
 
-      <LaunchRail teams={data.teams} iterations={data.iterations} className="mt-12" />
+      <LaunchRail teams={teams} iterations={data.iterations} className="mt-12" />
     </main>
   );
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ThirdPlaceEntry } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import { forecastPct } from "@/lib/format";
 import { ProbMeter } from "@/components/prob-meter";
 import { useHoverTip, HoverTipPanel } from "@/components/hover-tip";
@@ -114,7 +114,7 @@ function Row({ e, all, t, locale }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[]
       <td className="text-muted-foreground py-2 pr-1 pl-3 font-mono text-[11px]">{e.rank}</td>
       <td className="py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Link href={localeHref(locale, `/team/${teamSlug(e.name)}`)} className="flex min-w-0 items-center gap-2 hover:underline">
+          <Link href={localeHref(locale, `/team/${slugForCode(e.code)}`)} className="flex min-w-0 items-center gap-2 hover:underline">
             <Flag code={e.code} size={20} />
             <span className={`min-w-0 flex-1 truncate text-[13px] font-medium ${elim ? "line-through" : ""}`}>{e.name}</span>
           </Link>

@@ -4,7 +4,7 @@ import { Fragment } from "react";
 import Link from "next/link";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "./flag";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import { pct, fmtDay } from "@/lib/format";
 import { useViewerZone } from "@/lib/useViewerZone";
 import { ProbMeter } from "./prob-meter";
@@ -80,7 +80,7 @@ function ChampionCard({ champion }: { champion: { code: string; name: string; pr
   return (
     <div className="border-primary/40 bg-primary/[0.07] mb-3 rounded-xl border p-3 text-center">
       <div className="text-primary mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("bracket.projectedChampion")}</div>
-      <Link href={localeHref(locale, `/team/${teamSlug(champion.name)}`)} className="flex items-center justify-center gap-2 hover:underline">
+      <Link href={localeHref(locale, `/team/${slugForCode(champion.code)}`)} className="flex items-center justify-center gap-2 hover:underline">
         <Flag code={champion.code} size={22} />
         <span className="font-semibold">{champion.name}</span>
       </Link>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { forecastPct } from "@/lib/format";
-import { teamSlug } from "@/lib/slug";
+import { slugForCode } from "@/lib/slug";
 import { getT, getLocale } from "@/lib/i18n/server";
 import { localeHref } from "@/lib/i18n/config";
 import type { TeamPrediction } from "@/lib/predictions";
@@ -18,7 +18,7 @@ export async function MoverStrip({ teams }: { teams: TeamPrediction[] }) {
   return (
     <div className="border-border/60 text-muted-foreground mt-4 border-t pt-3 text-sm">
       {t("home.moverLead")}{" "}
-      <Link href={localeHref(locale, `/team/${teamSlug(mover.name)}`)} className="text-foreground font-medium hover:underline">{mover.name}</Link>{" "}
+      <Link href={localeHref(locale, `/team/${slugForCode(mover.code)}`)} className="text-foreground font-medium hover:underline">{mover.name}</Link>{" "}
       <span className={up ? "text-win" : "text-destructive"}>
         {up ? "▲" : "▼"}{Math.abs(Math.round((mover.titleDelta ?? 0) * 100))}
       </span>{" "}

@@ -4,7 +4,8 @@ import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { TEAMS } from "@/lib/data/teams";
-import { teamSlug, teamFromSlug } from "@/lib/slug";
+import { teamSlug, slugForCode, teamFromSlug } from "@/lib/slug";
+import { localizeTeam, localizeTeams, localizeMatches, localizeGroups } from "@/lib/i18n/localize-payload";
 import { Flag } from "@/components/flag";
 import { ShareBar } from "@/components/share-bar";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
@@ -39,9 +40,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const t = await getT();
   const locale = await getLocale();
   if (!team) return { title: t("team.fallbackTitle") };
-  const path = `/team/${teamSlug(team.name)}`;
-  const title = t("team.metaTitle", { team: team.name });
-  const description = t("team.metaDesc", { team: team.name, group: team.group });
+  const path = `/team/${slugForCode(team.code)}`;
+  const teamName = t(`teams.${team.code}`);
+  const title = t("team.metaTitle", { team: teamName });
+  const description = t("team.metaDesc", { team: teamName, group: team.group });
   return {
     title: { absolute: title },
     description,
@@ -68,17 +70,24 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   const t = await getT();
   const locale = await getLocale();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
-  const overlaid = overlayLive(data.matches, live);
+  const overlaidRaw = overlayLive(data.matches, live);
   const hasLive = liveActivity(data.matches, live);
-  const groups = hasLive ? finalizeGroups(data.groups, overlaid, ratingsFromTeams(data.teams)) : data.groups;
-  const pred = data.teams.find((t) => t.code === team.code);
-  const rank = data.teams.findIndex((t) => t.code === team.code) + 1;
+  const groupsRaw = hasLive ? finalizeGroups(data.groups, overlaidRaw, ratingsFromTeams(data.teams)) : data.groups;
+  // Localize the FINAL structures the page renders (after live transforms re-derive English names).
+  const teams = localizeTeams(data.teams, t);
+  const groups = localizeGroups(groupsRaw, t);
+  const overlaid = localizeMatches(overlaidRaw, t);
+  const pred = teams.find((t) => t.code === team.code);
+  // Localized display copy of THIS team (H1/hero/share). `pred` is already localized when present;
+  // fall back to the team catalog (localizeTeam-equivalent) so the headline is always in-language.
+  const lTeam = pred ? localizeTeam(pred, t) : { ...team, name: t(`teams.${team.code}`) };
+  const rank = teams.findIndex((t) => t.code === team.code) + 1;
   const groupView = groups.find((g) => g.group === team.group);
   const row = groupView?.teams.find((t) => t.code === team.code);
   const fixtures = overlaid
     .filter((m) => m.round === "GROUP" && (m.home === team.code || m.away === team.code))
     .sort((a, b) => a.utc.localeCompare(b.utc));
-  const hotByMatch = computeWatchability(overlaid, data.teams, groups).byMatch;
+  const hotByMatch = computeWatchability(overlaid, teams, groups).byMatch;
 
   const advancePct = pred ? forecastPct(pred.advance) : "-";
   const titlePct = pred ? forecastPct(pred.title) : "-";
@@ -100,16 +109,16 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
-      <Breadcrumbs items={[{ label: t("team.homeCrumb"), href: localeHref(locale, "/") }, { label: t("nav.groups"), href: localeHref(locale, "/groups") }, { label: t("team.groupCrumb", { group: team.group }), href: localeHref(locale, `/group/${team.group.toLowerCase()}`) }, { label: team.name }]} />
+      <Breadcrumbs items={[{ label: t("team.homeCrumb"), href: localeHref(locale, "/") }, { label: t("nav.groups"), href: localeHref(locale, "/groups") }, { label: t("team.groupCrumb", { group: team.group }), href: localeHref(locale, `/group/${team.group.toLowerCase()}`) }, { label: lTeam.name }]} />
       <header className="mt-3 max-w-3xl">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("team.eyebrow")} · <Link href={localeHref(locale, `/group/${team.group.toLowerCase()}`)} className="hover:underline">{t("team.groupCrumb", { group: team.group })}</Link></div>
         <div className="mt-1.5 flex items-start gap-3">
           <span className="shrink-0"><Flag code={team.code} size={40} /></span>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("team.heading", { team: team.name })}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("team.heading", { team: lTeam.name })}</h1>
         </div>
         {pred && (
           <p className="text-muted-foreground mt-3 text-sm text-pretty">
-            {t("team.ledePrefix", { team: team.name, status: statusWord })}
+            {t("team.ledePrefix", { team: lTeam.name, status: statusWord })}
             {advanceOut ? (
               <>{t("team.ledeOut", { group: team.group })}</>
             ) : advanceClinched ? (
@@ -126,10 +135,10 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
             <ShareBar
               text={
                 advanceClinched
-                  ? t("team.shareClinched", { team: team.name, title: titlePct })
+                  ? t("team.shareClinched", { team: lTeam.name, title: titlePct })
                   : advanceOut
-                    ? t("team.shareOut", { team: team.name })
-                    : t("team.shareRace", { team: team.name, advance: advancePct, title: titlePct })
+                    ? t("team.shareOut", { team: lTeam.name })
+                    : t("team.shareRace", { team: lTeam.name, advance: advancePct, title: titlePct })
               }
               path={`/team/${slug}`}
             />
@@ -177,7 +186,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                     <tr key={tm.code} className={`border-border/50 border-b last:border-0 ${me ? "bg-primary/[0.06]" : ""} ${i < 2 ? "border-l-win" : i === 2 ? "border-l-contention" : "border-l-transparent"} border-l-2`}>
                       <td className="py-2 pr-1 pl-3 text-muted-2 w-6 font-mono text-[11px]">{i + 1}</td>
                       <td className="py-2">
-                        <Link href={localeHref(locale, `/team/${teamSlug(tm.name)}`)} className="flex items-center gap-2 hover:underline">
+                        <Link href={localeHref(locale, `/team/${slugForCode(tm.code)}`)} className="flex items-center gap-2 hover:underline">
                           <Flag code={tm.code} size={18} />
                           <span className={`truncate text-[13px] ${me ? "font-semibold" : "font-medium"}`}>{tm.name}</span>
                         </Link>
@@ -199,7 +208,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
 
       {fixtures.length > 0 && (
         <section className="lg:col-span-2">
-          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{t("team.fixturesHeading", { team: team.name })}</h2>
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{t("team.fixturesHeading", { team: lTeam.name })}</h2>
           <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
             {fixtures.map((m) => {
               const final = m.status === "final";
@@ -236,9 +245,9 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
           { label: t("team.howItWorksLink"), href: localeHref(locale, "/methodology") },
         ]}
       >
-        <BracketTeaser matches={overlaid} teams={data.teams} />
+        <BracketTeaser matches={overlaid} teams={teams} />
         <GroupsPreview groups={groups} />
-        <TitleOdds teams={data.teams} />
+        <TitleOdds teams={teams} />
       </ExploreSection>
 
       <p className="text-muted-2 mt-8 text-xs">
