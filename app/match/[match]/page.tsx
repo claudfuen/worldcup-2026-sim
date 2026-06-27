@@ -319,7 +319,8 @@ function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
         </Link>
       ) : (
         <>
-          <Flag code={resolved ?? null} size={44} />
+          {/* Unresolved slot: show the model's most-likely occupant's flag, dimmed, instead of an empty box. */}
+          <span className={top ? "opacity-65" : ""}><Flag code={top?.code ?? null} size={44} /></span>
           <div className="min-w-0">
             <div className="text-foreground/80 truncate text-sm font-medium">{prettySlot(slot)}</div>
             {top && <div className="text-muted-2 mt-0.5 truncate text-xs">likely {top.name} {pct(Math.min(top.prob, 0.99))}</div>}
