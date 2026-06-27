@@ -13,6 +13,8 @@ import { AdvanceBadge } from "@/components/view/advance-badge";
 import { R32ByFinish } from "@/components/r32-by-finish";
 import { HotBadge } from "@/components/hot-badge";
 import { computeWatchability } from "@/lib/watchability";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { RelatedLinks } from "@/components/related-links";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { isClinched } from "@/lib/view/types";
 import { forecastPct } from "@/lib/format";
@@ -84,7 +86,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
-      <Link href="/groups" className="text-muted-foreground hover:text-foreground text-sm">← Groups</Link>
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Groups", href: "/groups" }, { label: `Group ${team.group}`, href: `/group/${team.group.toLowerCase()}` }, { label: team.name }]} />
       <header className="mt-3 max-w-3xl">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026 · <Link href={`/group/${team.group.toLowerCase()}`} className="hover:underline">Group {team.group}</Link></div>
         <div className="mt-1.5 flex items-center gap-3">
@@ -213,6 +215,14 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
         </section>
       )}
       </div>
+
+      <RelatedLinks
+        links={[
+          { label: `Group ${team.group}`, href: `/group/${team.group.toLowerCase()}`, hint: "standings" },
+          { label: "Bracket", href: "/bracket", hint: "projected path" },
+          { label: "Full schedule", href: "/schedule" },
+        ]}
+      />
 
       <p className="text-muted-2 mt-8 text-xs">
         Odds from a World Football Elo + Poisson model, {data.iterations.toLocaleString()} Monte Carlo simulations, updated live.{" "}

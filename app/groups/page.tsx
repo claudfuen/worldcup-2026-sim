@@ -11,6 +11,7 @@ import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { isClinched } from "@/lib/view/types";
 import { ProvisionalStandings } from "@/components/provisional-standings";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
+import { RelatedLinks } from "@/components/related-links";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,6 +85,13 @@ export default async function GroupsPage() {
         advance odds have moved since the start of today.
       </p>
       <ThirdPlaceRace entries={thirdRace} />
+      <RelatedLinks
+        links={[
+          { label: "Bracket", href: "/bracket", hint: "knockout path" },
+          { label: "Full schedule", href: "/schedule" },
+          { label: "Overview", href: "/", hint: "title race" },
+        ]}
+      />
     </main>
   );
 }

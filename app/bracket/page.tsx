@@ -8,6 +8,7 @@ import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { ShareBar } from "@/components/share-bar";
 import { forecastPct } from "@/lib/format";
 import { teamSlug } from "@/lib/slug";
+import { RelatedLinks } from "@/components/related-links";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,6 +76,13 @@ export default async function BracketPage() {
         <h2 className="mb-2 text-base font-semibold tracking-tight">Third-place play-off</h2>
         <ThirdPlace matches={matches} />
       </div>
+      <RelatedLinks
+        links={[
+          { label: "Groups & standings", href: "/groups" },
+          { label: "Full schedule", href: "/schedule" },
+          { label: "Overview", href: "/", hint: "title race" },
+        ]}
+      />
     </main>
   );
 }

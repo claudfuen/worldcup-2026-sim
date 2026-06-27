@@ -2,6 +2,7 @@ import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { ScheduleList } from "@/components/schedule-list";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
+import { RelatedLinks } from "@/components/related-links";
 import { computeWatchability } from "@/lib/watchability";
 
 export const runtime = "nodejs";
@@ -37,6 +38,13 @@ export default async function SchedulePage() {
         </p>
       </header>
       <ScheduleList matches={matches} hotReasons={hotReasons} />
+      <RelatedLinks
+        links={[
+          { label: "Groups & standings", href: "/groups" },
+          { label: "Bracket", href: "/bracket", hint: "knockout path" },
+          { label: "Overview", href: "/", hint: "title race" },
+        ]}
+      />
     </main>
   );
 }

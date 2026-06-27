@@ -15,6 +15,8 @@ import { pct } from "@/lib/format";
 import { ProbMeter } from "@/components/prob-meter";
 import { HotBadge } from "@/components/hot-badge";
 import { computeWatchability } from "@/lib/watchability";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { RelatedLinks, type RelLink } from "@/components/related-links";
 import type { GroupTeamView } from "@/lib/predictions";
 
 export const runtime = "nodejs";
@@ -66,10 +68,20 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
   if (contending[0] && contending[0].advance > 0.02) verdict.push(`${contending[0].name} ${pct(contending[0].advance)} to advance`);
   if (out.length) verdict.push(`${nameList(out)} out`);
 
+  // Sibling-group navigation + hub links, so a group-page lander can sweep across all 12 groups and out
+  // to the bracket/schedule rather than dead-ending here.
+  const gi = GROUPS.indexOf(L);
+  const related: RelLink[] = [];
+  if (gi > 0) related.push({ label: `Group ${GROUPS[gi - 1]}`, href: `/group/${GROUPS[gi - 1].toLowerCase()}` });
+  if (gi < GROUPS.length - 1) related.push({ label: `Group ${GROUPS[gi + 1]}`, href: `/group/${GROUPS[gi + 1].toLowerCase()}` });
+  related.push({ label: "All groups", href: "/groups" });
+  related.push({ label: "Bracket", href: "/bracket", hint: "knockout path" });
+  related.push({ label: "Full schedule", href: "/schedule" });
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
-      <Link href="/groups" className="text-muted-foreground hover:text-foreground text-sm">← All groups</Link>
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Groups", href: "/groups" }, { label: `Group ${L}` }]} />
       <header className="mt-3 max-w-3xl">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026</div>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Group {L} - 2026 World Cup standings & odds</h1>
@@ -161,6 +173,8 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
         </div>
         </section>
       </div>
+
+      <RelatedLinks links={related} />
 
       <p className="text-muted-2 mt-8 text-xs">
         Odds from {data.iterations.toLocaleString()} Monte Carlo simulations, updated live.{" "}
