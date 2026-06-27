@@ -158,7 +158,11 @@ export function InstallPrompt() {
     }
     if (shownThisSession || Date.now() < until) return; // once per session; ~2h cooldown after a dismiss
     if (!deferred && !isIos()) return; // can't install: desktop/Android without the event
-    const engaged = sessions >= 2 || views >= 2; // returning, or has clicked into something
+    // ANTI-BOUNCE (the priority): never interrupt a cold first-time visitor in the bounce window. A
+    // returning visitor or one who has navigated (= engaged, won't bounce) gets it fast; a cold visitor
+    // only sees it after a long dwell — i.e. they're genuinely reading, not bouncing. And if they navigate
+    // mid-dwell, `views` changes, this effect re-runs as engaged, and it fires ~1.5s after that click.
+    const engaged = sessions >= 2 || views >= 2;
     const t = setTimeout(() => {
       try {
         sessionStorage.setItem(SHOWN_SESSION_KEY, "1");
@@ -166,8 +170,8 @@ export function InstallPrompt() {
         /* ignore */
       }
       setShow(true);
-      trackEvent("pwa_prompt_shown", { platform: deferred ? "android" : "ios" });
-    }, engaged ? 1200 : 5000);
+      trackEvent("pwa_prompt_shown", { platform: deferred ? "android" : "ios", engaged });
+    }, engaged ? 1500 : 30000);
     return () => clearTimeout(t);
   }, [views, deferred, show]);
 
