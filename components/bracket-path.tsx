@@ -50,9 +50,9 @@ export function BracketPath({ m, all }: { m: MatchInfo; all: MatchInfo[] }) {
   if (!feeders.length && !nextWin && !nextLose) return null;
 
   return (
-    <section className="mt-6">
-      <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">Bracket path</h2>
-      <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
+    <section className="mt-8">
+      <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">Bracket path</h2>
+      <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border dark:inset-ring dark:inset-ring-white/5">
         {feeders.map((f) => (
           <PathRow key={f.n} to={f.n} rel={`${f.kind === "L" ? "Loser" : "Winner"} of`} m2={byNum.get(f.n)} />
         ))}

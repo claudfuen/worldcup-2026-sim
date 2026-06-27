@@ -5,7 +5,7 @@ import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
 import { teamSlug } from "@/lib/slug";
-import { pct } from "@/lib/format";
+import { pct, forecastPct } from "@/lib/format";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { LocalTime } from "@/components/local-time";
 import { provisionalGroup, ratingsFromTeams, finalizeGroups, finalizeBracket } from "@/lib/liveProjection";
@@ -131,53 +131,56 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       {/* The matchup IS the header — a big, full-width hero. Supporting facts/odds form the "tail" below.
           A resolved tie shows the teams + score/win-prob; a PREDICTED tie shows each slot's contender race
           inline (like the bracket cards) — no thin "likely X%" + redundant repeat. */}
-      <section className="bg-surface-raised border-border-strong mt-5 rounded-2xl border px-5 py-7 sm:px-10 sm:py-9">
+      <section className="hero-sheen border-border-strong relative mt-5 overflow-hidden rounded-3xl border bg-surface-raised px-5 py-7 sm:px-10 sm:py-9 dark:inset-ring dark:inset-ring-white/5">
+        <div className="text-primary mb-6 text-center font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">
+          {ROUND_NAME[m.round]}{m.group ? ` · Group ${m.group}` : ""} <span className="text-muted-2">· Match {m.match}</span>
+        </div>
         {state === "undefined" ? (
           <div className="flex items-start justify-center gap-5 sm:gap-12">
             <HeroSlot m={m} side="home" />
-            <span className="text-muted-foreground font-display self-center text-3xl sm:text-4xl" aria-hidden>v</span>
+            <span className="text-muted-2 flex size-11 shrink-0 items-center justify-center self-center rounded-full bg-background/40 font-mono text-[11px] font-semibold tracking-[0.12em] uppercase ring-1 ring-white/5 ring-inset dark:bg-black/15" aria-hidden>vs</span>
             <HeroSlot m={m} side="away" />
           </div>
         ) : (
           <div className="flex items-center justify-center gap-5 sm:gap-12">
             <ScoreTeam m={m} side="home" />
-            <div className="flex shrink-0 flex-col items-center gap-2 px-1">
+            <div className="flex shrink-0 flex-col items-center gap-2.5 rounded-xl bg-background/40 px-4 py-3 ring-1 ring-white/5 ring-inset dark:bg-black/15">
               {state === "final" || state === "live" ? (
-                <span className="font-display text-5xl font-bold tracking-tight tabular-nums sm:text-6xl">
-                  {m.homeScore}<span className="text-muted-2 mx-1.5 font-normal">–</span>{m.awayScore}
+                <span className="font-mono text-5xl font-semibold tracking-[-0.03em] tabular-nums sm:text-6xl">
+                  {m.homeScore}<span className="text-muted-2 mx-2 align-middle text-[0.7em] font-normal">–</span>{m.awayScore}
                 </span>
               ) : (
-                <span className="text-muted-foreground font-display text-3xl sm:text-4xl">v</span>
+                <span className="text-muted-2 font-mono text-xs font-semibold tracking-[0.15em] uppercase">vs</span>
               )}
               {state === "final" ? (
-                <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">Full time</span>
+                <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">Full time</span>
               ) : state === "live" ? (
                 <span className="text-live inline-flex items-center gap-1.5 text-xs font-semibold">
                   <span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail}
                 </span>
               ) : (
-                <span className="text-muted-2 font-mono text-[11px] tracking-wide uppercase" suppressHydrationWarning><LocalTime utc={m.utc} mode="day" /></span>
+                <span className="text-muted-2 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase" suppressHydrationWarning><LocalTime utc={m.utc} mode="day" /></span>
               )}
             </div>
             <ScoreTeam m={m} side="away" />
           </div>
         )}
         {state === "defined" && m.probs && (
-          <div className="border-border/60 mx-auto mt-6 max-w-xl border-t pt-5">
+          <div className="mx-auto mt-7 max-w-xl rounded-xl bg-background/30 px-5 py-4 ring-1 ring-white/5 ring-inset dark:bg-black/10">
             <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
             {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-center text-xs">Regulation odds; knockout ties are settled by extra time and penalties.</p>}
           </div>
         )}
         {state === "undefined" && (
-          <p className="text-muted-2 border-border/60 mx-auto mt-7 max-w-2xl border-t pt-4 text-center text-xs text-pretty">
+          <p className="text-muted-2 mx-auto mt-7 max-w-xl rounded-xl bg-background/30 px-5 py-4 text-center text-xs text-pretty ring-1 ring-white/5 ring-inset dark:bg-black/10">
             The model&apos;s most likely team for each slot, across {data.iterations.toLocaleString()} simulations.
           </p>
         )}
       </section>
 
-      {/* Facts strip — the tail: kickoff, venue, stage, watchability, and the ticket CTA. */}
-      <div className="border-border bg-card mt-4 rounded-2xl border p-4 sm:p-5">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+      {/* Facts strip — the tail: a recessed well bonded to the hero, as a divided KPI ribbon. */}
+      <div className="border-border bg-card/60 mt-3 rounded-2xl border p-4 backdrop-blur-sm sm:p-5 dark:bg-card/50">
+        <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-4">
           <Fact label="Kickoff" value={<LocalTime utc={m.utc} mode="datetime" />} />
           <Fact label="Venue" value={`${m.venue}, ${m.city}`} />
           <Fact label="Stage" value={
@@ -200,7 +203,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
         )}
       </div>
 
-      <div className="mt-6 flex justify-center">
+      <div className="mt-8 flex justify-center">
         <ShareBar
           text={
             state === "final"
@@ -214,14 +217,14 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       </div>
 
       {state === "defined" && m.probs && (
-        <p className="text-muted-foreground mt-6 max-w-3xl text-sm text-pretty">{predictionProse(m, homePred?.rating, awayPred?.rating)}</p>
+        <p className="text-muted-foreground mt-8 max-w-3xl text-sm text-pretty">{predictionProse(m, homePred?.rating, awayPred?.rating)}</p>
       )}
 
       {/* State-specific body */}
       {state === "final" && (
-        <section className="mt-6">
-          <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">Model&apos;s pre-match read</h2>
-          <div className="border-border bg-card rounded-2xl border p-4">
+        <section className="mt-8">
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">Model&apos;s pre-match read</h2>
+          <div className="border-border bg-card rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/5">
             {m.probs ? (
               <>
                 <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
@@ -240,11 +243,11 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       )}
 
       {state === "live" && m.probs && (
-        <section className="mt-6">
-          <h2 className="text-muted-foreground mb-2 text-xs font-semibold font-mono tracking-wide uppercase">
+        <section className="mt-8">
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">
             Pre-match win probability
           </h2>
-          <div className="border-border bg-card rounded-2xl border p-4">
+          <div className="border-border bg-card rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/5">
             <p className="text-live mb-3 text-xs font-medium">
               Live: {m.homeName} {m.homeScore}–{m.awayScore} {m.awayName} · {m.liveDetail}
             </p>
@@ -259,8 +262,8 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       <BracketPath m={m} all={allMatches} />
 
       {proj && (
-        <section className="mt-6">
-          <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">
+        <section className="mt-8">
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">
             Group {proj.group} if it ends like this
           </h2>
           <ProvisionalStandings proj={proj} />
@@ -268,21 +271,21 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       )}
 
       {state === "defined" && m.topScores && m.topScores.length > 0 && (
-        <section className="mt-6">
-          <div className="mb-2 flex items-baseline justify-between">
-            <h2 className="text-muted-foreground text-xs font-semibold font-mono tracking-wide uppercase">Most likely scorelines</h2>
+        <section className="mt-8">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-[0.1em] uppercase">Most likely scorelines</h2>
             {m.xg && <span className="text-muted-foreground text-xs">xG {m.xg.home.toFixed(1)} – {m.xg.away.toFixed(1)}</span>}
           </div>
-          <div className="border-border bg-card divide-border/50 divide-y rounded-2xl border">
+          <div className="border-border bg-card divide-border/50 divide-y rounded-2xl border dark:inset-ring dark:inset-ring-white/5">
             {m.topScores.map((s) => (
               <div key={`${s.h}-${s.a}`} className="flex items-center gap-2.5 px-4 py-2.5">
                 <Flag code={m.home} size={16} />
-                <span className="w-10 font-mono text-sm font-bold tabular-nums">{s.h}–{s.a}</span>
+                <span className="w-10 font-mono text-sm font-semibold tracking-[-0.01em] tabular-nums">{s.h}–{s.a}</span>
                 <Flag code={m.away} size={16} />
-                <div className="bg-muted/40 relative ml-1 h-1.5 flex-1 overflow-hidden rounded-full">
-                  <div className="bg-primary/70 absolute inset-y-0 left-0 rounded-full" style={{ width: `${(s.prob / m.topScores![0].prob) * 100}%` }} />
+                <div className="bg-muted/40 relative ml-1 h-1.5 flex-1 overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
+                  <div className="bg-primary/85 absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out" style={{ width: `${(s.prob / m.topScores![0].prob) * 100}%` }} />
                 </div>
-                <span className="text-muted-foreground w-10 text-right font-mono text-xs tabular-nums">{pct(s.prob)}</span>
+                <span className="text-foreground/90 w-10 text-right font-mono text-xs font-semibold tabular-nums">{pct(s.prob)}</span>
               </div>
             ))}
           </div>
@@ -348,9 +351,11 @@ function prettySlot(s?: string): string {
 }
 
 function Fact({ label, value }: { label: string; value: React.ReactNode }) {
+  // Divided KPI ribbon: a vertical hairline before every cell except the first of each row (2-up mobile,
+  // 4-up desktop), so the facts read as one instrument cluster rather than four floating pairs.
   return (
-    <div className="min-w-0">
-      <div className="text-muted-2 mb-1 font-mono text-[10px] font-semibold tracking-wide uppercase">{label}</div>
+    <div className="border-border/60 min-w-0 [&:not(:nth-child(2n+1))]:border-l [&:not(:nth-child(2n+1))]:pl-6 sm:[&:not(:nth-child(4n+1))]:border-l sm:[&:not(:nth-child(4n+1))]:pl-6 sm:[&:nth-child(4n+1)]:border-l-0 sm:[&:nth-child(4n+1)]:pl-0">
+      <div className="text-muted-2 mb-1.5 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{label}</div>
       <div className="text-foreground/90 text-sm leading-snug">{value}</div>
     </div>
   );
@@ -374,9 +379,12 @@ function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
     );
   }
   return (
-    <Link href={`/team/${teamSlug(name)}`} className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center transition-opacity hover:opacity-80">
-      <Flag code={resolved} size={64} />
-      <div className={`font-display text-xl leading-tight font-semibold text-balance sm:text-2xl ${win ? "text-win" : lose ? "text-muted-foreground" : ""}`}>{name}</div>
+    <Link
+      href={`/team/${teamSlug(name)}`}
+      className="group/team focus-visible:ring-primary/50 focus-visible:ring-offset-surface-raised flex min-w-0 flex-1 flex-col items-center gap-3 rounded-xl text-center transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+    >
+      <span className={lose ? "opacity-60 saturate-[0.85]" : ""}><Flag code={resolved} size={64} /></span>
+      <div className={`decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl ${win ? "text-win" : lose ? "text-muted-foreground" : ""}`}>{name}</div>
     </Link>
   );
 }
@@ -393,12 +401,15 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   if (resolved && name) {
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
-        <div className="text-muted-2 max-w-full truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
-        <Link href={`/team/${teamSlug(name)}`} className="flex flex-col items-center gap-3 transition-opacity hover:opacity-80">
+        <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(slot)}</div>
+        <Link href={`/team/${teamSlug(name)}`} className="group/team flex flex-col items-center gap-3 transition-colors">
           <Flag code={resolved} size={64} />
-          <div className="font-display text-xl leading-tight font-semibold text-balance sm:text-2xl">{name}</div>
+          <div className="decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl">{name}</div>
         </Link>
-        <div className="text-win inline-flex items-center gap-1 font-mono text-[11px] font-semibold tracking-wide uppercase">✓ Confirmed</div>
+        <div className="text-win inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12.5 10 17.5 19 7" /></svg>
+          Confirmed
+        </div>
       </div>
     );
   }
@@ -407,7 +418,7 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   if (!top) {
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center">
-        <div className="text-muted-2 max-w-full truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
+        <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(slot)}</div>
         <Flag code={null} size={64} />
         <div className="text-muted-2 text-sm">To be decided</div>
       </div>
@@ -417,25 +428,28 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   const rest = cands.slice(1).filter((c) => c.prob >= 0.02).slice(0, 3);
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
-      <div className="text-muted-2 max-w-full truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
-      <Link href={`/team/${teamSlug(top.name)}`} className="flex flex-col items-center gap-3 transition-opacity hover:opacity-80">
+      <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(slot)}</div>
+      <Link href={`/team/${teamSlug(top.name)}`} className="group/team flex flex-col items-center gap-3 transition-colors">
         <Flag code={top.code} size={64} />
-        <div className="font-display text-xl leading-tight font-semibold text-balance sm:text-2xl">{top.name}</div>
+        <div className="decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl">{top.name}</div>
       </Link>
-      <div className="w-full max-w-[11rem]">
-        <div className="bg-muted/50 h-1.5 overflow-hidden rounded-full">
-          <div className="bg-primary/80 h-full rounded-full" style={{ width: `${Math.round(Math.min(top.prob, 0.99) * 100)}%` }} />
+      <div className="mt-0.5 w-full max-w-[13rem]">
+        <div className="bg-muted/40 h-1.5 overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
+          <div className="bg-primary h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${Math.round(Math.min(top.prob, 0.99) * 100)}%` }} />
         </div>
-        <div className="text-foreground/90 mt-2 font-mono text-sm font-semibold tabular-nums">{pct(Math.min(top.prob, 0.99))} <span className="text-muted-2 font-normal">to reach</span></div>
+        <div className="mt-2.5">
+          <div className="text-primary font-mono text-3xl font-semibold tracking-[-0.02em] tabular-nums">{forecastPct(top.prob)}</div>
+          <div className="text-muted-2 mt-0.5 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">to reach this match</div>
+        </div>
       </div>
       {rest.length > 0 && (
-        <div className="border-border/50 mt-1 w-full max-w-[11rem] space-y-1.5 border-t pt-3">
-          <div className="text-muted-2 font-mono text-[9px] font-semibold tracking-wide uppercase">If not</div>
+        <div className="border-border/50 mt-2 w-full max-w-[13rem] space-y-1.5 border-t pt-3">
+          <div className="text-muted-2 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">If not</div>
           {rest.map((r) => (
             <Link key={r.code} href={`/team/${teamSlug(r.name)}`} className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors">
               <Flag code={r.code} size={14} />
               <span className="min-w-0 flex-1 truncate text-left">{r.name}</span>
-              <span className="shrink-0 font-mono tabular-nums">{pct(Math.min(r.prob, 0.99))}</span>
+              <span className="shrink-0 font-mono tabular-nums">{forecastPct(r.prob)}</span>
             </Link>
           ))}
         </div>

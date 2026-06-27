@@ -12,8 +12,8 @@ export function TitleOdds({ teams, className = "" }: { teams: TeamPrediction[]; 
   const maxTitle = contenders[0]?.title || 1;
   return (
     <section className={className}>
-      <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">Title race</h2>
-      <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
+      <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">Title race</h2>
+      <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border dark:inset-ring dark:inset-ring-white/5">
         {contenders.map((t, i) => (
           <Link key={t.code} href={`/team/${teamSlug(t.name)}`} className="hover:bg-muted/20 flex items-center gap-2.5 px-3.5 py-2">
             <span className="text-muted-2 w-3 text-right font-mono text-[11px] tabular-nums">{i + 1}</span>

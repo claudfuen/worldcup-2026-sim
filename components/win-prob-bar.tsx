@@ -17,7 +17,7 @@ export function WinProbBar({
 }) {
   return (
     <div>
-      <div className="bg-muted/40 flex h-2.5 w-full overflow-hidden rounded-full">
+      <div className="bg-muted/40 flex h-2.5 w-full overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
         <div className="bg-primary transition-[width] duration-700 ease-out" style={{ width: `${home * 100}%` }} />
         <div className="bg-muted-foreground/35 transition-[width] duration-700 ease-out" style={{ width: `${draw * 100}%` }} />
         <div className="bg-data-cool transition-[width] duration-700 ease-out" style={{ width: `${away * 100}%` }} />

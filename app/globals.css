@@ -195,6 +195,12 @@
     }
 }
 
+/* A built-in top-down sheen for the featured hero pane — a faint 6% white wash fading by ~42%, so the
+   upper third reads as a softly-lit raised surface (the page has its own radial top sheen; this is local). */
+@utility hero-sheen {
+  background-image: linear-gradient(180deg, oklch(1 0 0 / 6%), transparent 42%);
+}
+
 /* Score ticker marquee: the track holds two identical copies, so translating by -50% lands copy 2 exactly
    where copy 1 was — a seamless loop. Paused on hover (set on the element in the component). */
 @keyframes ticker {

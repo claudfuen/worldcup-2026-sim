@@ -10,7 +10,7 @@ export function GroupStandingMini({ group, teams, className = "" }: { group: str
   return (
     <Link
       href={`/group/${group.toLowerCase()}`}
-      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised flex flex-col rounded-2xl border p-4 transition-colors ${className}`}
+      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/5 hover:dark:inset-ring-primary/30 flex flex-col rounded-2xl border p-4 transition-colors ${className}`}
     >
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Group {group}</h3>

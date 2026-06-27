@@ -20,7 +20,7 @@ export function BracketTeaser({ matches, teams, className = "" }: { matches: Mat
   return (
     <Link
       href="/bracket"
-      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised flex flex-col rounded-2xl border p-4 transition-colors ${className}`}
+      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/5 hover:dark:inset-ring-primary/30 flex flex-col rounded-2xl border p-4 transition-colors ${className}`}
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Projected final</h2>

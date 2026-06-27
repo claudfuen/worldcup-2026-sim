@@ -39,7 +39,7 @@ export function TicketLink({
         href={href}
         target="_blank"
         rel={TICKET_REL}
-        className={`border-border-strong bg-surface-raised hover:border-primary/45 hover:bg-muted/40 inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${className}`}
+        className={`border-primary/25 bg-primary/5 text-primary hover:border-primary/50 hover:bg-primary/10 inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors ${className}`}
       >
         <TicketIcon className="size-4 shrink-0" />
         {label ?? `Find tickets on ${TICKET_PROVIDER}`}

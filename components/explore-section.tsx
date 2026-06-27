@@ -16,8 +16,8 @@ export function ExploreSection({
   links?: RelLink[];
 }) {
   return (
-    <section className="border-border/60 mt-12 border-t pt-6">
-      <h2 className="text-muted-foreground mb-4 font-mono text-xs font-semibold tracking-wide uppercase">{title}</h2>
+    <section className="border-border mt-12 border-t pt-8">
+      <h2 className="text-muted-foreground mb-4 font-mono text-xs font-semibold tracking-[0.1em] uppercase">{title}</h2>
       <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
       {links && links.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
