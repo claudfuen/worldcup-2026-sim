@@ -37,7 +37,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //     standings/third-place tiebreaks exactly; live standings now reflect in-progress goal difference.
 // v8: thirdPlaceRace entries gained slotLocked/opponent/city + top-3 likely opponents for the hover detail.
 // v9: thirdPlaceRace entries gained `decided` (group fully played) so the hover can compute the survival math.
-export const PRED_KEY = "predictions:v9";
+// v10: Monte Carlo now conditions on actual knockout results; matches gained `winner` + resolved KO
+//      participants/scores (played W##/L## feeders propagate; penalty winners come from ESPN's flag).
+export const PRED_KEY = "predictions:v10";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

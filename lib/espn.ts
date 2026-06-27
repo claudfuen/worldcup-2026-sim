@@ -29,6 +29,7 @@ export interface FetchedMatch {
   group: string | null; // same group => group-stage match
   homeGoals: number;
   awayGoals: number;
+  winnerCode?: string | null; // the team ESPN marks as advancing — set for knockouts, incl. penalty wins (regulation score is a draw)
 }
 
 // Fetch all COMPLETED matches (full-time only) across the tournament window.
@@ -54,6 +55,7 @@ export async function fetchResults(): Promise<FetchedMatch[]> {
       group: ht.group === at.group ? ht.group : null,
       homeGoals: Number(home.score),
       awayGoals: Number(away.score),
+      winnerCode: home.winner ? ht.code : away.winner ? at.code : null,
     });
   }
   out.sort((a, b) => a.date.localeCompare(b.date));
@@ -166,6 +168,6 @@ interface EspnEvent {
   date: string;
   competitions?: {
     status?: { displayClock?: string; type?: { state?: string; detail?: string; shortDetail?: string } };
-    competitors?: { homeAway?: string; score?: string | number; team: { displayName: string } }[];
+    competitors?: { homeAway?: string; score?: string | number; winner?: boolean; team: { displayName: string } }[];
   }[];
 }

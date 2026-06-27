@@ -49,6 +49,7 @@ export function runMonteCarlo(
   ratings: Ratings,
   iterations: number,
   seed = 12345,
+  koWinners: Record<number, string> = {}, // actual knockout results: each iteration fixes these matches to their real winner
 ): SimResult {
   const rand = mulberry32(seed);
   const teams: Record<string, TeamProb> = {};
@@ -103,7 +104,7 @@ export function runMonteCarlo(
       r32Opp[a][h] = (r32Opp[a][h] ?? 0) + 1;
     }
 
-    const ko = simulateKnockout(r32, pr, rand);
+    const ko = simulateKnockout(r32, pr, rand, koWinners);
     for (const [mn, [h, a]] of Object.entries(ko.lineups)) {
       const m = Number(mn);
       if (!matchAgg[m]) matchAgg[m] = { home: {}, away: {} };

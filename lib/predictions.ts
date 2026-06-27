@@ -1,11 +1,13 @@
 // End-to-end: pull live results -> live ratings -> Monte Carlo -> assemble the payload stored in KV / rendered.
 import { fetchResults, liveRatings, preMatchRatingsByPair, buildGroupMatches, GROUP_STAGE_END, type FetchedMatch } from "./espn";
 import { runMonteCarlo } from "./sim/simulate";
-import { rankThirds, selectAndAssignThirds, lockedThirdSlots } from "./sim/thirdPlace";
+import { rankThirds, selectAndAssignThirds, lockedThirdSlots, type ThirdTeam } from "./sim/thirdPlace";
+import { resolveKnockoutResults, type GroupOutcome, type KOPlayed } from "./sim/knockout";
+import { rankGroup } from "./sim/standings";
 import { wdlProbs, eloToLambdas, scorelineDist } from "./sim/poisson";
 import { hostEloBoost } from "./sim/hosts";
 import { buildGroupViews, lockedSlotsFromGroups } from "./groupView";
-import { TEAM_BY_CODE } from "./data/teams";
+import { TEAM_BY_CODE, TEAMS, GROUPS } from "./data/teams";
 import { SCHEDULE } from "./data/schedule";
 import { KNOCKOUT } from "./data/bracket";
 import type { TeamProb } from "./sim/simulate";
@@ -58,6 +60,7 @@ export interface MatchInfo {
   status: "scheduled" | "live" | "final";
   homeScore?: number;
   awayScore?: number;
+  winner?: string; // advancing team of a completed knockout match (set even when decided on penalties)
   liveDetail?: string; // clock/state for in-progress matches, e.g. "45'+3'"
   // forecast for DEFINED matches only
   favorite?: { code: string; name: string; winProb: number };
@@ -140,7 +143,35 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
   const ratings = liveRatings(results);
   const preMatch = preMatchRatingsByPair(results); // ratings before each completed match, for honest pre-match reads
   const groupMatches = buildGroupMatches(results);
-  const sim = runMonteCarlo(groupMatches, ratings, iterations, seed);
+
+  // Condition the knockout simulation on ACTUAL results once the bracket starts. Only resolvable when the
+  // group stage is complete (the only time knockout matches exist): the R32 participants are then fixed, so
+  // each completed knockout result maps cleanly to its match and fixes that match's winner in every sim
+  // iteration (an eliminated team can no longer carry deep-run odds, and the real qualifier propagates).
+  let koWinners: Record<number, string> = {};
+  let koLosers: Record<number, string> = {};
+  let koPlayed: Record<number, KOPlayed> = {};
+  if (GROUPS.every((g) => groupMatches[g].every((m) => m.played))) {
+    const groupOutcome: GroupOutcome = {};
+    const thirds: ThirdTeam[] = [];
+    for (const g of GROUPS) {
+      const codes = TEAMS.filter((t) => t.group === g).map((t) => t.code);
+      const ranked = rankGroup(codes, groupMatches[g], ratings);
+      groupOutcome[g] = ranked.map((r) => r.code);
+      thirds.push({ group: g, row: ranked[2] });
+    }
+    const koResults = results.filter((r) => r.date.slice(0, 10) > GROUP_STAGE_END);
+    const resolved = resolveKnockoutResults(groupOutcome, selectAndAssignThirds(thirds, ratings).slotToTeam, koResults);
+    koWinners = resolved.winners;
+    koLosers = resolved.losers;
+    koPlayed = resolved.played;
+  }
+  // Played-knockout feeders (W##/L##) resolve to their real qualifier for downstream slots.
+  const koSlotTeam: Record<string, string> = {};
+  for (const [mn, code] of Object.entries(koWinners)) koSlotTeam[`W${mn}`] = code;
+  for (const [mn, code] of Object.entries(koLosers)) koSlotTeam[`L${mn}`] = code;
+
+  const sim = runMonteCarlo(groupMatches, ratings, iterations, seed, koWinners);
 
   const teams: TeamPrediction[] = Object.values(sim.teams)
     .map((t) => {
@@ -208,11 +239,22 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
           .sort((x, y) => y.prob - x.prob)
           .slice(0, 4);
       }
-      // A slot resolves to a definite team only when mathematically locked (clinched winner/runner-up).
-      const rh = s.homeSlot ? lockedSlot[s.homeSlot] : undefined;
-      const ra = s.awaySlot ? lockedSlot[s.awaySlot] : undefined;
-      if (rh) { info.home = rh; info.homeName = TEAM_BY_CODE[rh].name; }
-      if (ra) { info.away = ra; info.awayName = TEAM_BY_CODE[ra].name; }
+      const pl = koPlayed[s.match];
+      if (pl) {
+        // Actually played: real participants, score, and advancing team (incl. penalty wins).
+        info.home = pl.home; info.away = pl.away;
+        info.homeName = TEAM_BY_CODE[pl.home].name; info.awayName = TEAM_BY_CODE[pl.away].name;
+        info.homeScore = pl.homeScore; info.awayScore = pl.awayScore;
+        info.winner = pl.winner;
+        info.status = "final";
+      } else {
+        // A slot resolves to a definite team when mathematically locked (clinched winner/runner-up) or when
+        // a played knockout feeder (W##/L##) has produced its real qualifier.
+        const rh = s.homeSlot ? (lockedSlot[s.homeSlot] ?? koSlotTeam[s.homeSlot]) : undefined;
+        const ra = s.awaySlot ? (lockedSlot[s.awaySlot] ?? koSlotTeam[s.awaySlot]) : undefined;
+        if (rh) { info.home = rh; info.homeName = TEAM_BY_CODE[rh].name; }
+        if (ra) { info.away = ra; info.awayName = TEAM_BY_CODE[ra].name; }
+      }
       info.defined = Boolean(info.home && info.away);
     }
     // forecast for DEFINED matches. Includes the SAME host advantage the Monte Carlo applies (host
@@ -322,7 +364,7 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
   const groupStageComplete = groups.every((g) => g.decided);
   if (groupStageComplete) {
     for (const mi of matches) {
-      if (mi.round !== "R32") continue;
+      if (mi.round !== "R32" || mi.status === "final") continue; // a played R32 already has its real teams
       const thirdSide = mi.slotHome?.startsWith("3:") ? "home" : mi.slotAway?.startsWith("3:") ? "away" : null;
       if (!thirdSide) continue;
       const hostSlot = thirdSide === "home" ? mi.slotAway : mi.slotHome; // winner-slot facing the third, e.g. "1D"

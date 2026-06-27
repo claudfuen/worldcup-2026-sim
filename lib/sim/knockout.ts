@@ -45,6 +45,45 @@ export function buildR32(groups: GroupOutcome, slotToTeam: Record<string, string
   return r32;
 }
 
+export interface KOPlayed {
+  home: string; away: string; homeScore: number; awayScore: number; winner: string;
+}
+
+// Resolve the ACTUAL knockout results into the bracket: walk it forward from the (final) group outcome +
+// Annex C third assignment, matching each completed knockout result to its match by team-pair. Returns the
+// real winner/loser of every played match (so the sim can fix them) and the score oriented to the bracket's
+// home/away (for display). A match whose participants aren't known yet (an earlier feeder unplayed) or that
+// hasn't been played is simply absent. The winner comes from ESPN's advancing flag when present — essential
+// for penalty shootouts, whose regulation score is a draw — falling back to the higher score.
+export function resolveKnockoutResults(
+  groups: GroupOutcome,
+  slotToTeam: Record<string, string>,
+  results: { homeCode: string; awayCode: string; homeGoals: number; awayGoals: number; winnerCode?: string | null }[],
+): { winners: Record<number, string>; losers: Record<number, string>; played: Record<number, KOPlayed> } {
+  const r32 = buildR32(groups, slotToTeam);
+  const byPair = new Map(results.map((r) => [[r.homeCode, r.awayCode].sort().join("-"), r]));
+  const winners: Record<number, string> = {};
+  const losers: Record<number, string> = {};
+  const played: Record<number, KOPlayed> = {};
+  const ref = (s: string): string | undefined =>
+    s.startsWith("W") ? winners[Number(s.slice(1))] : s.startsWith("L") ? losers[Number(s.slice(1))] : undefined;
+  for (const m of KNOCKOUT) {
+    const home = m.round === "R32" ? r32[m.match]?.[0] : ref(m.home);
+    const away = m.round === "R32" ? r32[m.match]?.[1] : ref(m.away);
+    if (!home || !away) continue; // participants not yet determined
+    const r = byPair.get([home, away].sort().join("-"));
+    if (!r) continue; // not played yet
+    const sameOrient = r.homeCode === home;
+    const homeScore = sameOrient ? r.homeGoals : r.awayGoals;
+    const awayScore = sameOrient ? r.awayGoals : r.homeGoals;
+    const winner = r.winnerCode === home || r.winnerCode === away ? r.winnerCode! : homeScore >= awayScore ? home : away;
+    winners[m.match] = winner;
+    losers[m.match] = winner === home ? away : home;
+    played[m.match] = { home, away, homeScore, awayScore, winner };
+  }
+  return { winners, losers, played };
+}
+
 function playKO(homeCode: string, awayCode: string, ratings: Ratings, rand: () => number, venue: string): string {
   // Advancement = regulation + extra time + penalty coin-flip, with host advantage if applicable.
   const diff = (ratings[homeCode] ?? 1500) - (ratings[awayCode] ?? 1500) + hostEloBoost(homeCode, venue) - hostEloBoost(awayCode, venue);
@@ -55,6 +94,7 @@ export function simulateKnockout(
   r32: Record<number, [string, string]>,
   ratings: Ratings,
   rand: () => number,
+  decided: Record<number, string> = {}, // match -> ACTUAL winner (already played); overrides the simulated result
 ): KnockoutResult {
   const winners: Record<number, string> = {};
   const losers: Record<number, string> = {};
@@ -86,7 +126,9 @@ export function simulateKnockout(
     if (m.round === "F") { reached.F.add(home); reached.F.add(away); }
     lineups[m.match] = [home, away];
     if (m.round === "3P") continue; // third-place playoff doesn't affect our tallies
-    const w = playKO(home, away, ratings, rand, SCHEDULE_BY_MATCH[m.match]?.venue ?? "");
+    // A match that has actually been played is fixed to its real winner; everything else is simulated.
+    const dw = decided[m.match];
+    const w = dw === home || dw === away ? dw : playKO(home, away, ratings, rand, SCHEDULE_BY_MATCH[m.match]?.venue ?? "");
     winners[m.match] = w;
     losers[m.match] = w === home ? away : home;
   }
