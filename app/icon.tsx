@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
 
-// File-convention app icon (favicon + PWA / home-screen). The navbar trophy, brightened, glowing on the
-// stadium-night palette — full-bleed so it also works as a maskable PWA icon.
+// File-convention app icon (favicon + PWA "any" purpose). The navbar trophy, brightened, glowing on the
+// stadium-night palette as a rounded-square tile (~22% radius, the iOS-style superellipse look). The
+// maskable PWA icon + iOS home-screen come from app/apple-icon.tsx, which stays full-bleed for the OS mask.
 export const runtime = "nodejs";
 export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
@@ -17,6 +18,7 @@ export default function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "radial-gradient(circle at 50% 40%, #1d4537 0%, #0d1512 66%)",
+          borderRadius: 114,
         }}
       >
         <svg width="312" height="312" viewBox="0 0 24 24" fill="none" stroke="#79e6b2" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
