@@ -28,13 +28,14 @@ export default async function SchedulePage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">World Cup 2026 schedule</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          All 104 matches, shown in your local time. Undefined knockout slots show the most likely team; defined matches
-          show the model favorite.
+      <header className="mb-6 max-w-3xl">
+        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">Full match schedule</div>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">World Cup 2026 schedule</h1>
+        <p className="text-muted-foreground mt-2 text-base text-pretty">
+          All 104 matches in your local time. Undefined knockout slots show the most likely team; defined matches show
+          the model favorite.
         </p>
-      </div>
+      </header>
       <ScheduleList matches={matches} hotReasons={hotReasons} />
     </main>
   );
