@@ -58,7 +58,7 @@ export function Bracket({
                       const m = byMatch.get(mn);
                       return (
                         <div key={mn} className="flex flex-1 items-center">
-                          {m && <Node m={m} hasTicket={tickets.has(mn)} final={round === "FINAL"} firstRound={round === "R32"} />}
+                          {m && <Node m={m} hasTicket={tickets.has(mn)} final={round === "FINAL"} />}
                         </div>
                       );
                     })}
@@ -72,7 +72,7 @@ export function Bracket({
             {champion && (
               <>
                 {/* FINAL -> champion is 1-to-1, so a plain short horizontal line (not the merge bracket). */}
-                <div className="flex w-4 shrink-0 flex-col">
+                <div className="flex w-6 shrink-0 flex-col">
                   <div className="mb-3 h-4" />
                   <div className="flex flex-1 items-center"><div className="border-muted-foreground/45 w-full border-t" /></div>
                 </div>
@@ -109,18 +109,23 @@ function ChampionCard({ champion }: { champion: { code: string; name: string; pr
   );
 }
 
-// A column of "⊐" brackets, one per next-round match. With uniform node heights, each
-// bracket's top/bottom edges land exactly on its two feeders' centers and its right edge
-// meets the target node — turning the columns into a connected tree.
+// A column of bracket connectors, one per next-round match. Each merges the two feeders into a centre
+// vertical, then a short horizontal lead-out to the target card — so the target gets a clean horizontal tip
+// on its left (mirroring the lines on its right), not a vertical running down its whole edge.
 function Connectors({ count }: { count: number }) {
   return (
-    <div className="flex w-4 shrink-0 flex-col">
+    <div className="flex w-6 shrink-0 flex-col">
       <div className="mb-3 h-4" />
-      {/* gap-y matches the node columns so each ⊐ bracket stays centered on its two feeders' midpoint. */}
+      {/* gap-y matches the node columns so each bracket stays centered on its two feeders' midpoint. */}
       <div className="flex flex-1 flex-col gap-y-2.5">
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="flex flex-1 items-center">
-            <div className="border-muted-foreground/45 h-1/2 w-full rounded-e-md border-t border-e border-b" />
+            <div className="flex h-1/2 w-full items-center">
+              {/* feeders -> centre vertical */}
+              <div className="border-muted-foreground/45 h-full w-1/2 rounded-e-md border-t border-e border-b" />
+              {/* centre -> target card: a clean horizontal tip */}
+              <div className="border-muted-foreground/45 w-1/2 border-t" />
+            </div>
           </div>
         ))}
       </div>
@@ -128,16 +133,16 @@ function Connectors({ count }: { count: number }) {
   );
 }
 
-function Node({ m, hasTicket, big, final, firstRound }: { m: MatchInfo; hasTicket: boolean; big?: boolean; final?: boolean; firstRound?: boolean }) {
+function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; big?: boolean; final?: boolean }) {
   const t = useT();
   const locale = useLocale();
   const { zone } = useViewerZone();
   // Uniform min-height keeps every node the same size, so the flex slots divide each column evenly and the
-  // ⊐ connectors land on feeder centers. The matchup is vertically centred to absorb the spare height.
+  // connectors land on feeder centers. The matchup is vertically centred to absorb the spare height.
   return (
     <Link
       href={localeHref(locale, `/match/${m.match}`)}
-      className={`bg-card hover:bg-muted/30 relative flex min-h-[124px] w-full flex-col rounded-xl border transition-colors ${big ? "text-sm" : "text-xs"} ${
+      className={`bg-card hover:bg-muted/30 flex min-h-[124px] w-full flex-col rounded-xl border transition-colors ${big ? "text-sm" : "text-xs"} ${
         final
           ? "border-primary/45 ring-primary/15 bg-primary/[0.04] ring-1"
           : hasTicket
@@ -145,9 +150,6 @@ function Node({ m, hasTicket, big, final, firstRound }: { m: MatchInfo; hasTicke
             : "border-border"
       }`}
     >
-      {/* Short horizontal lead-in stub on the left, mirroring the connector lines on the right — so every
-          card (except the first round, which has nothing to its left) reads as symmetrically connected. */}
-      {!firstRound && <span className="bg-muted-foreground/45 absolute top-1/2 -left-2 h-px w-2 -translate-y-1/2" aria-hidden />}
       <div className={`flex items-center justify-between gap-1 ${final ? "text-primary/90" : "text-muted-foreground"} ${big ? "px-2.5 pt-2 pb-1 text-[10px]" : "px-2 pt-1.5 pb-1 text-[9px]"}`}>
         <span className="truncate" suppressHydrationWarning>{final ? t("rounds.FINAL") : `M${m.match}`} · {fmtDay(m.utc, zone)}<span className="hidden sm:inline"> · {fifaCity(m.venue, m.city)}</span></span>
         <span className="flex shrink-0 items-center gap-1.5">
