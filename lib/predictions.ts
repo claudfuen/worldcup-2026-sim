@@ -1,5 +1,5 @@
 // End-to-end: pull live results -> live ratings -> Monte Carlo -> assemble the payload stored in KV / rendered.
-import { fetchResults, liveRatings, preMatchRatingsByPair, buildGroupMatches, GROUP_STAGE_END, type FetchedMatch } from "./espn";
+import { fetchResults, liveRatings, preMatchRatingsByPair, buildGroupMatches, GROUP_STAGE_END, type FetchedMatch, type LiveMatch } from "./espn";
 import { runMonteCarlo } from "./sim/simulate";
 import { rankThirds, selectAndAssignThirds, lockedThirdSlots, type ThirdTeam } from "./sim/thirdPlace";
 import { resolveKnockoutResults, type GroupOutcome, type KOPlayed } from "./sim/knockout";
@@ -139,11 +139,13 @@ function topCandidates(dist: Record<string, number> | undefined, n = 4): SlotCan
     .slice(0, n);
 }
 
-export async function computePredictions(iterations = 20000, seed = 20260611): Promise<PredictionsPayload> {
+export async function computePredictions(iterations = 20000, seed = 20260611, live: LiveMatch[] = []): Promise<PredictionsPayload> {
   const results = await fetchResults();
   const ratings = liveRatings(results);
   const preMatch = preMatchRatingsByPair(results); // ratings before each completed match, for honest pre-match reads
-  const groupMatches = buildGroupMatches(results);
+  // Fold in-progress group matches into the simulation so every probability (group/advance/title and the
+  // projected knockout bracket) re-routes off the live scoreline, not just the pre-match read.
+  const groupMatches = buildGroupMatches(results, live);
 
   // Condition the knockout simulation on ACTUAL results once the bracket starts. Only resolvable when the
   // group stage is complete (the only time knockout matches exist): the R32 participants are then fixed, so

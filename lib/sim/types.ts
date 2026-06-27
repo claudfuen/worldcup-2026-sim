@@ -6,6 +6,9 @@ export interface GroupMatch {
   homeGoals?: number;
   awayGoals?: number;
   venue?: string; // for host-advantage in simulation
+  // In-progress match: NOT yet played, but each Monte Carlo iteration starts from the current score and
+  // samples only the remaining fraction of the match (so a live lead propagates into group/knockout odds).
+  live?: { homeGoals: number; awayGoals: number; frac: number };
 }
 
 export interface TeamRow {

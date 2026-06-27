@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { computePredictions, snapshotOf, applyDeltas, type BaselineSnapshot } from "@/lib/predictions";
-import { kvSetJSON, kvGetJSON, PRED_KEY, BASELINE_KEY } from "@/lib/kv";
+import { fetchLive } from "@/lib/espn";
+import { liveSignature } from "@/lib/live";
+import { kvSetJSON, kvGetJSON, PRED_KEY, BASELINE_KEY, LIVE_SIG_KEY } from "@/lib/kv";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -10,8 +12,15 @@ export const dynamic = "force-dynamic";
 // tournament is over. The last computed payload stays frozen in KV (pages keep serving the final state).
 const STOP_RECOMPUTE_AFTER = "2026-07-21"; // UTC date (YYYY-MM-DD)
 
-// Vercel Cron hits this frequently (see vercel.json). It pulls live ESPN results, rebuilds ratings,
-// runs the Monte Carlo, and stores the payload in KV.
+// When nothing is live, recompute at least this often anyway: rolls the daily delta baseline and absorbs a
+// match that finished between ticks. During a match the live signature changes every minute, so this floor
+// is irrelevant — the cron tracks the action.
+const HEARTBEAT_MS = 8 * 60 * 1000;
+
+// Vercel Cron hits this every minute (see vercel.json). It pulls live ESPN results, rebuilds ratings, and
+// runs the Monte Carlo (conditioned on live in-progress matches), storing the payload in KV. A live-state
+// signature gate skips the heavy run when nothing has changed, so the per-minute schedule is cheap off-peak
+// and near-real-time during a match.
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
@@ -26,8 +35,20 @@ export async function GET(req: Request) {
   if (new Date().toISOString().slice(0, 10) > STOP_RECOMPUTE_AFTER) {
     return NextResponse.json({ ok: true, skipped: "tournament complete; predictions frozen" });
   }
+
+  // Live state (fresh, authoritative): drives both the signature gate and the Monte Carlo conditioning.
+  const live = await fetchLive().catch(() => []);
+  const sig = liveSignature(live);
+  const prevSig = await kvGetJSON<{ sig: string; at: number }>(LIVE_SIG_KEY).catch(() => null);
+  const forced = new URL(req.url).searchParams.get("force") === "1";
+  const stale = !prevSig || Date.now() - prevSig.at > HEARTBEAT_MS;
+  if (!forced && prevSig && prevSig.sig === sig && !stale) {
+    // Nothing moved since the last tick and the heartbeat hasn't elapsed — skip the heavy recompute.
+    return NextResponse.json({ ok: true, skipped: "no live change", live: live.length });
+  }
+
   const t0 = Date.now();
-  const payload = await computePredictions(20000);
+  const payload = await computePredictions(20000, undefined, live);
 
   // Odds-movement deltas: how the odds have moved since the start of the ET day. The baseline rolls
   // once per ET day, anchored to THIS cron's freshly-computed payload at the first tick of the day.
@@ -43,11 +64,13 @@ export async function GET(req: Request) {
   applyDeltas(payload, baseline);
 
   await kvSetJSON(PRED_KEY, payload);
+  await kvSetJSON(LIVE_SIG_KEY, { sig, at: Date.now() }).catch(() => {});
   return NextResponse.json({
     ok: true,
     updatedAt: payload.updatedAt,
     matchesPlayed: payload.matchesPlayed,
     iterations: payload.iterations,
+    live: live.length,
     tookMs: Date.now() - t0,
   });
 }

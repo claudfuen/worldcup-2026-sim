@@ -2,6 +2,7 @@
 import { TEAM_BY_ESPN, TEAMS } from "./data/teams";
 import { updateElo, kWeight } from "./sim/elo";
 import { roundRobin } from "./sim/simulate";
+import { fracRemaining } from "./sim/poisson";
 import { SCHEDULE } from "./data/schedule";
 import type { GroupMatch, Ratings } from "./sim/types";
 
@@ -160,29 +161,52 @@ export function preMatchRatingsByPair(results: FetchedMatch[]): Record<string, R
   return snap;
 }
 
-// Build the 12 round-robin groups, filling in completed group-stage results.
-export function buildGroupMatches(results: FetchedMatch[]): Record<string, GroupMatch[]> {
+// Build the 12 round-robin groups, filling in completed group-stage results. Optionally folds in LIVE
+// (in-progress) group matches: a live fixture is left unplayed but tagged with its current score and the
+// fraction of the match remaining, so the Monte Carlo conditions on it (a live lead shifts group/knockout
+// odds) instead of simulating it from scratch. A live match with an unknown clock is frozen at its current
+// score (treated as played) rather than guessed — safe, matching the deterministic standings layer.
+export function buildGroupMatches(results: FetchedMatch[], live: LiveMatch[] = []): Record<string, GroupMatch[]> {
   const groups: Record<string, GroupMatch[]> = {};
   const byKey = new Map<string, FetchedMatch>();
   for (const m of results) {
     if (m.group == null || m.date.slice(0, 10) > GROUP_STAGE_END) continue;
     byKey.set([m.homeCode, m.awayCode].sort().join("-"), m);
   }
+  const liveByKey = new Map<string, LiveMatch>();
+  for (const l of live) {
+    if (l.state !== "in" || l.group == null) continue;
+    liveByKey.set([l.homeCode, l.awayCode].sort().join("-"), l);
+  }
   for (const g of "ABCDEFGHIJKL") {
     const codes = TEAMS.filter((t) => t.group === g).map((t) => t.code);
     groups[g] = roundRobin(g, codes).map((fixture) => {
-      const venue = VENUE_BY_PAIR.get([fixture.home, fixture.away].sort().join("-"));
-      const r = byKey.get([fixture.home, fixture.away].sort().join("-"));
-      if (!r) return { ...fixture, venue };
-      // orient the stored result to this fixture's home/away
-      const sameOrient = r.homeCode === fixture.home;
-      return {
-        ...fixture,
-        venue,
-        played: true,
-        homeGoals: sameOrient ? r.homeGoals : r.awayGoals,
-        awayGoals: sameOrient ? r.awayGoals : r.homeGoals,
-      };
+      const key = [fixture.home, fixture.away].sort().join("-");
+      const venue = VENUE_BY_PAIR.get(key);
+      const r = byKey.get(key);
+      if (r) {
+        // orient the stored result to this fixture's home/away
+        const sameOrient = r.homeCode === fixture.home;
+        return {
+          ...fixture,
+          venue,
+          played: true,
+          homeGoals: sameOrient ? r.homeGoals : r.awayGoals,
+          awayGoals: sameOrient ? r.awayGoals : r.homeGoals,
+        };
+      }
+      const l = liveByKey.get(key);
+      if (l) {
+        const sameOrient = l.homeCode === fixture.home;
+        const hg = sameOrient ? l.homeGoals : l.awayGoals;
+        const ag = sameOrient ? l.awayGoals : l.homeGoals;
+        // Known clock -> condition on the remaining fraction; unknown clock -> freeze at the current score.
+        if (l.minute != null) {
+          return { ...fixture, venue, live: { homeGoals: hg, awayGoals: ag, frac: fracRemaining(l.minute) } };
+        }
+        return { ...fixture, venue, played: true, homeGoals: hg, awayGoals: ag };
+      }
+      return { ...fixture, venue };
     });
   }
   return groups;

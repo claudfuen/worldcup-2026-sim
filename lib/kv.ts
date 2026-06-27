@@ -39,7 +39,18 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 // v9: thirdPlaceRace entries gained `decided` (group fully played) so the hover can compute the survival math.
 // v10: Monte Carlo now conditions on actual knockout results; matches gained `winner` + resolved KO
 //      participants/scores (played W##/L## feeders propagate; penalty winners come from ESPN's flag).
-export const PRED_KEY = "predictions:v10";
+// v11: Monte Carlo now also conditions on LIVE (in-progress) group matches — every probability re-routes
+//      off the live scoreline; matches gained `liveMinute`.
+export const PRED_KEY = "predictions:v11";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";
+
+// Signature of the live/just-finished match state from the previous cron tick (with a timestamp). Lets the
+// frequent cron skip the heavy Monte Carlo when nothing has changed, and recompute the instant a live score,
+// clock minute, or full-time result moves. Versioned with PRED_KEY so a deploy forces a fresh recompute.
+export const LIVE_SIG_KEY = "predictions:livesig:v11";
+
+// Short-lived cache of the raw ESPN live scoreboard, shared across requests so a traffic spike during a
+// match can't hammer ESPN (bounded to a few calls per minute regardless of concurrent visitors).
+export const LIVE_FEED_KEY = "live:scoreboard:v1";

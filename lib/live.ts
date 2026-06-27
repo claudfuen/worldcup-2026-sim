@@ -1,16 +1,32 @@
 import { cache } from "react";
-import { fetchLive } from "./espn";
+import { fetchLive, type LiveMatch } from "./espn";
 import { liveWdl, liveKoAdvance, fracRemaining } from "./sim/poisson";
 import { hostEloBoost } from "./sim/hosts";
+import { kvGetJSON, kvSetJSON, KV_CONFIGURED, LIVE_FEED_KEY } from "./kv";
 import type { Ratings } from "./sim/types";
 import type { MatchInfo } from "./predictions";
 
-// Fresh in-progress AND just-finished matches, fetched per request (cache() dedupes within a single
-// render) and resilient to ESPN hiccups. This is the real-time layer that surfaces scores between
-// prediction-cron runs; it never moves the model (standings/ratings/odds) - the cron owns that.
-export const getLiveMatches = cache(async () => {
+// How long a fetched ESPN scoreboard is reused across requests. Short enough that scores stay near-live,
+// long enough that a busy match (many concurrent visitors) hits ESPN only a few times a minute, not once
+// per render — the rate-limit guard. cache() still dedupes within a single render on top of this.
+const LIVE_FEED_TTL_MS = 12_000;
+
+// Fresh in-progress AND just-finished matches. Backed by a short shared KV cache (so high traffic during a
+// match can't hammer ESPN) and resilient to ESPN hiccups. This is the real-time layer that surfaces scores
+// between prediction-cron runs; it never moves the model (standings/ratings/odds) — the cron owns that.
+export const getLiveMatches = cache(async (): Promise<LiveMatch[]> => {
+  if (KV_CONFIGURED) {
+    try {
+      const cached = await kvGetJSON<{ at: number; items: LiveMatch[] }>(LIVE_FEED_KEY);
+      if (cached && Date.now() - cached.at < LIVE_FEED_TTL_MS) return cached.items;
+    } catch {
+      /* fall through to a direct fetch */
+    }
+  }
   try {
-    return await fetchLive();
+    const items = await fetchLive();
+    if (KV_CONFIGURED) await kvSetJSON(LIVE_FEED_KEY, { at: Date.now(), items }).catch(() => {});
+    return items;
   } catch {
     return [];
   }
@@ -36,6 +52,16 @@ export function overlayLive(matches: MatchInfo[], live: Awaited<ReturnType<typeo
     }
     return { ...m, status: "live" as const, homeScore, awayScore, liveDetail: l.detail, liveMinute: l.minute ?? undefined };
   });
+}
+
+// A compact fingerprint of the current live/just-finished match state. The frequent cron stores this and
+// re-runs the Monte Carlo only when it changes — i.e. on a goal, a clock-minute tick, or a full-time whistle
+// — so probabilities track the action without recomputing every minute when nothing is happening.
+export function liveSignature(live: LiveMatch[]): string {
+  return live
+    .map((l) => `${[l.homeCode, l.awayCode].sort().join("-")}:${l.state}:${l.homeGoals}-${l.awayGoals}:${l.minute ?? "?"}`)
+    .sort()
+    .join("|");
 }
 
 export interface LiveProbs {

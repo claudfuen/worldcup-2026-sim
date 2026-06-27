@@ -3,7 +3,7 @@ import type { GroupMatch, Ratings } from "./types";
 import { rankGroup } from "./standings";
 import { selectAndAssignThirds, type ThirdTeam } from "./thirdPlace";
 import { buildR32, simulateKnockout, type GroupOutcome } from "./knockout";
-import { sampleScoreline } from "./poisson";
+import { sampleScoreline, sampleRemainingScoreline } from "./poisson";
 import { mulberry32, gaussian } from "./rng";
 import { hostEloBoost } from "./hosts";
 import { GROUPS } from "../data/teams";
@@ -72,11 +72,14 @@ export function runMonteCarlo(
     const groupOutcome: GroupOutcome = {};
     const thirds: ThirdTeam[] = [];
     for (const g of GROUPS) {
-      // realize this group's matches (played -> actual; unplayed -> sampled scoreline w/ host advantage)
+      // realize this group's matches: played -> actual; in-progress -> current score + sampled remainder;
+      // not started -> full sampled scoreline (all with host advantage).
       const realized = groupMatches[g].map((m) => {
         if (m.played) return m;
         const diff = pr[m.home] - pr[m.away] + hostEloBoost(m.home, m.venue ?? "") - hostEloBoost(m.away, m.venue ?? "");
-        const [hg, ag] = sampleScoreline(diff, rand);
+        const [hg, ag] = m.live
+          ? sampleRemainingScoreline(diff, m.live.homeGoals, m.live.awayGoals, m.live.frac, rand)
+          : sampleScoreline(diff, rand);
         return { ...m, played: true, homeGoals: hg, awayGoals: ag };
       });
       const codes = groupMatches[g].reduce<string[]>((acc, m) => {
