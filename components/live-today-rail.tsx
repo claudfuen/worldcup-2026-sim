@@ -57,7 +57,7 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
           <h2 className="text-live mb-2 flex items-center gap-2 font-mono text-xs font-semibold tracking-wide uppercase">
             <span className="bg-live size-1.5 animate-pulse rounded-full" />Live now
           </h2>
-          <div className="border-live/30 bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
+          <div className="border-live/45 bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
             {live.slice(0, 3).map((m) => <LiveRow key={m.match} m={m} />)}
           </div>
           {live.length > 3 && (
@@ -81,18 +81,18 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
 
 function LiveRow({ m }: { m: MatchInfo }) {
   return (
-    <Link href={`/match/${m.match}`} className="hover:bg-muted/20 block px-4 py-3">
-      <div className="flex items-center gap-2">
-        <Flag code={m.home} size={18} />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">{m.homeName}</span>
-        <span className="shrink-0 px-1 font-mono text-sm font-bold tabular-nums">{m.homeScore}–{m.awayScore}</span>
-        <Flag code={m.away} size={18} />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">{m.awayName}</span>
-        <span className="text-live ml-auto inline-flex shrink-0 items-center gap-1 font-mono text-[11px] font-semibold">
-          <span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail ?? "LIVE"}
+    <Link href={`/match/${m.match}`} className="hover:bg-live/[0.08] bg-live/[0.04] block px-4 py-3.5">
+      <div className="flex items-center gap-2.5">
+        <Flag code={m.home} size={20} />
+        <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{m.homeName}</span>
+        <span className="shrink-0 px-1.5 font-mono text-lg font-bold tabular-nums">{m.homeScore}<span className="text-muted-2">–</span>{m.awayScore}</span>
+        <Flag code={m.away} size={20} />
+        <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{m.awayName}</span>
+        <span className="text-live ml-auto inline-flex shrink-0 items-center gap-1.5 font-mono text-xs font-bold tracking-wide">
+          <span className="bg-live size-2 animate-pulse rounded-full" />{m.liveDetail ?? "LIVE"}
         </span>
       </div>
-      {m.favorite && <div className="text-muted-2 mt-1 text-[11px]">pre-match: {m.favorite.name} {pct(m.favorite.winProb)}</div>}
+      {m.favorite && <div className="text-muted-2 mt-1.5 text-[11px]">pre-match: {m.favorite.name} {pct(m.favorite.winProb)}</div>}
     </Link>
   );
 }
