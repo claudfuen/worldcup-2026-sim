@@ -46,20 +46,19 @@ export function Bracket({
           hint there's more) instead of being flattened into per-round tabs. */}
       <div className="border-border bg-card/20 relative overflow-hidden rounded-2xl border">
         <div className="overflow-x-auto overscroll-x-contain p-3 sm:p-4 [scrollbar-width:thin] [mask-image:linear-gradient(to_right,transparent,#000_1.25rem,#000_calc(100%-1.25rem),transparent)] md:[mask-image:none]">
-          <div dir="ltr" className="flex min-w-[1100px] items-stretch">
+          <div dir="ltr" className="flex min-w-[1200px] items-stretch">
             {ROUNDS.map((round, ri) => (
               <Fragment key={round}>
                 <div className="flex min-w-[168px] flex-1 flex-col">
                   <div className="text-muted-foreground mb-3 h-4 px-1 font-mono text-[10px] font-semibold tracking-wide uppercase">
                     {t(`rounds.${round}`)}
                   </div>
-                  {round === "FINAL" && champion && <ChampionCard champion={champion} />}
                   <div className="flex flex-1 flex-col gap-y-2.5">
                     {ORDER[round].map((mn) => {
                       const m = byMatch.get(mn);
                       return (
                         <div key={mn} className="flex flex-1 items-center">
-                          {m && <Node m={m} hasTicket={tickets.has(mn)} final={round === "FINAL"} />}
+                          {m && <Node m={m} hasTicket={tickets.has(mn)} final={round === "FINAL"} firstRound={round === "R32"} />}
                         </div>
                       );
                     })}
@@ -68,6 +67,23 @@ export function Bracket({
                 {ri < ROUNDS.length - 1 && <Connectors count={ORDER[ROUNDS[ri + 1]].length} />}
               </Fragment>
             ))}
+            {/* The champion is its own terminus column to the right of the FINAL — a connector links the
+                final node to it, and it sits vertically centered on the final (no longer crammed above it). */}
+            {champion && (
+              <>
+                {/* FINAL -> champion is 1-to-1, so a plain short horizontal line (not the merge bracket). */}
+                <div className="flex w-4 shrink-0 flex-col">
+                  <div className="mb-3 h-4" />
+                  <div className="flex flex-1 items-center"><div className="border-muted-foreground/45 w-full border-t" /></div>
+                </div>
+                <div className="flex min-w-[150px] flex-1 flex-col">
+                  <div className="mb-3 h-4" />
+                  <div className="flex flex-1 flex-col justify-center">
+                    <ChampionCard champion={champion} />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -76,13 +92,13 @@ export function Bracket({
   );
 }
 
-// The climax of the FINAL column: the model's projected champion, so the right edge of the bracket
-// resolves to a clear terminus instead of an empty column under the "Final" header.
+// The climax of the bracket: the model's projected champion, in its own terminus column to the right of
+// the FINAL, vertically centred on the final node.
 function ChampionCard({ champion }: { champion: { code: string; name: string; prob: number } }) {
   const t = useT();
   const locale = useLocale();
   return (
-    <div className="border-primary/40 bg-primary/[0.07] mb-3 rounded-xl border p-3 text-center">
+    <div className="border-primary/40 bg-primary/[0.07] rounded-xl border p-3 text-center">
       <div className="text-primary mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("bracket.projectedChampion")}</div>
       <Link href={localeHref(locale, `/team/${slugForCode(champion.code)}`)} className="flex items-center justify-center gap-2 hover:underline">
         <Flag code={champion.code} size={22} />
@@ -112,7 +128,7 @@ function Connectors({ count }: { count: number }) {
   );
 }
 
-function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; big?: boolean; final?: boolean }) {
+function Node({ m, hasTicket, big, final, firstRound }: { m: MatchInfo; hasTicket: boolean; big?: boolean; final?: boolean; firstRound?: boolean }) {
   const t = useT();
   const locale = useLocale();
   const { zone } = useViewerZone();
@@ -121,7 +137,7 @@ function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; 
   return (
     <Link
       href={localeHref(locale, `/match/${m.match}`)}
-      className={`bg-card hover:bg-muted/30 flex min-h-[124px] w-full flex-col rounded-xl border transition-colors ${big ? "text-sm" : "text-xs"} ${
+      className={`bg-card hover:bg-muted/30 relative flex min-h-[124px] w-full flex-col rounded-xl border transition-colors ${big ? "text-sm" : "text-xs"} ${
         final
           ? "border-primary/45 ring-primary/15 bg-primary/[0.04] ring-1"
           : hasTicket
@@ -129,6 +145,9 @@ function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; 
             : "border-border"
       }`}
     >
+      {/* Short horizontal lead-in stub on the left, mirroring the connector lines on the right — so every
+          card (except the first round, which has nothing to its left) reads as symmetrically connected. */}
+      {!firstRound && <span className="bg-muted-foreground/45 absolute top-1/2 -left-2 h-px w-2 -translate-y-1/2" aria-hidden />}
       <div className={`flex items-center justify-between gap-1 ${final ? "text-primary/90" : "text-muted-foreground"} ${big ? "px-2.5 pt-2 pb-1 text-[10px]" : "px-2 pt-1.5 pb-1 text-[9px]"}`}>
         <span className="truncate" suppressHydrationWarning>{final ? t("rounds.FINAL") : `M${m.match}`} · {fmtDay(m.utc, zone)}<span className="hidden sm:inline"> · {fifaCity(m.venue, m.city)}</span></span>
         <span className="flex shrink-0 items-center gap-1.5">
