@@ -74,7 +74,7 @@ export default async function Page() {
         )}
       </header>
 
-      <MatchesToWatch matches={matches} teams={data.teams} className="mb-10" />
+      <MatchesToWatch matches={matches} teams={data.teams} groups={groups} className="mb-10" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Title contenders */}

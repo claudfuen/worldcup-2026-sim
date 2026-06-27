@@ -32,7 +32,7 @@ export default async function SchedulePage() {
           show the model favorite.
         </p>
       </div>
-      <MatchesToWatch matches={matches} teams={data.teams} className="mb-8" />
+      <MatchesToWatch matches={matches} teams={data.teams} groups={data.groups} className="mb-8" />
       <ScheduleList matches={matches} />
     </main>
   );
