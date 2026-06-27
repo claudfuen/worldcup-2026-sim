@@ -134,7 +134,7 @@
     "withFinalPost": " final the most likely outcome",
     "confirmedTies": "{set} of {total} Round-of-32 ties are confirmed; the rest are projections.",
     "footnotePre": "Each ",
-    "footnotePost": " is how often a team fills that slot across our simulations — not its chance of winning the match. Third-place slots lock once the group stage ends; resolved teams are bold. Scroll across to follow the path to the final.",
+    "footnotePost": " is how often a team fills that slot across our simulations — not its chance of winning the match. A slot locks (✓) the moment it's mathematically settled, even before the group stage ends; resolved teams are bold. Scroll across to follow the path to the final.",
     "shareText": "The model's projected World Cup 2026 champion: {team} ({pct}). See the full bracket:",
     "relGroups": "Groups & standings",
     "relSchedule": "Full schedule",
