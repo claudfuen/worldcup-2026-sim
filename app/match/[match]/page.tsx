@@ -96,7 +96,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       : null;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       {eventLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventLd) }} />}
       <LiveAutoRefresh enabled={liveActivity(data.matches.filter((x) => x.match === m.match), live)} />
       <h1 className="sr-only">
@@ -104,56 +104,49 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       </h1>
       <Link href="/schedule" className="text-muted-foreground hover:text-foreground text-sm">← Schedule</Link>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-foreground font-semibold">{ROUND_NAME[m.round]}</span>
-        {m.group && (
-          <Link href={`/group/${m.group.toLowerCase()}`} className="text-foreground hover:text-primary font-semibold hover:underline">
-            Group {m.group}
-          </Link>
-        )}
-        <span className="text-muted-2">Match {m.match}</span>
-      </div>
-      <div className="text-muted-foreground mt-1 text-sm"><LocalTime utc={m.utc} mode="datetime" /> · {m.venue}, {m.city}</div>
-
-      {/* Hero: the matchup, with the model's win-probability built right in for an upcoming game — the
-          prediction IS the hero, no separate section needed. */}
-      <div className="bg-surface-raised border-border-strong mt-6 rounded-2xl border p-6">
-        <div className="flex items-center justify-center gap-2 sm:gap-5">
-          <ScoreTeam m={m} side="home" />
-          <div className="flex shrink-0 flex-col items-center gap-1.5 px-1">
-            {m.status === "final" || m.status === "live" ? (
-              <span className="font-display text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
-                {m.homeScore}<span className="text-muted-2 mx-1.5">–</span>{m.awayScore}
-              </span>
-            ) : (
-              <span className="text-muted-foreground font-display text-2xl">vs</span>
-            )}
-            {m.status === "final" ? (
-              <span className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Full time</span>
-            ) : m.status === "live" ? (
-              <span className="text-live inline-flex items-center gap-1.5 text-xs font-semibold">
-                <span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail}
-              </span>
-            ) : null}
+      {/* Top band: the matchup hero beside a match-facts rail — uses the width instead of a lonely column. */}
+      <div className="mt-4 grid items-stretch gap-5 lg:grid-cols-5">
+        {/* Hero: the matchup, with the model's win-probability built right in for an upcoming game. */}
+        <div className="bg-surface-raised border-border-strong flex flex-col justify-center rounded-2xl border p-6 lg:col-span-3">
+          <div className="flex items-center justify-center gap-2 sm:gap-5">
+            <ScoreTeam m={m} side="home" />
+            <div className="flex shrink-0 flex-col items-center gap-1.5 px-1">
+              {m.status === "final" || m.status === "live" ? (
+                <span className="font-display text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+                  {m.homeScore}<span className="text-muted-2 mx-1.5">–</span>{m.awayScore}
+                </span>
+              ) : (
+                <span className="text-muted-foreground font-display text-2xl">vs</span>
+              )}
+              {m.status === "final" ? (
+                <span className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Full time</span>
+              ) : m.status === "live" ? (
+                <span className="text-live inline-flex items-center gap-1.5 text-xs font-semibold">
+                  <span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail}
+                </span>
+              ) : null}
+            </div>
+            <ScoreTeam m={m} side="away" />
           </div>
-          <ScoreTeam m={m} side="away" />
+          {state === "defined" && m.probs && (
+            <div className="border-border/60 mt-5 border-t pt-4">
+              <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
+              {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-xs">Regulation odds; knockout ties are settled by extra time and penalties.</p>}
+            </div>
+          )}
         </div>
-        {state === "defined" && m.probs && (
-          <div className="border-border/60 mt-5 border-t pt-4">
-            <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
-            {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-xs">Regulation odds; knockout ties are settled by extra time and penalties.</p>}
-          </div>
-        )}
+
+        {/* Match facts rail */}
+        <aside className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border lg:col-span-2">
+          <FactRow label="Kickoff" value={<LocalTime utc={m.utc} mode="datetime" />} />
+          <FactRow label="Venue" value={`${m.venue}, ${m.city}`} />
+          <FactRow label="Stage" value={`${ROUND_NAME[m.round]}${m.group ? ` · Group ${m.group}` : ""} · Match ${m.match}`} />
+          <FactRow label="Status" value={state === "final" ? "Full time" : state === "live" ? `Live · ${m.liveDetail}` : "Upcoming"} />
+          {heat?.hot && <FactRow label="Worth watching" value={heat.reason} />}
+        </aside>
       </div>
 
-      {heat?.hot && (
-        <div className="border-contention/30 bg-contention/10 text-contention mt-4 flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium">
-          <span className="bg-contention size-1.5 shrink-0 rounded-full" aria-hidden />
-          Worth watching · {heat.reason}
-        </div>
-      )}
-
-      <div className="mt-4 flex justify-center">
+      <div className="mt-6 flex justify-center">
         <ShareBar
           text={
             state === "final"
@@ -167,7 +160,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       </div>
 
       {state === "defined" && m.probs && (
-        <p className="text-muted-foreground mt-6 text-sm text-pretty">{predictionProse(m, homePred?.rating, awayPred?.rating)}</p>
+        <p className="text-muted-foreground mt-6 max-w-3xl text-sm text-pretty">{predictionProse(m, homePred?.rating, awayPred?.rating)}</p>
       )}
 
       {/* State-specific body */}
@@ -293,6 +286,15 @@ function prettySlot(s?: string): string {
   if (s.startsWith("W")) return `Winner of M${s.slice(1)}`;
   if (s.startsWith("L")) return `Loser of M${s.slice(1)}`;
   return s;
+}
+
+function FactRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 px-4 py-2.5">
+      <span className="text-muted-2 shrink-0 font-mono text-[10px] font-semibold tracking-wide uppercase">{label}</span>
+      <span className="text-foreground/90 min-w-0 text-right text-sm">{value}</span>
+    </div>
+  );
 }
 
 function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
