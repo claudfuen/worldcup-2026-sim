@@ -67,10 +67,10 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
   if (out.length) verdict.push(`${nameList(out)} out`);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
       <Link href="/groups" className="text-muted-foreground hover:text-foreground text-sm">← All groups</Link>
-      <header className="mt-3">
+      <header className="mt-3 max-w-3xl">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026</div>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Group {L} - 2026 World Cup standings & odds</h1>
         {verdict.length > 0 && (
@@ -85,8 +85,10 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
         </div>
       </header>
 
-      <section className="mt-8">
-        <div className="border-border bg-card overflow-hidden rounded-2xl border">
+      <div className="mt-8 grid items-start gap-6 lg:grid-cols-5">
+        <section className="lg:col-span-3">
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">Standings</h2>
+          <div className="border-border bg-card overflow-hidden rounded-2xl border">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-muted-foreground text-[10px] tracking-wide">
@@ -138,9 +140,9 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
         </div>
       </section>
 
-      <section className="mt-8">
-        <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">Group {L} matches</h2>
-        <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
+        <section className="lg:col-span-2">
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">Matches</h2>
+          <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
           {fixtures.map((m) => {
             const final = m.status === "final";
             const live = m.status === "live";
@@ -149,17 +151,16 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
                 <span className="text-muted-2 w-24 shrink-0 font-mono text-[11px]"><LocalTime utc={m.utc} mode="day" /></span>
                 <Flag code={m.home} size={16} />
                 <span className="min-w-0 flex-1 truncate text-sm">{m.homeName} <span className="text-muted-foreground">v</span> {m.awayName}</span>
-                {hotByMatch.get(m.match)?.hot && <HotBadge reason={hotByMatch.get(m.match)!.reason} className="shrink-0" />}
-                {final || live ? (
+                {hotByMatch.get(m.match)?.hot && <HotBadge className="shrink-0" />}
+                {(final || live) && (
                   <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">{m.homeScore}–{m.awayScore}</span>
-                ) : m.favorite ? (
-                  <span className="text-muted-2 shrink-0 text-[11px]">{m.favorite.name} {pct(m.favorite.winProb)}</span>
-                ) : null}
+                )}
               </Link>
             );
           })}
         </div>
-      </section>
+        </section>
+      </div>
 
       <p className="text-muted-2 mt-8 text-xs">
         Odds from {data.iterations.toLocaleString()} Monte Carlo simulations, updated live.{" "}
