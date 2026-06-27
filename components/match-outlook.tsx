@@ -18,23 +18,31 @@ export function MatchOutlook({ round, home, away }: { round: string; home: TeamP
   const cols = LADDER.slice(START[round] ?? 0);
   if (cols.length === 0) return null; // Final / third-place play-off: no meaningful onward ladder
 
-  const row = (t: TeamPrediction) => (
+  const row = (t: TeamPrediction) => {
+    const r = t as unknown as Rounds;
+    const out = (r.advance ?? 0) === 0; // can't even reach the R32 → eliminated; show "Eliminated", not a row of 0%
+    return (
     <div className="contents">
       <div className="bg-card flex items-center gap-2 px-3 py-2.5">
         <Flag code={t.code} size={18} />
-        <span className="truncate text-[13px] font-medium">{t.name}</span>
+        <span className={`truncate text-[13px] font-medium ${out ? "text-muted-foreground line-through" : ""}`}>{t.name}</span>
       </div>
-      {cols.map(([k]) => (
-        <div
-          key={k}
-          className={`bg-card flex items-center justify-center py-2.5 font-mono text-xs font-bold tabular-nums ${k === "title" ? "text-primary" : ""}`}
-          style={{ backgroundColor: heat((t as unknown as Rounds)[k]) }}
-        >
-          {forecastPct((t as unknown as Rounds)[k])}
-        </div>
-      ))}
+      {out ? (
+        <div className="bg-card text-muted-2 flex items-center px-3 py-2.5 text-xs" style={{ gridColumn: `span ${cols.length}` }}>Eliminated</div>
+      ) : (
+        cols.map(([k]) => (
+          <div
+            key={k}
+            className={`bg-card flex items-center justify-center py-2.5 font-mono text-xs font-bold tabular-nums ${k === "title" ? "text-primary" : ""}`}
+            style={{ backgroundColor: heat(r[k]) }}
+          >
+            {forecastPct(r[k])}
+          </div>
+        ))
+      )}
     </div>
   );
+  };
 
   return (
     <section className="mt-6">

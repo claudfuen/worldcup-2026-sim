@@ -61,6 +61,11 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   // Both teams' path-to-the-final odds, for the tournament-outlook comparison (only when both are known).
   const homePred = m.home ? data.teams.find((t) => t.code === m.home) : undefined;
   const awayPred = m.away ? data.teams.find((t) => t.code === m.away) : undefined;
+  // Per-slot candidate cards, but only for slots NOT already covered by the Bracket Path section (which
+  // lists W##/L## feeders). Group-fed R32 slots have no feeders, so their candidate card still shows.
+  const isFeederSlot = (s?: string) => /^[WL]\d+$/.test(s ?? "");
+  const showHomeCand = !m.home && !isFeederSlot(m.slotHome);
+  const showAwayCand = !m.away && !isFeederSlot(m.slotAway);
 
   // SportsEvent structured data - only for a real, named matchup (slot placeholders aren't teams).
   const eventLd =
@@ -249,10 +254,12 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
               ))}
             </div>
           </section>
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {!m.home && <Candidates title={prettySlot(m.slotHome)} list={m.projHome} />}
-            {!m.away && <Candidates title={prettySlot(m.slotAway)} list={m.projAway} />}
-          </div>
+          {(showHomeCand || showAwayCand) && (
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {showHomeCand && <Candidates title={prettySlot(m.slotHome)} list={m.projHome} />}
+              {showAwayCand && <Candidates title={prettySlot(m.slotAway)} list={m.projAway} />}
+            </div>
+          )}
         </>
       )}
     </main>
