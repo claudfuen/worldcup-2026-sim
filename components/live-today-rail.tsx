@@ -4,13 +4,14 @@ import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { useViewerZone } from "@/lib/useViewerZone";
 import { fmtTime, fmtDayKey, pct } from "@/lib/format";
+import { HotBadge } from "@/components/hot-badge";
 import type { MatchInfo } from "@/lib/predictions";
 
 // J1 — "what's happening right now", promoted to the top of the homepage. A LIVE NOW lane (scores + clock,
 // with the model's PRE-MATCH favorite shown for context — never a fake live %), then a compact today/
 // last-night slate. Curated and capped, never the full schedule. Client-side so the day boundary follows
 // the viewer's timezone (no near-midnight hydration mismatch).
-export function LiveTodayRail({ matches, className = "" }: { matches: MatchInfo[]; className?: string }) {
+export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { matches: MatchInfo[]; hotReasons?: Record<number, string>; className?: string }) {
   const { zone, ready } = useViewerZone();
   if (!ready) return null;
   const nowIso = new Date().toISOString();
@@ -36,7 +37,7 @@ export function LiveTodayRail({ matches, className = "" }: { matches: MatchInfo[
       <section className={className} suppressHydrationWarning>
         <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">Up next</h2>
         <div className="border-border bg-card overflow-hidden rounded-2xl border">
-          <SlateRow m={next} zone={zone} today={today} />
+          <SlateRow m={next} zone={zone} today={today} hotReason={hotReasons[next.match]} />
         </div>
       </section>
     );
@@ -69,7 +70,7 @@ export function LiveTodayRail({ matches, className = "" }: { matches: MatchInfo[
         <Link href="/schedule" className="text-primary text-xs hover:underline">Full schedule →</Link>
       </div>
       <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
-        {shownSlate.map((m) => <SlateRow key={m.match} m={m} zone={zone} today={today} />)}
+        {shownSlate.map((m) => <SlateRow key={m.match} m={m} zone={zone} today={today} hotReason={hotReasons[m.match]} />)}
       </div>
       {slate.length > CAP && (
         <Link href="/schedule" className="text-primary mt-2 inline-block text-xs hover:underline">+{slate.length - CAP} more →</Link>
@@ -96,7 +97,7 @@ function LiveRow({ m }: { m: MatchInfo }) {
   );
 }
 
-function SlateRow({ m, zone, today }: { m: MatchInfo; zone?: import("@/lib/format").Zone; today: string }) {
+function SlateRow({ m, zone, today, hotReason }: { m: MatchInfo; zone?: import("@/lib/format").Zone; today: string; hotReason?: string }) {
   const final = m.status === "final";
   const homeCode = m.home ?? m.projHome?.[0]?.code ?? null;
   const awayCode = m.away ?? m.projAway?.[0]?.code ?? null;
@@ -115,6 +116,7 @@ function SlateRow({ m, zone, today }: { m: MatchInfo; zone?: import("@/lib/forma
         <Flag code={awayCode} size={16} />
         <span className="truncate">{awayName}</span>
       </div>
+      {hotReason != null && <HotBadge reason={hotReason} className="shrink-0" />}
       <span className="shrink-0 text-right text-[11px]">
         {final ? (
           <span className="font-mono"><span className="text-foreground font-medium tabular-nums">{m.homeScore}–{m.awayScore}</span> <span className="text-win">FT</span></span>

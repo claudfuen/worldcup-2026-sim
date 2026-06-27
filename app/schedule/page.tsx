@@ -2,6 +2,7 @@ import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { ScheduleList } from "@/components/schedule-list";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
+import { computeWatchability } from "@/lib/watchability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,9 @@ export const metadata = {
 export default async function SchedulePage() {
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const matches = overlayLive(data.matches, live);
+  const { byMatch } = computeWatchability(matches, data.teams, data.groups);
+  const hotReasons: Record<number, string> = {};
+  for (const p of byMatch.values()) if (p.hot) hotReasons[p.match.match] = p.reason;
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={liveActivity(data.matches, live)} />
@@ -31,7 +35,7 @@ export default async function SchedulePage() {
           show the model favorite.
         </p>
       </div>
-      <ScheduleList matches={matches} />
+      <ScheduleList matches={matches} hotReasons={hotReasons} />
     </main>
   );
 }

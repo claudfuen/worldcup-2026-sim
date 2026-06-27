@@ -11,6 +11,8 @@ import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { LocalTime } from "@/components/local-time";
 import { AdvanceBadge } from "@/components/view/advance-badge";
 import { R32ByFinish } from "@/components/r32-by-finish";
+import { HotBadge } from "@/components/hot-badge";
+import { computeWatchability } from "@/lib/watchability";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { isClinched } from "@/lib/view/types";
 import { forecastPct } from "@/lib/format";
@@ -63,6 +65,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   const fixtures = overlaid
     .filter((m) => m.round === "GROUP" && (m.home === team.code || m.away === team.code))
     .sort((a, b) => a.utc.localeCompare(b.utc));
+  const hotByMatch = computeWatchability(overlaid, data.teams, groups).byMatch;
 
   const advancePct = pred ? forecastPct(pred.advance) : "-";
   const titlePct = pred ? forecastPct(pred.title) : "-";
@@ -194,6 +197,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                   <span className="text-muted-foreground text-xs">vs</span>
                   <Flag code={oppCode} size={18} />
                   <span className="min-w-0 flex-1 truncate text-sm">{oppName}</span>
+                  {hotByMatch.get(m.match)?.hot && <HotBadge reason={hotByMatch.get(m.match)!.reason} className="shrink-0" />}
                   {final || live ? (
                     <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">
                       {m.home === team.code ? m.homeScore : m.awayScore}–{m.home === team.code ? m.awayScore : m.homeScore}

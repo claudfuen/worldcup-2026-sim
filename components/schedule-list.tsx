@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "./flag";
+import { HotBadge } from "./hot-badge";
 import { fmtTimeShort, fmtDay, fmtDayKey, pct } from "@/lib/format";
 import { useViewerZone } from "@/lib/useViewerZone";
 
@@ -21,7 +22,7 @@ const TIME_FILTERS = [
   { key: "all", label: "All dates" },
 ];
 
-export function ScheduleList({ matches }: { matches: MatchInfo[] }) {
+export function ScheduleList({ matches, hotReasons = {} }: { matches: MatchInfo[]; hotReasons?: Record<number, string> }) {
   const [filter, setFilter] = useState("all");
   const [time, setTime] = useState("upcoming");
   const { zone } = useViewerZone();
@@ -68,7 +69,7 @@ export function ScheduleList({ matches }: { matches: MatchInfo[] }) {
             <h3 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase" suppressHydrationWarning>{d.label}</h3>
             <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
               {d.items.map((m) => (
-                <Row key={m.match} m={m} zone={zone} />
+                <Row key={m.match} m={m} zone={zone} hotReason={hotReasons[m.match]} />
               ))}
             </div>
           </div>
@@ -78,7 +79,7 @@ export function ScheduleList({ matches }: { matches: MatchInfo[] }) {
   );
 }
 
-function Row({ m, zone }: { m: MatchInfo; zone?: import("@/lib/format").Zone }) {
+function Row({ m, zone, hotReason }: { m: MatchInfo; zone?: import("@/lib/format").Zone; hotReason?: string }) {
   const homeCode = m.home ?? m.projHome?.[0]?.code ?? null;
   const awayCode = m.away ?? m.projAway?.[0]?.code ?? null;
   const homeLabel = m.homeName ?? (m.projHome?.[0] ? `${m.projHome[0].name}` : m.slotHome ?? "TBD");
@@ -96,7 +97,8 @@ function Row({ m, zone }: { m: MatchInfo; zone?: import("@/lib/format").Zone }) 
         <TeamRow code={homeCode} label={homeLabel} score={showScore ? m.homeScore : undefined} win={final && (m.homeScore ?? 0) > (m.awayScore ?? 0)} projected={!m.home} prob={!m.home ? m.projHome?.[0]?.prob : undefined} />
         <TeamRow code={awayCode} label={awayLabel} score={showScore ? m.awayScore : undefined} win={final && (m.awayScore ?? 0) > (m.homeScore ?? 0)} projected={!m.away} prob={!m.away ? m.projAway?.[0]?.prob : undefined} />
       </div>
-      <div className="hidden w-44 shrink-0 sm:block">
+      {hotReason != null && <HotBadge reason={hotReason} className="ml-auto shrink-0" />}
+      <div className="hidden w-44 shrink-0 sm:ml-auto sm:block">
         {live ? (
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-live">
             <span className="size-1.5 animate-pulse rounded-full bg-live" />LIVE {m.liveDetail}

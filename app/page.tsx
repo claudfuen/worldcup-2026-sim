@@ -11,6 +11,7 @@ import { BracketTeaser } from "@/components/bracket-teaser";
 import { GroupsPreview } from "@/components/groups-preview";
 import { TitleOdds } from "@/components/title-odds";
 import { LaunchRail } from "@/components/launch-rail";
+import { computeWatchability } from "@/lib/watchability";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -25,6 +26,11 @@ export default async function Page() {
   const groups = hasLive ? finalizeGroups(data.groups, matches, ratingsFromTeams(data.teams)) : data.groups;
   // Live-accurate group progress for the stage tracker (counts group finals as they land, ahead of cron).
   const groupPlayed = matches.filter((m) => m.round === "GROUP" && m.status === "final").length;
+  // Hot-match reasons, so today's worth-watching games are badged in the live rail (consistent with the plan).
+  const hotReasons: Record<number, string> = {};
+  for (const p of computeWatchability(matches, data.teams, groups).byMatch.values()) {
+    if (p.hot) hotReasons[p.match.match] = p.reason;
+  }
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -37,7 +43,7 @@ export default async function Page() {
             <MastheadVerdict teams={data.teams} iterations={data.iterations} />
             <MoverStrip teams={data.teams} />
           </header>
-          <LiveTodayRail matches={matches} />
+          <LiveTodayRail matches={matches} hotReasons={hotReasons} />
         </div>
         <aside className="space-y-4">
           <TournamentStage matches={matches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} />

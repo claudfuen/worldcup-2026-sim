@@ -15,6 +15,7 @@ import { MatchOutlook } from "@/components/match-outlook";
 import { BracketPath } from "@/components/bracket-path";
 import { ProbMeter } from "@/components/prob-meter";
 import { ShareBar } from "@/components/share-bar";
+import { computeWatchability } from "@/lib/watchability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,8 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   if (!m) notFound();
   const state: "final" | "live" | "defined" | "undefined" =
     m.status === "final" ? "final" : m.status === "live" ? "live" : m.defined ? "defined" : "undefined";
+  // Is this one of the current watch-plan picks? (same scorer as the homepage "matches to watch")
+  const heat = computeWatchability(allMatches, data.teams, data.groups).byMatch.get(m.match);
   // Both teams' path-to-the-final odds, for the tournament-outlook comparison (only when both are known).
   const homePred = m.home ? data.teams.find((t) => t.code === m.home) : undefined;
   const awayPred = m.away ? data.teams.find((t) => t.code === m.away) : undefined;
@@ -133,6 +136,13 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
         </div>
         <ScoreTeam m={m} side="away" />
       </div>
+
+      {heat?.hot && (
+        <div className="border-contention/30 bg-contention/10 text-contention mt-4 flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium">
+          <span className="bg-contention size-1.5 shrink-0 rounded-full" aria-hidden />
+          Worth watching · {heat.reason}
+        </div>
+      )}
 
       <div className="mt-4 flex justify-center">
         <ShareBar
