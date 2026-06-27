@@ -94,6 +94,8 @@ export default async function RootLayout({
       .filter((m) => m.status === "scheduled" && m.home && m.away)
       .sort((a, b) => a.utc.localeCompare(b.utc))
       .slice(0, 6)
+    // The most recent finals regardless of age — always "the latest results", never an empty ticker on a
+    // knockout rest day (chosen over a strict time window for exactly that reason).
     const finals = matches.filter((m) => m.status === "final").sort((a, b) => b.utc.localeCompare(a.utc)).slice(0, 10)
     tickerItems = [...live, ...upcoming, ...finals]
   } catch {
