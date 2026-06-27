@@ -23,8 +23,11 @@ export function SignInForm({ next }: { next: string }) {
   if (status === "sent") {
     return (
       <div className="border-border bg-card mt-6 rounded-2xl border p-5">
-        <p className="text-sm">
-          ✉️ Check <span className="font-medium">{email}</span> for a sign-in link. It expires in 15 minutes.
+        <p className="flex items-start gap-2 text-sm">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground mt-0.5 shrink-0" aria-hidden>
+            <rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" />
+          </svg>
+          <span>Check <span className="font-medium">{email}</span> for a sign-in link. It expires in 15 minutes.</span>
         </p>
         <button
           onClick={() => setStatus("idle")}

@@ -147,7 +147,7 @@ function MobileRounds({
 function ChampionCard({ champion }: { champion: { code: string; name: string; prob: number } }) {
   return (
     <div className="border-primary/40 bg-primary/[0.07] mb-3 rounded-xl border p-3 text-center">
-      <div className="text-primary mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">🏆 Projected champion</div>
+      <div className="text-primary mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">Projected champion</div>
       <Link href={`/team/${teamSlug(champion.name)}`} className="flex items-center justify-center gap-2 hover:underline">
         <Flag code={champion.code} size={22} />
         <span className="font-semibold">{champion.name}</span>
@@ -198,8 +198,12 @@ function Node({ m, hasTicket, highlightCode, big, final }: { m: MatchInfo; hasTi
       }`}
     >
       <div className={`flex items-center justify-between gap-1 ${final ? "text-primary/90" : "text-muted-foreground"} ${big ? "px-2.5 pt-2 pb-1 text-[10px]" : "px-2 pt-1.5 pb-1 text-[9px]"}`}>
-        <span className="truncate" suppressHydrationWarning>{final ? "🏆 Final" : `M${m.match}`} · {fmtDay(m.utc, zone)} · {m.city}</span>
-        {hasTicket && <span title="You have tickets" className="shrink-0">🎟️</span>}
+        <span className="truncate" suppressHydrationWarning>{final ? "Final" : `M${m.match}`} · {fmtDay(m.utc, zone)} · {m.city}</span>
+        {hasTicket && (
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" className="text-contention shrink-0" aria-label="You have tickets">
+            <path d="M6 3a2 2 0 0 0-2 2v15l8-4 8 4V5a2 2 0 0 0-2-2H6Z" />
+          </svg>
+        )}
       </div>
       <Side m={m} side="home" highlightCode={highlightCode} big={big} />
       <div className="border-border border-t" />

@@ -48,13 +48,13 @@ export function MatchFlagButton({
         onClick={handle}
         disabled={pending}
         aria-pressed={on}
-        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium disabled:opacity-60 ${
+        className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium disabled:opacity-60 ${
           on
-            ? "border-amber-500/40 bg-amber-500/15 text-amber-300"
+            ? "border-contention/40 bg-contention/12 text-contention"
             : "border-border text-muted-foreground hover:text-foreground"
         }`}
       >
-        <span aria-hidden>{on ? "✓" : "🎟️"}</span>
+        <Bookmark filled={on} />
         {on ? "In my matches" : isAuthed ? "Add to my matches" : "Sign in to save"}
       </button>
     );
@@ -68,11 +68,20 @@ export function MatchFlagButton({
       aria-pressed={on}
       aria-label={on ? "Remove from my matches" : "Add to my matches"}
       title={on ? "Remove from my matches" : "Add to my matches"}
-      className={`shrink-0 rounded-full px-1.5 py-1 text-sm leading-none disabled:opacity-60 ${
-        on ? "opacity-100" : "opacity-30 hover:opacity-70 grayscale"
+      className={`shrink-0 rounded-md p-1 leading-none disabled:opacity-60 ${
+        on ? "text-contention" : "text-muted-foreground/40 hover:text-muted-foreground"
       }`}
     >
-      🎟️
+      <Bookmark filled={on} />
     </button>
+  );
+}
+
+// A small bookmark glyph — filled when the match is saved, outline when not.
+function Bookmark({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden>
+      <path d="M6 3a2 2 0 0 0-2 2v15l8-4 8 4V5a2 2 0 0 0-2-2H6Z" />
+    </svg>
   );
 }
