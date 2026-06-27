@@ -193,7 +193,20 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
               <span className="text-muted-2"> · M{m.match}</span>
             </>
           } />
-          <Fact label={heat?.hot ? "Worth watching" : "Status"} value={heat?.hot ? heat.reason : state === "final" ? "Full time" : state === "live" ? "Live now" : "Upcoming"} />
+          <Fact
+            label={heat?.hot ? "Worth watching" : "Status"}
+            value={
+              heat?.hot ? (
+                <span className="text-contention">{heat.reason}</span>
+              ) : state === "final" ? (
+                "Full time"
+              ) : state === "live" ? (
+                <span className="text-live inline-flex items-center gap-1.5 font-medium"><span className="bg-live size-1.5 animate-pulse rounded-full" />Live now</span>
+              ) : (
+                "Upcoming"
+              )
+            }
+          />
         </div>
         {state !== "final" && state !== "live" && hasTickets(m.match) && (
           <div className="border-border/50 mt-4 flex flex-col gap-2.5 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
