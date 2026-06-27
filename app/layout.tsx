@@ -16,9 +16,10 @@ import { cn } from "@/lib/utils";
 import type { MatchInfo } from "@/lib/predictions"
 import type { Metadata, Viewport } from "next"
 
-const SITE_NAME = "World Cup 2026 Predictions"
+const SITE_NAME = "World Cup Predictor"
 const SITE_URL = "https://worldcup2026predictions.app"
-const TITLE = "World Cup 2026 Predictions — Live Odds, Bracket & Champion %"
+// Brand is "World Cup Predictor"; "2026 World Cup" stays in the title/keywords/description as SEO terms.
+const TITLE = "World Cup Predictor — 2026 World Cup Odds, Bracket & Champion %"
 const DESCRIPTION =
   "Monte Carlo predictions for the 2026 FIFA World Cup — group-winner odds, advancement, knockout-round and champion probabilities, updated live from real results."
 
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "World Cup 2026 Predictions — Live Odds & Bracket",
+    title: "World Cup Predictor — 2026 Odds, Bracket & Champion %",
     description:
       "Monte Carlo odds for every team to advance, reach each round, and win the 2026 World Cup. Updated live.",
   },

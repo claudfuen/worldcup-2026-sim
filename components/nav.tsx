@@ -56,11 +56,11 @@ export function Nav({ updatedAt }: { updatedAt: string | null }) {
   return (
     <header className="border-border/70 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-6xl items-stretch gap-1 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="mr-4 flex shrink-0 items-center gap-2" aria-label="World Cup 2026 Predictions — home">
+        <Link href="/" className="mr-4 flex shrink-0 items-center gap-2" aria-label="World Cup Predictor — home">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="text-primary" aria-hidden>
             <path d="M8 21h8" /><path d="M12 17v4" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M17 5h3v1a4 4 0 0 1-4 4" /><path d="M7 5H4v1a4 4 0 0 0 4 4" />
           </svg>
-          <span className="font-display text-sm font-semibold tracking-tight">World Cup 2026</span>
+          <span className="font-display text-sm font-semibold tracking-tight">World Cup Predictor</span>
         </Link>
 
         {/* Desktop nav (md+) */}

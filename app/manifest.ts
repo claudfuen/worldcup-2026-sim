@@ -4,8 +4,8 @@ import type { MetadataRoute } from "next";
 // app/apple-icon.tsx (Next file conventions → next/og), referenced by their canonical URLs.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "World Cup 2026 Predictions",
-    short_name: "World Cup 26",
+    name: "World Cup Predictor",
+    short_name: "WC Predictor",
     description:
       "Live Monte Carlo odds, bracket and champion probabilities for the 2026 FIFA World Cup — updated from real results.",
     start_url: "/",

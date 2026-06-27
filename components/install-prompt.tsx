@@ -278,7 +278,7 @@ export function InstallPrompt() {
                 <path d="M8 21h8" /><path d="M12 17v4" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M17 5h3v1a4 4 0 0 1-4 4" /><path d="M7 5H4v1a4 4 0 0 0 4 4" />
               </svg>
             </span>
-            <h2 className="font-display mt-4 text-lg font-semibold tracking-tight text-balance">Add World Cup 2026 to your home screen</h2>
+            <h2 className="font-display mt-4 text-lg font-semibold tracking-tight text-balance">Add World Cup Predictor to your home screen</h2>
             <p className="text-muted-foreground mt-1.5 text-sm text-pretty">One tap to live scores, odds and the bracket — full-screen, like a native app. No searching as the tournament flies by.</p>
             <button
               type="button"
