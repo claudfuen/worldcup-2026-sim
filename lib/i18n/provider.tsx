@@ -24,14 +24,13 @@ export function I18nProvider({
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
-export type TFunction = (key: string, params?: Record<string, string | number>) => string;
+export type TFunction = (key: string, params?: Record<string, string | number | null | undefined>) => string;
 
 /** `const t = useT()` in any client component; `t("nav.bracket")` / `t("freshness.minsAgo", { n })`. */
 export function useT(): TFunction {
   const { messages, intl } = useContext(I18nContext);
   return useMemo(
-    () => (key: string, params?: Record<string, string | number>) =>
-      formatMessage(lookupMessage(messages, key) ?? key, params, intl),
+    (): TFunction => (key, params) => formatMessage(lookupMessage(messages, key) ?? key, params, intl),
     [messages, intl],
   );
 }

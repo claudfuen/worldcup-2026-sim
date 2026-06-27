@@ -8,12 +8,26 @@ import type { MatchInfo, TeamPrediction, GroupView } from "./predictions";
 // the current top picks, so the badge elsewhere always matches the homepage plan.
 const HOSTS = new Set(["MEX", "USA", "CAN"]);
 const STAKES: Record<string, number> = { GROUP: 0.3, R32: 0.55, R16: 0.65, QF: 0.75, SF: 0.85, FINAL: 0.9, "3P": 0.4 };
-const ROUND_LABEL: Record<string, string> = { R32: "Round of 32", R16: "Round of 16", QF: "Quarter-final", SF: "Semi-final", FINAL: "Final", "3P": "Third place" };
+// i18n: round-name reason keys live under "watch.*"; the consumer translates via t(key, params).
+const ROUND_LABEL_KEY: Record<string, string> = {
+  R32: "watch.roundOf32",
+  R16: "watch.roundOf16",
+  QF: "watch.quarterFinal",
+  SF: "watch.semiFinal",
+  FINAL: "watch.finalRound",
+  "3P": "watch.thirdPlace",
+};
 const Q0 = 30; // rank at which team quality hits 0
 const HOT_N = 6; // the top-N upcoming matches are "hot" (matches the homepage watch plan)
 const HOT_FLOOR = 0.3; // …but only if genuinely appealing
 export const CERTAINISH = 0.92; // a projected pairing this likely is treated as confirmed (no "proj"/% caveat)
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+/** A translation key + ICU params; the consumer renders it via t(key, params). */
+export interface WatchReason {
+  key: string;
+  params?: Record<string, string | number>;
+}
 
 export interface WatchPick {
   match: MatchInfo;
@@ -25,7 +39,7 @@ export interface WatchPick {
   lik: number; // how likely this exact pairing is to happen
   score: number;
   comp: number; // competitiveness 0..1
-  reason: string; // short "why it's worth watching"
+  reason: WatchReason; // short "why it's worth watching" — i18n key + params, translated by the consumer
   hot: boolean; // among the current top picks
 }
 
@@ -65,15 +79,15 @@ export function computeWatchability(matches: MatchInfo[], teams: TeamPrediction[
     const contested = (t: { advance: number }) => t.advance > 0.08 && t.advance < 0.95;
     return contested(x) || contested(y) || (x.advance > 0.6 && y.advance > 0.6);
   };
-  const reasonFor = (m: MatchInfo, h: string, a: string, comp: number, dec: boolean, host: boolean) => {
+  const reasonFor = (m: MatchInfo, h: string, a: string, comp: number, dec: boolean, host: boolean): WatchReason => {
     const rh = r(h), ra = r(a);
-    if (dec) return `Group ${m.group} decider`;
-    if (rh <= 8 && ra <= 8) return "Two of the favorites";
-    if (comp >= 0.85) return "Coin-flip";
-    if (rh <= 14 && ra <= 14) return "Two strong sides";
-    if (host) return "Host nation";
-    if (comp >= 0.62) return "Finely balanced";
-    return ROUND_LABEL[m.round] ?? "Knockout tie";
+    if (dec) return { key: "watch.groupDecider", params: { group: m.group ?? "" } };
+    if (rh <= 8 && ra <= 8) return { key: "watch.twoOfTheFavorites" };
+    if (comp >= 0.85) return { key: "watch.coinFlip" };
+    if (rh <= 14 && ra <= 14) return { key: "watch.twoStrongSides" };
+    if (host) return { key: "watch.hostNation" };
+    if (comp >= 0.62) return { key: "watch.finelyBalanced" };
+    return { key: ROUND_LABEL_KEY[m.round] ?? "watch.knockoutTie" };
   };
 
   const scored: WatchPick[] = [];

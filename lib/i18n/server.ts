@@ -35,7 +35,7 @@ async function loadMessages(locale: Locale): Promise<Messages> {
 /** The full active-locale messages object — handed to the client I18nProvider for client components. */
 export const getMessages = cache(async (): Promise<Messages> => loadMessages(await getLocale()));
 
-export type TFunction = (key: string, params?: Record<string, string | number>) => string;
+export type TFunction = (key: string, params?: Record<string, string | number | null | undefined>) => string;
 
 /**
  * Request-scoped translator. `await getT()` in any server component, then `t("nav.bracket")` or

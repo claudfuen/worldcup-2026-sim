@@ -8,25 +8,29 @@ import { HotBadge } from "./hot-badge";
 import { TicketLink } from "./ticket-link";
 import { fmtTimeShort, fmtDay, fmtDayKey, pct } from "@/lib/format";
 import { useViewerZone } from "@/lib/useViewerZone";
+import { useT } from "@/lib/i18n/provider";
+import { useLocale } from "@/lib/i18n/client";
+import { localeHref } from "@/lib/i18n/config";
 
-const ROUND_NAME: Record<string, string> = {
-  GROUP: "Group", R32: "Round of 32", R16: "Round of 16", QF: "Quarter-final", SF: "Semi-final", "3P": "Third place", FINAL: "Final",
+const ROUND_KEY: Record<string, string> = {
+  GROUP: "rounds.GROUP", R32: "rounds.R32", R16: "rounds.R16", QF: "rounds.QF", SF: "rounds.SF", "3P": "rounds.THIRD", FINAL: "rounds.FINAL",
 };
-const FILTERS = [
-  { key: "all", label: "All" },
-  { key: "GROUP", label: "Groups" },
-  { key: "KO", label: "Knockout" },
-];
-const TIME_FILTERS = [
-  { key: "upcoming", label: "Recent & upcoming" },
-  { key: "past", label: "Past" },
-  { key: "all", label: "All dates" },
-];
 
 export function ScheduleList({ matches, hotReasons = {} }: { matches: MatchInfo[]; hotReasons?: Record<number, string> }) {
+  const t = useT();
   const [filter, setFilter] = useState("all");
   const [time, setTime] = useState("upcoming");
   const { zone } = useViewerZone();
+  const FILTERS = [
+    { key: "all", label: t("schedule.filterAll") },
+    { key: "GROUP", label: t("schedule.filterGroups") },
+    { key: "KO", label: t("schedule.filterKnockout") },
+  ];
+  const TIME_FILTERS = [
+    { key: "upcoming", label: t("schedule.timeUpcoming") },
+    { key: "past", label: t("schedule.timePast") },
+    { key: "all", label: t("schedule.timeAll") },
+  ];
   // "today" depends on the wall clock + viewer zone, both of which differ server vs client. Resolve it
   // only after mount so SSR and first client render are identical (no midnight hydration mismatch); the
   // day filter is simply inactive until then.
@@ -63,7 +67,7 @@ export function ScheduleList({ matches, hotReasons = {} }: { matches: MatchInfo[
         <Segmented options={FILTERS} value={filter} onChange={setFilter} />
         <Segmented options={TIME_FILTERS} value={time} onChange={setTime} />
       </div>
-      {days.length === 0 && <p className="text-muted-foreground text-sm">No matches for this filter.</p>}
+      {days.length === 0 && <p className="text-muted-foreground text-sm">{t("schedule.empty")}</p>}
       <div className="space-y-6">
         {days.map((d) => (
           <div key={d.key}>
@@ -81,10 +85,12 @@ export function ScheduleList({ matches, hotReasons = {} }: { matches: MatchInfo[
 }
 
 function Row({ m, zone, hotReason }: { m: MatchInfo; zone?: import("@/lib/format").Zone; hotReason?: string }) {
+  const t = useT();
+  const locale = useLocale();
   const homeCode = m.home ?? m.projHome?.[0]?.code ?? null;
   const awayCode = m.away ?? m.projAway?.[0]?.code ?? null;
-  const homeLabel = m.homeName ?? (m.projHome?.[0] ? `${m.projHome[0].name}` : m.slotHome ?? "TBD");
-  const awayLabel = m.awayName ?? (m.projAway?.[0] ? `${m.projAway[0].name}` : m.slotAway ?? "TBD");
+  const homeLabel = m.homeName ?? (m.projHome?.[0] ? `${m.projHome[0].name}` : m.slotHome ?? t("common.tbd"));
+  const awayLabel = m.awayName ?? (m.projAway?.[0] ? `${m.projAway[0].name}` : m.slotAway ?? t("common.tbd"));
   const final = m.status === "final";
   const live = m.status === "live";
   const showScore = final || live;
@@ -93,10 +99,10 @@ function Row({ m, zone, hotReason }: { m: MatchInfo; zone?: import("@/lib/format
   // Interactive exceptions (the ticket link) sit above the overlay via relative z-10.
   return (
     <div className="hover:bg-muted/30 relative flex items-center gap-2 px-3 py-2.5 transition-colors sm:gap-3 sm:px-4">
-      <Link href={`/match/${m.match}`} className="absolute inset-0" aria-label={`${homeLabel} v ${awayLabel} — match details`} />
+      <Link href={localeHref(locale, `/match/${m.match}`)} className="absolute inset-0" aria-label={t("schedule.rowAria", { home: homeLabel, away: awayLabel })} />
       <div className="text-muted-foreground w-16 shrink-0 text-xs">
         <div className="font-mono whitespace-nowrap" suppressHydrationWarning>{fmtTimeShort(m.utc, zone)}</div>
-        <div className="text-[10px] leading-tight">{ROUND_NAME[m.round]}{m.group ? ` ${m.group}` : ""}</div>
+        <div className="text-[10px] leading-tight">{ROUND_KEY[m.round] ? t(ROUND_KEY[m.round]) : m.round}{m.group ? ` ${m.group}` : ""}</div>
       </div>
       <div className="min-w-0 flex-1">
         <TeamRow code={homeCode} label={homeLabel} score={showScore ? m.homeScore : undefined} win={final && (m.homeScore ?? 0) > (m.awayScore ?? 0)} projected={!m.home} prob={!m.home ? m.projHome?.[0]?.prob : undefined} />
@@ -107,16 +113,16 @@ function Row({ m, zone, hotReason }: { m: MatchInfo; zone?: import("@/lib/format
         <div className="max-w-28 text-right sm:max-w-44">
           {live ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-live">
-              <span className="size-1.5 animate-pulse rounded-full bg-live" />LIVE {m.liveDetail}
+              <span className="size-1.5 animate-pulse rounded-full bg-live" />{t("schedule.liveLabel")} {m.liveDetail}
             </span>
           ) : final ? (
-            <span className="text-[11px] font-medium text-win">FT</span>
+            <span className="text-[11px] font-medium text-win">{t("schedule.fullTime")}</span>
           ) : m.favorite ? (
             <span className="text-muted-foreground text-[11px]">
               <span className="text-foreground/80">{m.favorite.name}</span> {pct(m.favorite.winProb)}
             </span>
           ) : (
-            <span className="text-muted-2 text-[11px]">projected</span>
+            <span className="text-muted-2 text-[11px]">{t("common.projected")}</span>
           )}
           <div className="text-muted-2 hidden truncate text-[10px] sm:block">{m.venue}</div>
         </div>

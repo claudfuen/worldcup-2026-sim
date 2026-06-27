@@ -3,6 +3,8 @@ import type { MatchInfo, TeamPrediction } from "@/lib/predictions";
 import { Flag } from "@/components/flag";
 import { LocalTime } from "@/components/local-time";
 import { forecastPct } from "@/lib/format";
+import { getT, getLocale } from "@/lib/i18n/server";
+import { localeHref } from "@/lib/i18n/config";
 
 // Where a team lands in the Round of 32 depends on how it finishes its group. For 1st/2nd the bracket slot
 // (1X/2X) is fixed, so we resolve the exact R32 match and its likely opponent from the live bracket. A
@@ -22,15 +24,17 @@ const TONE: Record<string, string> = {
   "3": "text-muted-foreground border-border bg-muted/40",
 };
 
-export function R32ByFinish({ matches, group, pred }: { matches: MatchInfo[]; group: string; pred: TeamPrediction }) {
+export async function R32ByFinish({ matches, group, pred }: { matches: MatchInfo[]; group: string; pred: TeamPrediction }) {
+  const t = await getT();
+  const locale = await getLocale();
   const r32 = matches.filter((m) => m.round === "R32");
   const find = (slot: string) => r32.find((m) => m.slotHome === slot || m.slotAway === slot);
 
   const rows = (
     [
-      { key: "1", label: "Win group", prob: pred.winGroup, slot: `1${group}` },
-      { key: "2", label: "Runner-up", prob: pred.runnerUp, slot: `2${group}` },
-      { key: "3", label: "Best third", prob: pred.third, slot: null as string | null },
+      { key: "1", label: t("groups.routeWinGroup"), prob: pred.winGroup, slot: `1${group}` },
+      { key: "2", label: t("groups.routeRunnerUp"), prob: pred.runnerUp, slot: `2${group}` },
+      { key: "3", label: t("groups.routeBestThird"), prob: pred.third, slot: null as string | null },
     ] as const
   )
     .filter((f) => f.prob >= 0.01)
@@ -40,7 +44,7 @@ export function R32ByFinish({ matches, group, pred }: { matches: MatchInfo[]; gr
 
   return (
     <section className="mt-8">
-      <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">Round of 32 route</h2>
+      <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{t("groups.routeHeading")}</h2>
       <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
         {rows.map((f) => {
           const opp = f.m && f.slot ? opponent(f.m, f.slot) : null;
@@ -57,27 +61,27 @@ export function R32ByFinish({ matches, group, pred }: { matches: MatchInfo[]; gr
                     M{f.m.match} · <LocalTime utc={f.m.utc} mode="day" /> · {f.m.city}
                   </span>
                   <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-sm">
-                    <span className="text-muted-2 text-xs">vs</span>
+                    <span className="text-muted-2 text-xs">{t("common.vs")}</span>
                     {opp?.code ? <Flag code={opp.code} size={16} /> : <span className="bg-muted/40 size-4 shrink-0 rounded-[2px]" aria-hidden />}
-                    <span className={`truncate ${opp?.locked ? "font-semibold" : "text-foreground/80"}`}>{opp?.name ?? "TBD"}</span>
+                    <span className={`truncate ${opp?.locked ? "font-semibold" : "text-foreground/80"}`}>{opp?.name ?? t("common.tbd")}</span>
                     {opp?.prob != null && <span className="text-muted-foreground shrink-0 font-mono text-xs tabular-nums">{forecastPct(opp.prob)}</span>}
                   </span>
                 </>
               ) : (
                 <span className="text-foreground/70 flex-1 text-right text-sm">
-                  faces a group winner <span className="text-muted-2">· tie set by the final standings</span>
+                  {t("groups.routeFacesWinner")} <span className="text-muted-2">{t("groups.routeTieSet")}</span>
                 </span>
               )}
             </div>
           );
           return f.m ? (
-            <Link key={f.key} href={`/match/${f.m.match}`} className="hover:bg-muted/20 block transition-none">{inner}</Link>
+            <Link key={f.key} href={localeHref(locale, `/match/${f.m.match}`)} className="hover:bg-muted/20 block transition-none">{inner}</Link>
           ) : (
             <div key={f.key}>{inner}</div>
           );
         })}
       </div>
-      <p className="text-muted-2 mt-2 text-xs text-pretty">Where {pred.name} lands in the Round of 32 depends on where it finishes Group {group}.</p>
+      <p className="text-muted-2 mt-2 text-xs text-pretty">{t("groups.routeFootnote", { name: pred.name, group })}</p>
     </section>
   );
 }

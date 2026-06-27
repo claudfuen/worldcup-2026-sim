@@ -8,6 +8,9 @@ import { teamSlug } from "@/lib/slug";
 import { pct, fmtDay } from "@/lib/format";
 import { useViewerZone } from "@/lib/useViewerZone";
 import { ProbMeter } from "./prob-meter";
+import { useT } from "@/lib/i18n/provider";
+import { useLocale } from "@/lib/i18n/client";
+import { localeHref } from "@/lib/i18n/config";
 
 // Column orderings chosen so each match's two feeders are vertically adjacent (top half, then bottom half).
 const ORDER: Record<string, number[]> = {
@@ -18,7 +21,6 @@ const ORDER: Record<string, number[]> = {
   FINAL: [104],
 };
 const ROUNDS = ["R32", "R16", "QF", "SF", "FINAL"] as const;
-const ROUND_LABEL: Record<string, string> = { R32: "Round of 32", R16: "Round of 16", QF: "Quarter-finals", SF: "Semi-finals", FINAL: "Final" };
 
 export function Bracket({
   matches,
@@ -29,6 +31,7 @@ export function Bracket({
   myMatchNumbers?: number[];
   champion?: { code: string; name: string; prob: number };
 }) {
+  const t = useT();
   const byMatch = new Map(matches.map((m) => [m.match, m]));
   const tickets = new Set(myMatchNumbers);
 
@@ -44,7 +47,7 @@ export function Bracket({
               <Fragment key={round}>
                 <div className="flex min-w-[168px] flex-1 flex-col">
                   <div className="text-muted-foreground mb-3 h-4 px-1 font-mono text-[10px] font-semibold tracking-wide uppercase">
-                    {ROUND_LABEL[round]}
+                    {t(`rounds.${round}`)}
                   </div>
                   {round === "FINAL" && champion && <ChampionCard champion={champion} />}
                   <div className="flex flex-1 flex-col gap-y-2.5">
@@ -64,7 +67,7 @@ export function Bracket({
           </div>
         </div>
       </div>
-      <p className="text-muted-2 mt-2 text-center text-xs md:hidden">Swipe across to explore the full bracket</p>
+      <p className="text-muted-2 mt-2 text-center text-xs md:hidden">{t("bracket.swipeHint")}</p>
     </>
   );
 }
@@ -72,10 +75,12 @@ export function Bracket({
 // The climax of the FINAL column: the model's projected champion, so the right edge of the bracket
 // resolves to a clear terminus instead of an empty column under the "Final" header.
 function ChampionCard({ champion }: { champion: { code: string; name: string; prob: number } }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <div className="border-primary/40 bg-primary/[0.07] mb-3 rounded-xl border p-3 text-center">
-      <div className="text-primary mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">Projected champion</div>
-      <Link href={`/team/${teamSlug(champion.name)}`} className="flex items-center justify-center gap-2 hover:underline">
+      <div className="text-primary mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("bracket.projectedChampion")}</div>
+      <Link href={localeHref(locale, `/team/${teamSlug(champion.name)}`)} className="flex items-center justify-center gap-2 hover:underline">
         <Flag code={champion.code} size={22} />
         <span className="font-semibold">{champion.name}</span>
       </Link>
@@ -104,12 +109,14 @@ function Connectors({ count }: { count: number }) {
 }
 
 function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; big?: boolean; final?: boolean }) {
+  const t = useT();
+  const locale = useLocale();
   const { zone } = useViewerZone();
   // Uniform min-height keeps every node the same size, so the flex slots divide each column evenly and the
   // ⊐ connectors land on feeder centers. The matchup is vertically centred to absorb the spare height.
   return (
     <Link
-      href={`/match/${m.match}`}
+      href={localeHref(locale, `/match/${m.match}`)}
       className={`bg-card hover:bg-muted/30 flex min-h-[124px] w-full flex-col rounded-xl border transition-colors ${big ? "text-sm" : "text-xs"} ${
         final
           ? "border-primary/45 ring-primary/15 bg-primary/[0.04] ring-1"
@@ -119,9 +126,9 @@ function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; 
       }`}
     >
       <div className={`flex items-center justify-between gap-1 ${final ? "text-primary/90" : "text-muted-foreground"} ${big ? "px-2.5 pt-2 pb-1 text-[10px]" : "px-2 pt-1.5 pb-1 text-[9px]"}`}>
-        <span className="truncate" suppressHydrationWarning>{final ? "Final" : `M${m.match}`} · {fmtDay(m.utc, zone)}<span className="hidden sm:inline"> · {m.city}</span></span>
+        <span className="truncate" suppressHydrationWarning>{final ? t("rounds.FINAL") : `M${m.match}`} · {fmtDay(m.utc, zone)}<span className="hidden sm:inline"> · {m.city}</span></span>
         {hasTicket && (
-          <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" className="text-contention shrink-0" aria-label="You have tickets">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" className="text-contention shrink-0" aria-label={t("bracket.youHaveTickets")}>
             <path d="M6 3a2 2 0 0 0-2 2v15l8-4 8 4V5a2 2 0 0 0-2-2H6Z" />
           </svg>
         )}
@@ -136,6 +143,7 @@ function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; 
 }
 
 function Side({ m, side, big }: { m: MatchInfo; side: "home" | "away"; big?: boolean }) {
+  const t = useT();
   const resolved = side === "home" ? m.home : m.away;
   const name = side === "home" ? m.homeName : m.awayName;
   const slot = side === "home" ? m.slotHome : m.slotAway;
@@ -156,11 +164,11 @@ function Side({ m, side, big }: { m: MatchInfo; side: "home" | "away"; big?: boo
         <span className={`min-w-0 flex-1 truncate ${big ? "text-sm" : "text-[13px]"} ${isLoser ? "text-muted-foreground" : "font-semibold"}`}>{name}</span>
         {played ? (
           <span className="flex shrink-0 items-center gap-1">
-            {isWinner && onPens && <span className="text-win/70 font-mono text-[8px] font-semibold tracking-wide uppercase" title="Won on penalties">pens</span>}
+            {isWinner && onPens && <span className="text-win/70 font-mono text-[8px] font-semibold tracking-wide uppercase" title={t("bracket.wonOnPenalties")}>{t("bracket.pens")}</span>}
             <span className={`font-mono font-bold tabular-nums ${big ? "text-sm" : "text-xs"} ${isWinner ? "text-win" : "text-muted-foreground"}`}>{score}</span>
           </span>
         ) : (
-          <span className={`shrink-0 font-bold text-win ${big ? "text-sm" : "text-xs"}`} title="Confirmed">✓</span>
+          <span className={`shrink-0 font-bold text-win ${big ? "text-sm" : "text-xs"}`} title={t("bracket.confirmed")}>✓</span>
         )}
       </div>
     );
@@ -177,7 +185,7 @@ function Side({ m, side, big }: { m: MatchInfo; side: "home" | "away"; big?: boo
     return (
       <div className={`flex items-center ${big ? "gap-2.5 px-3 py-2.5" : "gap-2 px-2.5 py-2"}`}>
         <span className={`bg-muted/30 shrink-0 rounded-[3px] ${big ? "size-6" : "size-[18px]"}`} aria-hidden />
-        <span className="text-muted-2 text-xs">TBD</span>
+        <span className="text-muted-2 text-xs">{t("common.tbd")}</span>
       </div>
     );
   }
@@ -187,7 +195,7 @@ function Side({ m, side, big }: { m: MatchInfo; side: "home" | "away"; big?: boo
         return (
           <div key={c.code} className="flex items-center gap-1.5">
             <Flag code={c.code} size={big ? 16 : 14} />
-            {third && <span className="text-muted-2 font-mono text-[8px] font-semibold tracking-wide uppercase" title="Third-placed team">3rd</span>}
+            {third && <span className="text-muted-2 font-mono text-[8px] font-semibold tracking-wide uppercase" title={t("bracket.thirdPlacedTeam")}>{t("rounds.shortThird")}</span>}
             <span className={`text-foreground/70 min-w-0 flex-1 truncate ${big ? "text-xs" : "text-[11px]"}`}>{c.name}</span>
             <ProbMeter p={c.prob} width={big ? 30 : 22} className={`text-muted-foreground shrink-0 ${big ? "text-xs" : "text-[10px]"}`} />
           </div>

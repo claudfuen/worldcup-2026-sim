@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
@@ -9,23 +10,31 @@ import { ShareBar } from "@/components/share-bar";
 import { forecastPct } from "@/lib/format";
 import { teamSlug } from "@/lib/slug";
 import { RelatedLinks } from "@/components/related-links";
+import { getT, getLocale } from "@/lib/i18n/server";
+import { buildAlternates } from "@/lib/i18n/links";
+import { localeHref } from "@/lib/i18n/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const BRACKET_TITLE = "World Cup 2026 Bracket Predictor - Live Knockout Simulation";
-const BRACKET_DESC =
-  "Projected 2026 World Cup knockout bracket: the most likely team in every Round-of-32 to Final slot, with full FIFA Annex C third-place modelling, updated live.";
-export const metadata = {
-  title: { absolute: BRACKET_TITLE },
-  description: BRACKET_DESC,
-  alternates: { canonical: "/bracket" },
-  openGraph: { title: BRACKET_TITLE, description: BRACKET_DESC, url: "/bracket", type: "website" },
-  twitter: { card: "summary_large_image", title: BRACKET_TITLE, description: BRACKET_DESC },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  const locale = await getLocale();
+  const title = t("bracket.metaTitle");
+  const description = t("bracket.metaDesc");
+  return {
+    title: { absolute: title },
+    description,
+    alternates: buildAlternates("/bracket", locale),
+    openGraph: { title, description, url: localeHref(locale, "/bracket"), type: "website" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 export default async function BracketPage() {
+  const t = await getT();
+  const locale = await getLocale();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const hasLive = liveActivity(data.matches, live);
   // Lock knockout participants the instant their group decides (and resolve third-place slots once the
@@ -43,26 +52,24 @@ export default async function BracketPage() {
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
       <header className="mb-6 max-w-3xl">
-        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">Projected knockout bracket</div>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">World Cup 2026 bracket</h1>
+        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("bracket.eyebrow")}</div>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{t("bracket.heading")}</h1>
         {champ && (
           <p className="mt-3 text-base text-pretty">
-            The model&apos;s road to the final:{" "}
-            <Link href={`/team/${teamSlug(champ.name)}`} className="text-foreground font-semibold hover:underline">{champ.name}</Link> are projected to lift the trophy{" "}
+            {t("bracket.roadIntro")}{" "}
+            <Link href={localeHref(locale, `/team/${teamSlug(champ.name)}`)} className="text-foreground font-semibold hover:underline">{champ.name}</Link>{t("bracket.liftTrophy")}{" "}
             <span className="text-primary font-semibold tabular-nums">{forecastPct(champ.title)}</span>
-            {fHomeName && fAwayName && <>, with a <span className="text-foreground/90 font-medium">{fHomeName}</span>–<span className="text-foreground/90 font-medium">{fAwayName}</span> final the most likely outcome</>}.
-            <span className="text-muted-foreground"> {r32Set} of {r32.length} Round-of-32 ties are confirmed; the rest are projections.</span>
+            {fHomeName && fAwayName && <>{t("bracket.withFinalPre")}<span className="text-foreground/90 font-medium">{fHomeName}</span>–<span className="text-foreground/90 font-medium">{fAwayName}</span>{t("bracket.withFinalPost")}</>}.
+            <span className="text-muted-foreground"> {t("bracket.confirmedTies", { set: r32Set, total: r32.length })}</span>
           </p>
         )}
         <p className="text-muted-2 mt-3 text-xs text-pretty">
-          Each <span className="text-foreground/70">%</span> is how often a team fills that slot across our simulations — not its
-          chance of winning the match. Third-place slots lock once the group stage ends; resolved teams are bold. Scroll across
-          to follow the path to the final.
+          {t("bracket.footnotePre")}<span className="text-foreground/70">%</span>{t("bracket.footnotePost")}
         </p>
         {champ && (
           <div className="mt-4">
             <ShareBar
-              text={`The model's projected World Cup 2026 champion: ${champ.name} (${forecastPct(champ.title)}). See the full bracket:`}
+              text={t("bracket.shareText", { team: champ.name, pct: forecastPct(champ.title) })}
               path="/bracket"
             />
           </div>
@@ -73,21 +80,21 @@ export default async function BracketPage() {
         champion={data.teams[0] ? { code: data.teams[0].code, name: data.teams[0].name, prob: data.teams[0].title } : undefined}
       />
       <div className="border-border bg-card mt-6 rounded-2xl border p-4">
-        <h2 className="mb-2 text-base font-semibold tracking-tight">Third-place play-off</h2>
-        <ThirdPlace matches={matches} />
+        <h2 className="mb-2 text-base font-semibold tracking-tight">{t("rounds.THIRD")}</h2>
+        <ThirdPlace matches={matches} tbd={t("common.tbd")} vs={t("common.vs")} />
       </div>
       <RelatedLinks
         links={[
-          { label: "Groups & standings", href: "/groups" },
-          { label: "Full schedule", href: "/schedule" },
-          { label: "Overview", href: "/", hint: "title race" },
+          { label: t("bracket.relGroups"), href: localeHref(locale, "/groups") },
+          { label: t("bracket.relSchedule"), href: localeHref(locale, "/schedule") },
+          { label: t("bracket.relOverview"), href: localeHref(locale, "/"), hint: t("bracket.relOverviewHint") },
         ]}
       />
     </main>
   );
 }
 
-function ThirdPlace({ matches }: { matches: { match: number; projHome?: { code: string; name: string }[]; projAway?: { code: string; name: string }[] }[] }) {
+function ThirdPlace({ matches, tbd, vs }: { matches: { match: number; projHome?: { code: string; name: string }[]; projAway?: { code: string; name: string }[] }[]; tbd: string; vs: string }) {
   const m = matches.find((x) => x.match === 103);
   if (!m) return null;
   const h = m.projHome?.[0];
@@ -95,10 +102,10 @@ function ThirdPlace({ matches }: { matches: { match: number; projHome?: { code: 
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       {h && <Flag code={h.code} size={16} />}
-      <span className="text-foreground/90">{h?.name ?? "TBD"}</span>
-      <span className="text-muted-foreground">vs</span>
+      <span className="text-foreground/90">{h?.name ?? tbd}</span>
+      <span className="text-muted-foreground">{vs}</span>
       {a && <Flag code={a.code} size={16} />}
-      <span className="text-foreground/90">{a?.name ?? "TBD"}</span>
+      <span className="text-foreground/90">{a?.name ?? tbd}</span>
       <span className="text-muted-2">· Miami, Jul 18</span>
     </div>
   );

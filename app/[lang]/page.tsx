@@ -12,6 +12,7 @@ import { GroupsPreview } from "@/components/groups-preview";
 import { TitleOdds } from "@/components/title-odds";
 import { LaunchRail } from "@/components/launch-rail";
 import { computeWatchability } from "@/lib/watchability";
+import { getT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -19,6 +20,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Page() {
+  const t = await getT();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const matches = overlayLive(data.matches, live);
   const hasLive = liveActivity(data.matches, live);
@@ -29,7 +31,7 @@ export default async function Page() {
   // Hot-match reasons, so today's worth-watching games are badged in the live rail (consistent with the plan).
   const hotReasons: Record<number, string> = {};
   for (const p of computeWatchability(matches, data.teams, groups).byMatch.values()) {
-    if (p.hot) hotReasons[p.match.match] = p.reason;
+    if (p.hot) hotReasons[p.match.match] = t(p.reason.key, p.reason.params);
   }
 
   return (

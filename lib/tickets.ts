@@ -21,11 +21,13 @@ export const TICKET_PROVIDER = "StubHub";
 // To go live:
 //   1. Join the StubHub campaign in Partnerize, then generate a tracking link (Tracking tab).
 //   2. Copy the token after "camref:" from that link.
-//   3. Set STUBHUB_CAMREF to it — or paste it into CAMREF_FALLBACK below.
+//   3. Set NEXT_PUBLIC_STUBHUB_CAMREF to it — or paste it into CAMREF_FALLBACK below.
 // Once a camref is present, every ticket link becomes a tracked prf.hn redirect, UTM medium flips to
 // "affiliate", and rel flips to "sponsored". Until then we emit clean (UTM-tagged) StubHub links.
-const CAMREF_FALLBACK = ""; // paste camref here as an alternative to the STUBHUB_CAMREF env var
-const CAMREF = (process.env.STUBHUB_CAMREF || CAMREF_FALLBACK).trim() || null;
+// NEXT_PUBLIC_ (not a secret — the camref appears in every outbound URL) so it resolves in BOTH server
+// components AND the client ones (e.g. <TicketLink> renders inside the client schedule list).
+const CAMREF_FALLBACK = ""; // paste camref here as an alternative to the env var
+const CAMREF = (process.env.NEXT_PUBLIC_STUBHUB_CAMREF || CAMREF_FALLBACK).trim() || null;
 const AFFILIATE_ACTIVE = CAMREF !== null;
 
 /**

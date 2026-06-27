@@ -25,39 +25,49 @@ import { GroupStandingMini } from "@/components/group-standing-mini";
 import { BracketTeaser } from "@/components/bracket-teaser";
 import { GroupsPreview } from "@/components/groups-preview";
 import { TitleOdds } from "@/components/title-odds";
+import type { Metadata } from "next";
+import { getT, getLocale, type TFunction } from "@/lib/i18n/server";
+import { buildAlternates } from "@/lib/i18n/links";
+import { localeHref, type Locale } from "@/lib/i18n/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const ROUND_NAME: Record<string, string> = {
-  GROUP: "Group stage", R32: "Round of 32", R16: "Round of 16", QF: "Quarter-final", SF: "Semi-final", "3P": "Third-place play-off", FINAL: "Final",
-};
+// Map a match's round code (m.round, which can be "3P") to a translated round name via the shared
+// rounds.* namespace. "3P" → rounds.THIRD; everything else keys straight through.
+function roundName(t: TFunction, round: string): string {
+  return t(`rounds.${round === "3P" ? "THIRD" : round}`);
+}
 
-export async function generateMetadata({ params }: { params: Promise<{ match: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ match: string }> }): Promise<Metadata> {
   const { match } = await params;
+  const t = await getT();
+  const locale = await getLocale();
   try {
     const data = await getPredictions();
     const m = data.matches.find((x) => x.match === Number(match));
-    if (!m) return { title: `Match ${match}` };
-    const home = m.homeName ?? (m.slotHome ? prettySlot(m.slotHome) : "TBD");
-    const away = m.awayName ?? (m.slotAway ? prettySlot(m.slotAway) : "TBD");
-    const title = `${home} vs ${away} Prediction & Odds - World Cup 2026`;
-    const description = `Win probability, expected goals and likely scorelines for ${home} vs ${away} at the 2026 World Cup, from 20,000 Monte Carlo simulations.`;
+    if (!m) return { title: t("match.metaTitleFallback", { match }) };
+    const home = m.homeName ?? (m.slotHome ? prettySlot(t, m.slotHome) : t("common.tbd"));
+    const away = m.awayName ?? (m.slotAway ? prettySlot(t, m.slotAway) : t("common.tbd"));
+    const title = t("match.metaTitle", { home, away });
+    const description = t("match.metaDesc", { home, away });
     return {
       title: { absolute: title },
       description,
-      alternates: { canonical: `/match/${m.match}` },
-      openGraph: { title, description, url: `/match/${m.match}`, type: "article" },
+      alternates: buildAlternates(`/match/${m.match}`, locale),
+      openGraph: { title, description, url: localeHref(locale, `/match/${m.match}`), type: "article" },
       twitter: { card: "summary_large_image", title, description },
     };
   } catch {
-    return { title: `Match ${match}` };
+    return { title: t("match.metaTitleFallback", { match }) };
   }
 }
 
 export default async function MatchPage({ params }: { params: Promise<{ match: string }> }) {
   const { match } = await params;
+  const t = await getT();
+  const locale = await getLocale();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const overlaid = overlayLive(data.matches, live);
   // Lock this match's participants the instant the feeding group(s) decide, ahead of the cron.
@@ -79,7 +89,12 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       ? {
           "@context": "https://schema.org",
           "@type": "SportsEvent",
-          name: `${m.homeName} vs ${m.awayName} - World Cup 2026 ${ROUND_NAME[m.round]}${m.group ? ` (Group ${m.group})` : ""}`,
+          name: t(m.group ? "match.eventNameGroup" : "match.eventName", {
+            home: m.homeName,
+            away: m.awayName,
+            round: roundName(t, m.round),
+            ...(m.group ? { group: m.group } : {}),
+          }),
           sport: "Association football",
           startDate: m.utc,
           eventStatus: "https://schema.org/EventScheduled",
@@ -104,28 +119,35 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
         )
       : null;
 
-  const matchLabel = `${m.homeName ?? prettySlot(m.slotHome)} v ${m.awayName ?? prettySlot(m.slotAway)}`;
+  const matchLabel = t("match.matchLabel", {
+    home: m.homeName ?? prettySlot(t, m.slotHome),
+    away: m.awayName ?? prettySlot(t, m.slotAway),
+  });
   // Breadcrumb parents are contextual: group matches sit under their Group; knockouts under the Bracket.
   const crumbs =
     m.round === "GROUP" && m.group
-      ? [{ label: "Home", href: "/" }, { label: "Groups", href: "/groups" }, { label: `Group ${m.group}`, href: `/group/${m.group.toLowerCase()}` }, { label: matchLabel }]
-      : [{ label: "Home", href: "/" }, { label: "Bracket", href: "/bracket" }, { label: ROUND_NAME[m.round], href: "/bracket" }, { label: matchLabel }];
+      ? [{ label: t("match.crumbHome"), href: localeHref(locale, "/") }, { label: t("nav.groups"), href: localeHref(locale, "/groups") }, { label: t("match.groupLabel", { group: m.group }), href: localeHref(locale, `/group/${m.group.toLowerCase()}`) }, { label: matchLabel }]
+      : [{ label: t("match.crumbHome"), href: localeHref(locale, "/") }, { label: t("nav.bracket"), href: localeHref(locale, "/bracket") }, { label: roundName(t, m.round), href: localeHref(locale, "/bracket") }, { label: matchLabel }];
   // Live-finalized standings for the explore-section group preview (a window into the match's own group).
   const groups = hasLive ? finalizeGroups(data.groups, overlaid, ratings) : data.groups;
   const groupView = m.group ? groups.find((g) => g.group === m.group) : undefined;
   // Secondary pill links beneath the preview cards: both teams (so non-top-6 sides stay reachable) + schedule.
   const exploreLinks: RelLink[] = [];
-  if (m.home && m.homeName) exploreLinks.push({ label: m.homeName, href: `/team/${teamSlug(m.homeName)}`, code: m.home });
-  if (m.away && m.awayName) exploreLinks.push({ label: m.awayName, href: `/team/${teamSlug(m.awayName)}`, code: m.away });
-  exploreLinks.push({ label: "Full schedule", href: "/schedule" });
-  exploreLinks.push({ label: "How it works", href: "/methodology" });
+  if (m.home && m.homeName) exploreLinks.push({ label: m.homeName, href: localeHref(locale, `/team/${teamSlug(m.homeName)}`), code: m.home });
+  if (m.away && m.awayName) exploreLinks.push({ label: m.awayName, href: localeHref(locale, `/team/${teamSlug(m.awayName)}`), code: m.away });
+  exploreLinks.push({ label: t("match.fullSchedule"), href: localeHref(locale, "/schedule") });
+  exploreLinks.push({ label: t("match.howItWorks"), href: localeHref(locale, "/methodology") });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       {eventLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventLd) }} />}
       <LiveAutoRefresh enabled={liveActivity(data.matches.filter((x) => x.match === m.match), live)} />
       <h1 className="sr-only">
-        {(m.homeName ?? prettySlot(m.slotHome))} vs {(m.awayName ?? prettySlot(m.slotAway))} prediction - World Cup 2026 {ROUND_NAME[m.round]}
+        {t("match.srHeading", {
+          home: m.homeName ?? prettySlot(t, m.slotHome),
+          away: m.awayName ?? prettySlot(t, m.slotAway),
+          round: roundName(t, m.round),
+        })}
       </h1>
       <Breadcrumbs items={crumbs} />
 
@@ -134,27 +156,27 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
           inline (like the bracket cards) — no thin "likely X%" + redundant repeat. */}
       <section className="hero-sheen border-border-strong relative mt-5 overflow-hidden rounded-3xl border bg-surface-raised px-5 py-7 sm:px-10 sm:py-9 dark:inset-ring dark:inset-ring-white/5">
         <div className="text-primary mb-6 text-center font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">
-          {ROUND_NAME[m.round]}{m.group ? ` · Group ${m.group}` : ""} <span className="text-muted-2">· Match {m.match}</span>
+          {m.group ? t("match.heroEyebrowGroup", { round: roundName(t, m.round), group: m.group }) : roundName(t, m.round)} <span className="text-muted-2">{t("match.heroMatchNo", { match: m.match })}</span>
         </div>
         {state === "undefined" ? (
           <div className="flex items-start justify-center gap-3 sm:gap-12">
-            <HeroSlot m={m} side="home" />
-            <span className="text-muted-2 flex size-11 shrink-0 items-center justify-center self-center rounded-full bg-background/40 font-mono text-[11px] font-semibold tracking-[0.12em] uppercase ring-1 ring-white/5 ring-inset dark:bg-black/15" aria-hidden>vs</span>
-            <HeroSlot m={m} side="away" />
+            <HeroSlot m={m} side="home" t={t} locale={locale} />
+            <span className="text-muted-2 flex size-11 shrink-0 items-center justify-center self-center rounded-full bg-background/40 font-mono text-[11px] font-semibold tracking-[0.12em] uppercase ring-1 ring-white/5 ring-inset dark:bg-black/15" aria-hidden>{t("common.vs")}</span>
+            <HeroSlot m={m} side="away" t={t} locale={locale} />
           </div>
         ) : (
           <div className="flex items-center justify-center gap-3 sm:gap-12">
-            <ScoreTeam m={m} side="home" />
+            <ScoreTeam m={m} side="home" locale={locale} t={t} />
             <div className="flex shrink-0 flex-col items-center gap-2.5 rounded-xl bg-background/40 px-4 py-3 ring-1 ring-white/5 ring-inset dark:bg-black/15">
               {state === "final" || state === "live" ? (
                 <span className="font-mono text-4xl font-semibold tracking-[-0.03em] tabular-nums sm:text-6xl">
                   {m.homeScore}<span className="text-muted-2 mx-2 align-middle text-[0.7em] font-normal">–</span>{m.awayScore}
                 </span>
               ) : (
-                <span className="text-muted-2 font-mono text-xs font-semibold tracking-[0.15em] uppercase">vs</span>
+                <span className="text-muted-2 font-mono text-xs font-semibold tracking-[0.15em] uppercase">{t("common.vs")}</span>
               )}
               {state === "final" ? (
-                <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">Full time</span>
+                <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{t("match.fullTime")}</span>
               ) : state === "live" ? (
                 <span className="text-live inline-flex items-center gap-1.5 text-xs font-semibold">
                   <span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail}
@@ -163,23 +185,23 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
                 <span className="text-muted-2 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase" suppressHydrationWarning><LocalTime utc={m.utc} mode="day" /></span>
               )}
             </div>
-            <ScoreTeam m={m} side="away" />
+            <ScoreTeam m={m} side="away" locale={locale} t={t} />
           </div>
         )}
         {state === "defined" && m.probs && (
           <div className="mx-auto mt-7 max-w-xl rounded-xl bg-background/30 px-5 py-4 ring-1 ring-white/5 ring-inset dark:bg-black/10">
             <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
-            {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-center text-xs">Regulation odds; knockout ties are settled by extra time and penalties.</p>}
+            {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-center text-xs">{t("match.regulationNote")}</p>}
           </div>
         )}
         {state === "undefined" && (
           <p className="text-muted-2 mx-auto mt-7 max-w-xl rounded-xl bg-background/30 px-5 py-4 text-center text-xs text-pretty ring-1 ring-white/5 ring-inset dark:bg-black/10">
-            The model&apos;s most likely team for each slot, across {data.iterations.toLocaleString()} simulations.
+            {t("match.undefinedSlots", { iterations: data.iterations })}
           </p>
         )}
         {(state === "defined" || state === "undefined") && (
           <div className="mt-6 flex justify-center">
-            <Countdown utc={m.utc} label="to kickoff" />
+            <Countdown utc={m.utc} label={t("match.toKickoff")} />
           </div>
         )}
       </section>
@@ -187,36 +209,36 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       {/* Facts strip — the tail: a recessed well bonded to the hero, as a divided KPI ribbon. */}
       <div className="border-border bg-card/60 mt-3 rounded-2xl border p-4 backdrop-blur-sm sm:p-5 dark:bg-card/50">
         <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-4">
-          <Fact label="Kickoff" value={<LocalTime utc={m.utc} mode="datetime" />} />
-          <Fact label="Venue" value={`${m.venue}, ${m.city}`} />
-          <Fact label="Stage" value={
+          <Fact label={t("match.factKickoff")} value={<LocalTime utc={m.utc} mode="datetime" />} />
+          <Fact label={t("match.factVenue")} value={t("match.venueCity", { venue: m.venue, city: m.city })} />
+          <Fact label={t("match.factStage")} value={
             <>
               {m.round === "GROUP" && m.group ? (
-                <Link href={`/group/${m.group.toLowerCase()}`} className="hover:text-primary underline-offset-2 hover:underline">Group {m.group}</Link>
+                <Link href={localeHref(locale, `/group/${m.group.toLowerCase()}`)} className="hover:text-primary underline-offset-2 hover:underline">{t("match.groupLabel", { group: m.group })}</Link>
               ) : (
-                <Link href="/bracket" className="hover:text-primary underline-offset-2 hover:underline">{ROUND_NAME[m.round]}</Link>
+                <Link href={localeHref(locale, "/bracket")} className="hover:text-primary underline-offset-2 hover:underline">{roundName(t, m.round)}</Link>
               )}
-              <span className="text-muted-2"> · M{m.match}</span>
+              <span className="text-muted-2"> {t("match.factMatchNo", { match: m.match })}</span>
             </>
           } />
           <Fact
-            label={heat?.hot ? "Worth watching" : "Status"}
+            label={heat?.hot ? t("match.factWorthWatching") : t("match.factStatus")}
             value={
               heat?.hot ? (
-                <span className="text-contention">{heat.reason}</span>
+                <span className="text-contention">{t(heat.reason.key, heat.reason.params)}</span>
               ) : state === "final" ? (
-                "Full time"
+                t("match.fullTime")
               ) : state === "live" ? (
-                <span className="text-live inline-flex items-center gap-1.5 font-medium"><span className="bg-live size-1.5 animate-pulse rounded-full" />Live now</span>
+                <span className="text-live inline-flex items-center gap-1.5 font-medium"><span className="bg-live size-1.5 animate-pulse rounded-full" />{t("common.liveNow")}</span>
               ) : (
-                "Upcoming"
+                t("match.statusUpcoming")
               )
             }
           />
         </div>
         {state !== "final" && state !== "live" && hasTickets(m.match) && (
           <div className="border-border/50 mt-4 flex flex-col gap-2.5 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-2 text-xs">Tickets on the {TICKET_PROVIDER} resale market · opens in a new tab</p>
+            <p className="text-muted-2 text-xs">{t("match.ticketsCaption", { provider: TICKET_PROVIDER })}</p>
             <TicketLink matchNo={m.match} placement="match_facts" variant="button" className="sm:w-auto sm:px-5" />
           </div>
         )}
@@ -226,35 +248,35 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
         <ShareBar
           text={
             state === "final"
-              ? `${m.homeName} ${m.homeScore}-${m.awayScore} ${m.awayName} - World Cup 2026 ${ROUND_NAME[m.round]}.`
+              ? t("match.shareFinal", { home: m.homeName, homeScore: m.homeScore, awayScore: m.awayScore, away: m.awayName, round: roundName(t, m.round) })
               : m.favorite && m.home && m.away
-                ? `${m.favorite.name} ${Math.round(m.favorite.winProb * 100)}% to win - ${m.homeName} vs ${m.awayName} World Cup 2026 prediction.`
-                : `${m.homeName ?? prettySlot(m.slotHome)} vs ${m.awayName ?? prettySlot(m.slotAway)} - World Cup 2026 prediction.`
+                ? t("match.shareFavorite", { favorite: m.favorite.name, pct: Math.round(m.favorite.winProb * 100), home: m.homeName, away: m.awayName })
+                : t("match.shareUpcoming", { home: m.homeName ?? prettySlot(t, m.slotHome), away: m.awayName ?? prettySlot(t, m.slotAway) })
           }
           path={`/match/${m.match}`}
         />
       </div>
 
       {state === "defined" && m.probs && (
-        <p className="text-muted-foreground mt-8 max-w-3xl text-sm text-pretty">{predictionProse(m, homePred?.rating, awayPred?.rating)}</p>
+        <p className="text-muted-foreground mt-8 max-w-3xl text-sm text-pretty">{predictionProse(t, m, homePred?.rating, awayPred?.rating)}</p>
       )}
 
       {/* State-specific body */}
       {state === "final" && (
         <section className="mt-8">
-          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">Model&apos;s pre-match read</h2>
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">{t("match.preMatchRead")}</h2>
           <div className="border-border bg-card rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/5">
             {m.probs ? (
               <>
                 <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
                 <p className="text-muted-2 mt-4 text-xs">
-                  {m.xg && <>Expected goals {m.xg.home.toFixed(1)}–{m.xg.away.toFixed(1)} · </>}
-                  actual result <span className="text-foreground/80 font-medium">{m.homeScore}–{m.awayScore}</span>.
+                  {m.xg && <>{t("match.expectedGoalsPrefix", { home: m.xg.home.toFixed(1), away: m.xg.away.toFixed(1) })} </>}
+                  {t("match.actualResult")} <span className="text-foreground/80 font-medium">{m.homeScore}–{m.awayScore}</span>.
                 </p>
               </>
             ) : (
               <p className="text-muted-foreground text-sm">
-                Full time: <span className="text-foreground font-medium">{m.homeName} {m.homeScore}–{m.awayScore} {m.awayName}</span>.
+                {t("match.fullTimeLabel")} <span className="text-foreground font-medium">{m.homeName} {m.homeScore}–{m.awayScore} {m.awayName}</span>.
               </p>
             )}
           </div>
@@ -264,14 +286,14 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       {state === "live" && m.probs && (
         <section className="mt-8">
           <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">
-            Pre-match win probability
+            {t("match.preMatchWinProb")}
           </h2>
           <div className="border-border bg-card rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/5">
             <p className="text-live mb-3 text-xs font-medium">
-              Live: {m.homeName} {m.homeScore}–{m.awayScore} {m.awayName} · {m.liveDetail}
+              {t("match.liveScoreLine", { home: m.homeName, homeScore: m.homeScore, awayScore: m.awayScore, away: m.awayName, detail: m.liveDetail })}
             </p>
             <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
-            <p className="text-muted-2 mt-4 text-xs">The full tournament forecast updates once the match is final.</p>
+            <p className="text-muted-2 mt-4 text-xs">{t("match.forecastUpdatesNote")}</p>
           </div>
         </section>
       )}
@@ -283,7 +305,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       {proj && (
         <section className="mt-8">
           <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">
-            Group {proj.group} if it ends like this
+            {t("match.groupIfEndsLikeThis", { group: proj.group })}
           </h2>
           <ProvisionalStandings proj={proj} />
         </section>
@@ -292,8 +314,8 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       {state === "defined" && m.topScores && m.topScores.length > 0 && (
         <section className="mt-8">
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-[0.1em] uppercase">Most likely scorelines</h2>
-            {m.xg && <span className="text-muted-foreground text-xs">xG {m.xg.home.toFixed(1)} – {m.xg.away.toFixed(1)}</span>}
+            <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-[0.1em] uppercase">{t("match.mostLikelyScorelines")}</h2>
+            {m.xg && <span className="text-muted-foreground text-xs">{t("match.xgLabel", { home: m.xg.home.toFixed(1), away: m.xg.away.toFixed(1) })}</span>}
           </div>
           <div className="border-border bg-card divide-border/50 divide-y rounded-2xl border dark:inset-ring dark:inset-ring-white/5">
             {m.topScores.map((s) => (
@@ -309,8 +331,10 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
             ))}
           </div>
           <p className="text-muted-2 mt-2 text-xs">
-            Top {m.topScores.length} of every possible scoreline · all other scorelines{" "}
-            {pct(Math.max(0, 1 - m.topScores.reduce((acc, s) => acc + s.prob, 0)))} combined.
+            {t("match.scorelinesNote", {
+              count: m.topScores.length,
+              rest: pct(Math.max(0, 1 - m.topScores.reduce((acc, s) => acc + s.prob, 0))),
+            })}
           </p>
         </section>
       )}
@@ -331,7 +355,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
 // Natural-language model read for an upcoming, fully-defined match: unique per-page prose that answers
 // "who does the model favour and how" - the snippet a search result wants. Percentages cap at 99% (a
 // single match is a forecast, never a certainty), matching the rest of the site.
-function predictionProse(m: MatchInfo, homeRating?: number, awayRating?: number): string {
+function predictionProse(t: TFunction, m: MatchInfo, homeRating?: number, awayRating?: number): string {
   const { home, draw, away } = m.probs!;
   const cap = (v: number) => Math.max(1, Math.round(Math.min(v, 0.99) * 100));
   const favHome = home >= away;
@@ -340,17 +364,33 @@ function predictionProse(m: MatchInfo, homeRating?: number, awayRating?: number)
   const favPct = cap(favHome ? home : away);
   const top = m.topScores?.[0];
   const scoreStr = top
-    ? ` The most likely scoreline is ${m.homeName} ${top.h}-${top.a} ${m.awayName}${m.xg ? ` (expected goals ${m.xg.home.toFixed(1)}-${m.xg.away.toFixed(1)})` : ""}.`
+    ? " " +
+      t(m.xg ? "match.proseScoreXg" : "match.proseScore", {
+        home: m.homeName,
+        away: m.awayName,
+        h: top.h,
+        a: top.a,
+        ...(m.xg ? { xgHome: m.xg.home.toFixed(1), xgAway: m.xg.away.toFixed(1) } : {}),
+      })
     : "";
   let whyStr = "";
   if (homeRating != null && awayRating != null) {
     const gap = Math.round(homeRating - awayRating);
     const abs = Math.abs(gap);
-    whyStr = abs >= 25
-      ? ` That edge comes from the ratings: ${gap >= 0 ? m.homeName : m.awayName} are about ${abs} Elo points stronger.`
-      : ` The two sides are within ${abs} Elo points, so the model sees a tight game.`;
+    whyStr =
+      " " +
+      (abs >= 25
+        ? t("match.proseWhyEdge", { stronger: gap >= 0 ? m.homeName : m.awayName, elo: abs })
+        : t("match.proseWhyTight", { elo: abs }));
   }
-  return `The model makes ${favName} the ${favPct}% favorite to beat ${dogName}, with ${artForPct(cap(draw))} ${cap(draw)}% chance of a draw, across 20,000 simulations.${scoreStr}${whyStr}`;
+  const lead = t("match.proseLead", {
+    favorite: favName,
+    favPct,
+    underdog: dogName,
+    drawArt: artForPct(cap(draw)),
+    drawPct: cap(draw),
+  });
+  return `${lead}${scoreStr}${whyStr}`;
 }
 
 // "a" vs "an" before a spoken percentage: 8, 11, 18 and 80-89 ("eight", "eleven", "eighteen", "eighty…")
@@ -359,13 +399,13 @@ function artForPct(n: number): string {
   return n === 8 || n === 11 || n === 18 || (n >= 80 && n <= 89) ? "an" : "a";
 }
 
-function prettySlot(s?: string): string {
-  if (!s) return "TBD";
-  if (/^1[A-L]$/.test(s)) return `Winner ${s[1]}`;
-  if (/^2[A-L]$/.test(s)) return `Runner-up ${s[1]}`;
-  if (s.startsWith("3:")) return `3rd: ${s.slice(2).split(",").join("/")}`;
-  if (s.startsWith("W")) return `Winner of M${s.slice(1)}`;
-  if (s.startsWith("L")) return `Loser of M${s.slice(1)}`;
+function prettySlot(t: TFunction, s?: string): string {
+  if (!s) return t("common.tbd");
+  if (/^1[A-L]$/.test(s)) return t("match.slotWinnerGroup", { group: s[1] });
+  if (/^2[A-L]$/.test(s)) return t("match.slotRunnerUpGroup", { group: s[1] });
+  if (s.startsWith("3:")) return t("match.slotThird", { groups: s.slice(2).split(",").join("/") });
+  if (s.startsWith("W")) return t("match.slotWinnerOf", { match: s.slice(1) });
+  if (s.startsWith("L")) return t("match.slotLoserOf", { match: s.slice(1) });
   return s;
 }
 
@@ -382,7 +422,7 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
 
 // One side of a RESOLVED matchup (defined/live/final): flag + team name, linking to the team page. The
 // winner is tinted green, the loser muted. Predicted (unresolved) ties use <HeroSlot> instead.
-function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
+function ScoreTeam({ m, side, locale, t }: { m: MatchInfo; side: "home" | "away"; locale: Locale; t: TFunction }) {
   const resolved = side === "home" ? m.home : m.away;
   const name = side === "home" ? m.homeName : m.awayName;
   const score = side === "home" ? m.homeScore : m.awayScore;
@@ -393,13 +433,13 @@ function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center">
         <Flag code={null} size={64} />
-        <div className="text-muted-2 text-sm">TBD</div>
+        <div className="text-muted-2 text-sm">{t("common.tbd")}</div>
       </div>
     );
   }
   return (
     <Link
-      href={`/team/${teamSlug(name)}`}
+      href={localeHref(locale, `/team/${teamSlug(name)}`)}
       className="group/team focus-visible:ring-primary/50 focus-visible:ring-offset-surface-raised flex min-w-0 flex-1 flex-col items-center gap-3 rounded-xl text-center transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       <span className={lose ? "opacity-60 saturate-[0.85]" : ""}><Flag code={resolved} size={64} /></span>
@@ -411,7 +451,7 @@ function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
 // One side of a PREDICTED matchup hero. Mirrors the settled side (big flag + name) so both heroes feel
 // the same, but the headline is the projected team's chance of filling this slot — with a probability bar
 // and the next-most-likely alternate beneath. A clinched side (partially-decided tie) shows a ✓ instead.
-function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
+function HeroSlot({ m, side, t, locale }: { m: MatchInfo; side: "home" | "away"; t: TFunction; locale: Locale }) {
   const resolved = side === "home" ? m.home : m.away;
   const name = side === "home" ? m.homeName : m.awayName;
   const slot = side === "home" ? m.slotHome : m.slotAway;
@@ -420,14 +460,14 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   if (resolved && name) {
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
-        <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(slot)}</div>
-        <Link href={`/team/${teamSlug(name)}`} className="group/team flex flex-col items-center gap-3 transition-colors">
+        <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(t, slot)}</div>
+        <Link href={localeHref(locale, `/team/${teamSlug(name)}`)} className="group/team flex flex-col items-center gap-3 transition-colors">
           <Flag code={resolved} size={64} />
           <div className="decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl">{name}</div>
         </Link>
         <div className="text-win inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12.5 10 17.5 19 7" /></svg>
-          Confirmed
+          {t("match.confirmed")}
         </div>
       </div>
     );
@@ -437,9 +477,9 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   if (!top) {
     return (
       <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center">
-        <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(slot)}</div>
+        <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(t, slot)}</div>
         <Flag code={null} size={64} />
-        <div className="text-muted-2 text-sm">To be decided</div>
+        <div className="text-muted-2 text-sm">{t("match.toBeDecided")}</div>
       </div>
     );
   }
@@ -447,8 +487,8 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   const rest = cands.slice(1).filter((c) => c.prob >= 0.02).slice(0, 3);
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
-      <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(slot)}</div>
-      <Link href={`/team/${teamSlug(top.name)}`} className="group/team flex flex-col items-center gap-3 transition-colors">
+      <div className="text-muted-2 max-w-full truncate font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{prettySlot(t, slot)}</div>
+      <Link href={localeHref(locale, `/team/${teamSlug(top.name)}`)} className="group/team flex flex-col items-center gap-3 transition-colors">
         <Flag code={top.code} size={64} />
         <div className="decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl">{top.name}</div>
       </Link>
@@ -458,14 +498,14 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
         </div>
         <div className="mt-2.5">
           <div className="text-primary font-mono text-2xl font-semibold tracking-[-0.02em] tabular-nums sm:text-3xl">{forecastPct(top.prob)}</div>
-          <div className="text-muted-2 mt-0.5 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">to reach this match</div>
+          <div className="text-muted-2 mt-0.5 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{t("match.toReachThisMatch")}</div>
         </div>
       </div>
       {rest.length > 0 && (
         <div className="border-border/50 mt-2 w-full max-w-[13rem] space-y-1.5 border-t pt-3">
-          <div className="text-muted-2 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">If not</div>
+          <div className="text-muted-2 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">{t("match.ifNot")}</div>
           {rest.map((r) => (
-            <Link key={r.code} href={`/team/${teamSlug(r.name)}`} className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors">
+            <Link key={r.code} href={localeHref(locale, `/team/${teamSlug(r.name)}`)} className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors">
               <Flag code={r.code} size={14} />
               <span className="min-w-0 flex-1 truncate text-left">{r.name}</span>
               <span className="shrink-0 font-mono tabular-nums">{forecastPct(r.prob)}</span>

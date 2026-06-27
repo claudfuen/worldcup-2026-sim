@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
+import { useT } from "@/lib/i18n/provider";
 
 // "Add to Home Screen" install popup. Pervasive (the tournament is short-lived): shows once per session,
 // fires on the first visit after a brief dwell, and re-prompts again the next session (≥2h later) even
@@ -50,6 +51,7 @@ function isStandalone(): boolean {
 }
 
 export function InstallPrompt() {
+  const t = useT();
   const pathname = usePathname();
   const [views, setViews] = useState(0);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
@@ -258,14 +260,14 @@ export function InstallPrompt() {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Add to home screen"
+        aria-label={t("install.dialogAria")}
         tabIndex={-1}
         className="animate-in fade-in zoom-in-95 slide-in-from-bottom-2 bg-surface-raised border-border-strong relative w-full max-w-sm rounded-3xl border p-6 text-center shadow-2xl duration-200 outline-none dark:inset-ring dark:inset-ring-white/5"
       >
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Close"
+          aria-label={t("install.close")}
           className="text-muted-2 hover:text-foreground hover:bg-muted/40 absolute top-3 right-3 flex size-8 items-center justify-center rounded-lg"
         >
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
@@ -278,16 +280,16 @@ export function InstallPrompt() {
                 <path d="M8 21h8" /><path d="M12 17v4" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M17 5h3v1a4 4 0 0 1-4 4" /><path d="M7 5H4v1a4 4 0 0 0 4 4" />
               </svg>
             </span>
-            <h2 className="font-display mt-4 text-lg font-semibold tracking-tight text-balance">Add World Cup Predictor to your home screen</h2>
-            <p className="text-muted-foreground mt-1.5 text-sm text-pretty">One tap to live scores, odds and the bracket — full-screen, like a native app. No searching as the tournament flies by.</p>
+            <h2 className="font-display mt-4 text-lg font-semibold tracking-tight text-balance">{t("install.title", { brand: t("meta.siteName") })}</h2>
+            <p className="text-muted-foreground mt-1.5 text-sm text-pretty">{t("install.body")}</p>
             <button
               type="button"
               onClick={install}
               className="bg-primary text-primary-foreground mt-5 w-full rounded-xl px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-90"
             >
-              {deferred ? "Add to Home Screen" : "Show me how"}
+              {deferred ? t("install.addCta") : t("install.showHow")}
             </button>
-            <button type="button" onClick={dismiss} className="text-muted-foreground hover:text-foreground mt-1 w-full rounded-lg px-4 py-2 text-sm">Maybe later</button>
+            <button type="button" onClick={dismiss} className="text-muted-foreground hover:text-foreground mt-1 w-full rounded-lg px-4 py-2 text-sm">{t("install.maybeLater")}</button>
           </>
         ) : (
           <>
@@ -296,20 +298,20 @@ export function InstallPrompt() {
                 <path d="M12 16V4" /><path d="m8 8 4-4 4 4" /><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
               </svg>
             </span>
-            <h2 className="font-display mt-4 text-lg font-semibold tracking-tight">Add it in two taps</h2>
+            <h2 className="font-display mt-4 text-lg font-semibold tracking-tight">{t("install.tipTitle")}</h2>
             {isIos() ? (
               <p className="text-muted-foreground mt-1.5 text-sm text-pretty">
-                Tap the <span className="text-foreground font-medium">Share</span> button in Safari, then choose{" "}
-                <span className="text-foreground font-medium">“Add to Home Screen.”</span>
+                {t("install.iosBefore")} <span className="text-foreground font-medium">{t("install.iosShare")}</span> {t("install.iosAfter")}{" "}
+                <span className="text-foreground font-medium">{t("install.iosMenuItem")}</span>
               </p>
             ) : (
               <p className="text-muted-foreground mt-1.5 text-sm text-pretty">
-                Open your browser menu (<span className="text-foreground font-medium">⋮</span>), then choose{" "}
-                <span className="text-foreground font-medium">“Add to Home screen”</span> or{" "}
-                <span className="text-foreground font-medium">“Install app.”</span>
+                {t("install.androidBefore")}<span className="text-foreground font-medium">⋮</span>{t("install.androidMid")}{" "}
+                <span className="text-foreground font-medium">{t("install.androidMenuItem")}</span> {t("install.androidOr")}{" "}
+                <span className="text-foreground font-medium">{t("install.androidInstallApp")}</span>
               </p>
             )}
-            <button type="button" onClick={dismiss} className="text-muted-foreground hover:text-foreground mt-5 w-full rounded-lg px-4 py-2 text-sm">Got it</button>
+            <button type="button" onClick={dismiss} className="text-muted-foreground hover:text-foreground mt-5 w-full rounded-lg px-4 py-2 text-sm">{t("install.gotIt")}</button>
           </>
         )}
       </div>

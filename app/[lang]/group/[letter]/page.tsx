@@ -22,6 +22,10 @@ import { BracketTeaser } from "@/components/bracket-teaser";
 import { GroupsPreview } from "@/components/groups-preview";
 import { TitleOdds } from "@/components/title-odds";
 import type { GroupTeamView } from "@/lib/predictions";
+import type { Metadata } from "next";
+import { getT, getLocale } from "@/lib/i18n/server";
+import { buildAlternates } from "@/lib/i18n/links";
+import { localeHref } from "@/lib/i18n/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic"; // per-request live overlay: a finished match shows its score at once
@@ -30,18 +34,20 @@ export function generateStaticParams() {
   return GROUPS.map((g) => ({ letter: g.toLowerCase() }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ letter: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ letter: string }> }): Promise<Metadata> {
   const { letter } = await params;
   const L = letter.toUpperCase();
-  if (!GROUPS.includes(L)) return { title: "Group" };
-  const canonical = `/group/${L.toLowerCase()}`;
-  const title = `World Cup 2026 Group ${L}: Standings, Odds & Schedule`;
-  const description = `2026 World Cup Group ${L}: live standings, each team's probability of advancing, the 2026 head-to-head tiebreakers, and all six fixtures.`;
+  const t = await getT();
+  const locale = await getLocale();
+  if (!GROUPS.includes(L)) return { title: t("groupDetail.fallbackTitle") };
+  const path = `/group/${L.toLowerCase()}`;
+  const title = t("groupDetail.metaTitle", { group: L });
+  const description = t("groupDetail.metaDesc", { group: L });
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical },
-    openGraph: { title, description, url: canonical, type: "article" },
+    alternates: buildAlternates(path, locale),
+    openGraph: { title, description, url: localeHref(locale, path), type: "article" },
     twitter: { card: "summary_large_image", title, description },
   };
 }
@@ -50,6 +56,8 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
   const { letter } = await params;
   const L = letter.toUpperCase();
   if (!GROUPS.includes(L)) notFound();
+  const t = await getT();
+  const locale = await getLocale();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const overlaid = overlayLive(data.matches, live);
   const hasLive = liveActivity(data.matches, live);
@@ -68,83 +76,82 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
   const out = gv.teams.filter((t) => t.status === "eliminated");
   const contending = gv.teams.filter((t) => t.status === "live").sort((a, b) => b.advance - a.advance);
   const verdict: string[] = [];
-  if (through.length) verdict.push(`${nameList(through)} ${through.length === 1 ? "has" : "have"} qualified`);
-  if (contending[0] && contending[0].advance > 0.02) verdict.push(`${contending[0].name} ${pct(contending[0].advance)} to advance`);
-  if (out.length) verdict.push(`${nameList(out)} out`);
+  if (through.length) verdict.push(t("groupDetail.verdictQualified", { teams: nameList(through), count: through.length }));
+  if (contending[0] && contending[0].advance > 0.02) verdict.push(t("groupDetail.verdictContending", { team: contending[0].name, pct: pct(contending[0].advance) }));
+  if (out.length) verdict.push(t("groupDetail.verdictOut", { teams: nameList(out) }));
 
   // Thin secondary links beneath the preview cards: jump to the adjacent groups + the schedule (the bracket
   // and all-groups grid get rich preview cards below).
   const gi = GROUPS.indexOf(L);
   const related: RelLink[] = [];
-  if (gi > 0) related.push({ label: `Group ${GROUPS[gi - 1]}`, href: `/group/${GROUPS[gi - 1].toLowerCase()}` });
-  if (gi < GROUPS.length - 1) related.push({ label: `Group ${GROUPS[gi + 1]}`, href: `/group/${GROUPS[gi + 1].toLowerCase()}` });
-  related.push({ label: "Full schedule", href: "/schedule" });
-  related.push({ label: "How it works", href: "/methodology" });
+  if (gi > 0) related.push({ label: t("groupDetail.groupLabel", { group: GROUPS[gi - 1] }), href: localeHref(locale, `/group/${GROUPS[gi - 1].toLowerCase()}`) });
+  if (gi < GROUPS.length - 1) related.push({ label: t("groupDetail.groupLabel", { group: GROUPS[gi + 1] }), href: localeHref(locale, `/group/${GROUPS[gi + 1].toLowerCase()}`) });
+  related.push({ label: t("groupDetail.fullScheduleLink"), href: localeHref(locale, "/schedule") });
+  related.push({ label: t("groupDetail.howItWorksLink"), href: localeHref(locale, "/methodology") });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
-      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Groups", href: "/groups" }, { label: `Group ${L}` }]} />
+      <Breadcrumbs items={[{ label: t("groupDetail.homeCrumb"), href: localeHref(locale, "/") }, { label: t("nav.groups"), href: localeHref(locale, "/groups") }, { label: t("groupDetail.groupLabel", { group: L }) }]} />
       <header className="mt-3 max-w-3xl">
-        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026</div>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Group {L} - 2026 World Cup standings & odds</h1>
+        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("groupDetail.eyebrow")}</div>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{t("groupDetail.heading", { group: L })}</h1>
         {verdict.length > 0 && (
-          <p className="text-foreground mt-2 text-base text-pretty">{verdict.join(" · ")}.</p>
+          <p className="text-foreground mt-2 text-base text-pretty">{t("groupDetail.verdictSentence", { verdict: verdict.join(" · ") })}</p>
         )}
         <p className="text-muted-2 mt-2 text-xs text-pretty">
-          Top 2 qualify directly; the 8 best third-placed teams also reach the Round of 32. Sorted by the 2026
-          tiebreakers: points, then head-to-head, then goal difference.
+          {t("groupDetail.footnote")}
         </p>
         <div className="mt-4">
-          <ShareBar text={`World Cup 2026 Group ${L}: ${leader ? `${leader.name} lead` : "live standings"} + advancement odds.`} path={`/group/${letter.toLowerCase()}`} />
+          <ShareBar text={t("groupDetail.shareText", { group: L, lead: leader ? t("groupDetail.shareLead", { team: leader.name }) : t("groupDetail.shareLive") })} path={`/group/${letter.toLowerCase()}`} />
         </div>
       </header>
 
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-5">
         <section className="lg:col-span-3">
-          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">Standings</h2>
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{t("groupDetail.standingsHeading")}</h2>
           <div className="border-border bg-card overflow-hidden rounded-2xl border">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-muted-foreground text-[10px] tracking-wide">
-                <th className="py-2 pr-1 pl-3 text-left font-medium">Team</th>
-                <th className="w-6 px-1 text-center font-medium" title="Played">P</th>
-                <th className="w-6 px-1 text-center font-medium" title="Won">W</th>
-                <th className="w-6 px-1 text-center font-medium" title="Drawn">D</th>
-                <th className="w-6 px-1 text-center font-medium" title="Lost">L</th>
-                <th className="hidden w-7 px-1 text-center font-medium sm:table-cell" title="Goals for">GF</th>
-                <th className="hidden w-7 px-1 text-center font-medium sm:table-cell" title="Goals against">GA</th>
-                <th className="w-7 px-1 text-center font-medium" title="Goal difference">GD</th>
-                <th className="w-7 px-1 text-center font-semibold" title="Points">Pts</th>
-                <th className="w-16 px-1 pr-3 text-right font-medium" title="Probability of advancing">Adv</th>
+                <th className="py-2 pr-1 pl-3 text-left font-medium">{t("groupDetail.colTeam")}</th>
+                <th className="w-6 px-1 text-center font-medium" title={t("groupDetail.colPlayedTitle")}>{t("groupDetail.colPlayed")}</th>
+                <th className="w-6 px-1 text-center font-medium" title={t("groupDetail.colWonTitle")}>{t("groupDetail.colWon")}</th>
+                <th className="w-6 px-1 text-center font-medium" title={t("groupDetail.colDrawnTitle")}>{t("groupDetail.colDrawn")}</th>
+                <th className="w-6 px-1 text-center font-medium" title={t("groupDetail.colLostTitle")}>{t("groupDetail.colLost")}</th>
+                <th className="hidden w-7 px-1 text-center font-medium sm:table-cell" title={t("groupDetail.colGoalsForTitle")}>{t("groupDetail.colGoalsFor")}</th>
+                <th className="hidden w-7 px-1 text-center font-medium sm:table-cell" title={t("groupDetail.colGoalsAgainstTitle")}>{t("groupDetail.colGoalsAgainst")}</th>
+                <th className="w-7 px-1 text-center font-medium" title={t("groupDetail.colGoalDiffTitle")}>{t("groupDetail.colGoalDiff")}</th>
+                <th className="w-7 px-1 text-center font-semibold" title={t("groupDetail.colPointsTitle")}>{t("groupDetail.colPoints")}</th>
+                <th className="w-16 px-1 pr-3 text-right font-medium" title={t("groupDetail.colAdvanceTitle")}>{t("groupDetail.colAdvance")}</th>
               </tr>
             </thead>
             <tbody>
-              {gv.teams.map((t, i) => {
-                const elim = t.status === "eliminated";
+              {gv.teams.map((tm, i) => {
+                const elim = tm.status === "eliminated";
                 const zone = i <= 1 ? "border-l-win" : i === 2 ? "border-l-contention" : "border-l-transparent";
                 return (
-                  <tr key={t.code} className={`border-border/40 border-b border-l-2 last:border-b-0 ${zone} ${elim ? "opacity-45" : ""}`}>
+                  <tr key={tm.code} className={`border-border/40 border-b border-l-2 last:border-b-0 ${zone} ${elim ? "opacity-45" : ""}`}>
                     <td className="py-2 pr-1 pl-2.5">
-                      <Link href={`/team/${teamSlug(t.name)}`} className="flex items-center gap-2 hover:underline">
+                      <Link href={localeHref(locale, `/team/${teamSlug(tm.name)}`)} className="flex items-center gap-2 hover:underline">
                         <span className="text-muted-2 w-3 text-center font-mono text-[11px]">{i + 1}</span>
-                        <Flag code={t.code} size={20} />
-                        <span className={`truncate text-[13px] font-medium ${elim ? "line-through" : ""}`}>{t.name}</span>
+                        <Flag code={tm.code} size={20} />
+                        <span className={`truncate text-[13px] font-medium ${elim ? "line-through" : ""}`}>{tm.name}</span>
                       </Link>
                     </td>
-                    <Cell v={t.played} muted />
-                    <Cell v={t.w} muted />
-                    <Cell v={t.d} muted />
-                    <Cell v={t.l} muted />
-                    <Cell v={t.gf} muted cls="hidden sm:table-cell" />
-                    <Cell v={t.ga} muted cls="hidden sm:table-cell" />
-                    <Cell v={(t.gd >= 0 ? "+" : "") + t.gd} />
-                    <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{t.pts}</td>
+                    <Cell v={tm.played} muted />
+                    <Cell v={tm.w} muted />
+                    <Cell v={tm.d} muted />
+                    <Cell v={tm.l} muted />
+                    <Cell v={tm.gf} muted cls="hidden sm:table-cell" />
+                    <Cell v={tm.ga} muted cls="hidden sm:table-cell" />
+                    <Cell v={(tm.gd >= 0 ? "+" : "") + tm.gd} />
+                    <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{tm.pts}</td>
                     <td className="px-1 pr-3 text-right whitespace-nowrap">
-                      {t.status === "live" ? (
-                        <span className="inline-flex justify-end"><ProbMeter p={t.advance} width={18} className="text-muted-foreground text-[11px]" /></span>
+                      {tm.status === "live" ? (
+                        <span className="inline-flex justify-end"><ProbMeter p={tm.advance} width={18} className="text-muted-foreground text-[11px]" /></span>
                       ) : (
-                        <AdvanceBadge d={teamAdvanceDisplay(t, i)} />
+                        <AdvanceBadge d={teamAdvanceDisplay(tm, i)} />
                       )}
                     </td>
                   </tr>
@@ -156,16 +163,16 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
       </section>
 
         <section className="lg:col-span-2">
-          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">Matches</h2>
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{t("groupDetail.matchesHeading")}</h2>
           <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
           {fixtures.map((m) => {
             const final = m.status === "final";
             const live = m.status === "live";
             return (
-              <Link key={m.match} href={`/match/${m.match}`} className="hover:bg-muted/30 flex items-center gap-3 px-4 py-2.5 transition-colors">
+              <Link key={m.match} href={localeHref(locale, `/match/${m.match}`)} className="hover:bg-muted/30 flex items-center gap-3 px-4 py-2.5 transition-colors">
                 <span className="text-muted-2 w-14 shrink-0 font-mono text-[11px] sm:w-24"><LocalTime utc={m.utc} mode="day" /></span>
                 <Flag code={m.home} size={16} />
-                <span className="min-w-0 flex-1 truncate text-sm">{m.homeName} <span className="text-muted-foreground">v</span> {m.awayName}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{m.homeName} <span className="text-muted-foreground">{t("groupDetail.vSeparator")}</span> {m.awayName}</span>
                 {hotByMatch.get(m.match)?.hot && <HotBadge className="shrink-0" />}
                 {(final || live) && (
                   <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">{m.homeScore}–{m.awayScore}</span>
@@ -177,15 +184,15 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
         </section>
       </div>
 
-      <ExploreSection links={related}>
+      <ExploreSection title={t("groupDetail.exploreTitle")} links={related}>
         <GroupsPreview groups={groups} />
         <BracketTeaser matches={overlaid} teams={data.teams} />
         <TitleOdds teams={data.teams} />
       </ExploreSection>
 
       <p className="text-muted-2 mt-8 text-xs">
-        Odds from {data.iterations.toLocaleString()} Monte Carlo simulations, updated live.{" "}
-        <Link href="/methodology" className="text-primary">How it works →</Link>
+        {t("groupDetail.footerOdds", { iterations: data.iterations })}{" "}
+        <Link href={localeHref(locale, "/methodology")} className="text-primary">{t("groupDetail.howItWorksArrow")}</Link>
       </p>
     </main>
   );

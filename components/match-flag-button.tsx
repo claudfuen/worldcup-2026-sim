@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toggleMatch } from "@/app/actions/matches";
+import { useT } from "@/lib/i18n/provider";
+import { useLocale } from "@/lib/i18n/client";
+import { localeHref } from "@/lib/i18n/config";
 
 export function MatchFlagButton({
   matchNo,
@@ -15,6 +18,8 @@ export function MatchFlagButton({
   isAuthed: boolean;
   variant?: "icon" | "button";
 }) {
+  const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [on, setOn] = useState(initialOn);
   const [pending, start] = useTransition();
@@ -24,8 +29,8 @@ export function MatchFlagButton({
     e.preventDefault();
     e.stopPropagation();
     if (!isAuthed) {
-      const next = typeof window !== "undefined" ? window.location.pathname : "/matches";
-      router.push(`/signin?next=${encodeURIComponent(next)}`);
+      const next = typeof window !== "undefined" ? window.location.pathname : localeHref(locale, "/matches");
+      router.push(`${localeHref(locale, "/signin")}?next=${encodeURIComponent(next)}`);
       return;
     }
     const target = !on;
@@ -34,7 +39,7 @@ export function MatchFlagButton({
       const res = await toggleMatch(matchNo, target);
       if (!res.ok) {
         setOn(!target);
-        if (res.error === "not-signed-in") router.push("/signin");
+        if (res.error === "not-signed-in") router.push(localeHref(locale, "/signin"));
       } else {
         router.refresh();
       }
@@ -55,7 +60,7 @@ export function MatchFlagButton({
         }`}
       >
         <Bookmark filled={on} />
-        {on ? "In my matches" : isAuthed ? "Add to my matches" : "Sign in to save"}
+        {on ? t("matchFlag.inMyMatches") : isAuthed ? t("matchFlag.addToMyMatches") : t("matchFlag.signInToSave")}
       </button>
     );
   }
@@ -66,8 +71,8 @@ export function MatchFlagButton({
       onClick={handle}
       disabled={pending}
       aria-pressed={on}
-      aria-label={on ? "Remove from my matches" : "Add to my matches"}
-      title={on ? "Remove from my matches" : "Add to my matches"}
+      aria-label={on ? t("matchFlag.removeFromMyMatches") : t("matchFlag.addToMyMatches")}
+      title={on ? t("matchFlag.removeFromMyMatches") : t("matchFlag.addToMyMatches")}
       className={`shrink-0 rounded-md p-1 leading-none disabled:opacity-60 ${
         on ? "text-contention" : "text-muted-foreground/40 hover:text-muted-foreground"
       }`}

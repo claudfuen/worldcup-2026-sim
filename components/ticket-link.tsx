@@ -1,4 +1,7 @@
+"use client";
+
 import { ticketUrl, hasTickets, TICKET_REL, TICKET_PROVIDER } from "@/lib/tickets";
+import { useT } from "@/lib/i18n/provider";
 
 // Single, centralized renderer for every ticket link on the site. Placement + UTM + rel + target all
 // flow through lib/tickets.ts, so monetizing later (affiliate wrapper) needs zero changes here. The
@@ -31,6 +34,7 @@ export function TicketLink({
   className?: string;
   label?: string;
 }) {
+  const t = useT();
   if (!hasTickets(matchNo)) return null;
   const href = ticketUrl(matchNo, placement);
   if (!href) return null;
@@ -47,7 +51,7 @@ export function TicketLink({
         className={`border-primary/25 bg-primary/5 text-primary hover:border-primary/50 hover:bg-primary/10 inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors ${className}`}
       >
         <TicketIcon className="size-4 shrink-0" />
-        {label ?? `Find tickets on ${TICKET_PROVIDER}`}
+        {label ?? t("tickets.findOn", { provider: TICKET_PROVIDER })}
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground shrink-0" aria-hidden>
           <path d="M7 17 17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -62,10 +66,10 @@ export function TicketLink({
       rel={TICKET_REL}
       {...evt}
       className={`text-muted-foreground hover:text-primary inline-flex shrink-0 items-center gap-1 text-xs transition-colors ${className}`}
-      aria-label={`Find tickets for this match on ${TICKET_PROVIDER} (opens in a new tab)`}
+      aria-label={t("tickets.findForMatch", { provider: TICKET_PROVIDER })}
     >
       <TicketIcon className="size-3.5" />
-      {label ?? "Tickets"}
+      {label ?? t("common.tickets")}
     </a>
   );
 }

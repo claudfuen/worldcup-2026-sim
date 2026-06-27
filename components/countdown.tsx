@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n/provider";
 
 // Live countdown to a kickoff (a match, or the final). Time-relative, so it resolves only after mount
 // (identical SSR + first client render — no hydration mismatch), then ticks every SECOND so the seconds
 // keep moving and it feels alive. Renders nothing once the target time has passed.
 export function Countdown({ utc, label = "", className = "" }: { utc: string; label?: string; className?: string }) {
+  const t = useT();
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     setNow(Date.now());
@@ -27,9 +29,9 @@ export function Countdown({ utc, label = "", className = "" }: { utc: string; la
         <path d="M12 7v5l3 2" />
       </svg>
       <span className="tabular-nums">
-        {days > 0 && <>{days}d </>}
-        {(days > 0 || hours > 0) && <>{p(hours)}h </>}
-        {p(mins)}m <span className="text-primary">{p(secs)}s</span>
+        {days > 0 && <>{days}{t("match.unitDays")} </>}
+        {(days > 0 || hours > 0) && <>{p(hours)}{t("match.unitHours")} </>}
+        {p(mins)}{t("match.unitMins")} <span className="text-primary">{p(secs)}{t("match.unitSecs")}</span>
       </span>
       {label && <span className="text-muted-2 font-normal">{label}</span>}
     </span>

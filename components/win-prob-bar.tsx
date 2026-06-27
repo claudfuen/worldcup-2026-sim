@@ -1,8 +1,9 @@
 import { pct } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
 
 // A single 100%-wide stacked bar (home | draw | away) - no empty track. Home reads as the model/forecast
 // voice (primary), away as the cool data pole, draw as neutral. Used for match win probability.
-export function WinProbBar({
+export async function WinProbBar({
   home,
   draw,
   away,
@@ -15,6 +16,7 @@ export function WinProbBar({
   homeName: string;
   awayName: string;
 }) {
+  const t = await getT();
   return (
     <div>
       <div className="bg-muted/40 flex h-2.5 w-full overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
@@ -24,7 +26,7 @@ export function WinProbBar({
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
         <Legend dot="bg-primary" name={homeName} value={home} align="text-left" />
-        <Legend dot="bg-muted-foreground/35" name="Draw" value={draw} align="text-center" />
+        <Legend dot="bg-muted-foreground/35" name={t("groups.draw")} value={draw} align="text-center" />
         <Legend dot="bg-data-cool" name={awayName} value={away} align="text-right" />
       </div>
     </div>

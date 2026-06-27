@@ -21,6 +21,10 @@ import { TitleOdds } from "@/components/title-odds";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { isClinched } from "@/lib/view/types";
 import { forecastPct } from "@/lib/format";
+import type { Metadata } from "next";
+import { getT, getLocale } from "@/lib/i18n/server";
+import { buildAlternates } from "@/lib/i18n/links";
+import { localeHref } from "@/lib/i18n/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic"; // per-request live overlay: a finished match shows its score at once
@@ -29,29 +33,31 @@ export function generateStaticParams() {
   return TEAMS.map((t) => ({ slug: teamSlug(t.name) }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const team = teamFromSlug(slug);
-  if (!team) return { title: "Team" };
-  const canonical = `/team/${teamSlug(team.name)}`;
-  const title = `${team.name} World Cup 2026 - Odds, Group & Path to the Final`;
-  const description = `${team.name}'s 2026 World Cup chances: live title odds, advancement probability, Group ${team.group} standing, and projected knockout path, from 20,000 Monte Carlo simulations.`;
+  const t = await getT();
+  const locale = await getLocale();
+  if (!team) return { title: t("team.fallbackTitle") };
+  const path = `/team/${teamSlug(team.name)}`;
+  const title = t("team.metaTitle", { team: team.name });
+  const description = t("team.metaDesc", { team: team.name, group: team.group });
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical },
-    openGraph: { title, description, url: canonical, type: "article" },
+    alternates: buildAlternates(path, locale),
+    openGraph: { title, description, url: localeHref(locale, path), type: "article" },
     twitter: { card: "summary_large_image", title, description },
   };
 }
 
-const ROUND_LABELS: [keyof RoundVals, string][] = [
-  ["advance", "Round of 32"],
-  ["r16", "Round of 16"],
-  ["qf", "Quarter-final"],
-  ["sf", "Semi-final"],
-  ["final", "Final"],
-  ["title", "Champion"],
+const ROUND_KEYS: [keyof RoundVals, string][] = [
+  ["advance", "team.roundR32"],
+  ["r16", "team.roundR16"],
+  ["qf", "team.roundQF"],
+  ["sf", "team.roundSF"],
+  ["final", "team.roundFinal"],
+  ["title", "team.roundChampion"],
 ];
 type RoundVals = { advance: number; r16: number; qf: number; sf: number; final: number; title: number };
 
@@ -59,6 +65,8 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const team = teamFromSlug(slug);
   if (!team) notFound();
+  const t = await getT();
+  const locale = await getLocale();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
   const overlaid = overlayLive(data.matches, live);
   const hasLive = liveActivity(data.matches, live);
@@ -80,36 +88,36 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   const advanceClinched = !!advanceDisp && isClinched(advanceDisp);
   const advanceOut = advanceDisp?.kind === "eliminated";
   const statusWord =
-    row?.status === "won_group" ? "have won the group"
-      : row?.status === "second" ? "have clinched a top-2 spot"
-      : row?.status === "advanced" ? "have qualified for the knockouts"
-      : row?.status === "eliminated" ? "have been eliminated"
-      : `are ${row ? ordinal(groupRank(groupView, team.code)) : ""} in Group ${team.group}`;
+    row?.status === "won_group" ? t("team.statusWonGroup")
+      : row?.status === "second" ? t("team.statusSecond")
+      : row?.status === "advanced" ? t("team.statusAdvanced")
+      : row?.status === "eliminated" ? t("team.statusEliminated")
+      : t("team.statusPlace", {
+          place: row ? ordinal(groupRank(groupView, team.code)) : "",
+          group: team.group,
+        });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
-      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Groups", href: "/groups" }, { label: `Group ${team.group}`, href: `/group/${team.group.toLowerCase()}` }, { label: team.name }]} />
+      <Breadcrumbs items={[{ label: t("team.homeCrumb"), href: localeHref(locale, "/") }, { label: t("nav.groups"), href: localeHref(locale, "/groups") }, { label: t("team.groupCrumb", { group: team.group }), href: localeHref(locale, `/group/${team.group.toLowerCase()}`) }, { label: team.name }]} />
       <header className="mt-3 max-w-3xl">
-        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026 · <Link href={`/group/${team.group.toLowerCase()}`} className="hover:underline">Group {team.group}</Link></div>
+        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("team.eyebrow")} · <Link href={localeHref(locale, `/group/${team.group.toLowerCase()}`)} className="hover:underline">{t("team.groupCrumb", { group: team.group })}</Link></div>
         <div className="mt-1.5 flex items-start gap-3">
           <span className="shrink-0"><Flag code={team.code} size={40} /></span>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{team.name} at the World Cup 2026</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("team.heading", { team: team.name })}</h1>
         </div>
         {pred && (
           <p className="text-muted-foreground mt-3 text-sm text-pretty">
-            {team.name} {statusWord}
+            {t("team.ledePrefix", { team: team.name, status: statusWord })}
             {advanceOut ? (
-              <> - out of the 2026 World Cup, finishing outside Group {team.group}&apos;s qualifying places.</>
+              <>{t("team.ledeOut", { group: team.group })}</>
             ) : advanceClinched ? (
-              <>, with a <span className="text-foreground font-medium">{titlePct}</span> chance to
-              win the tournament - the <span className="text-foreground font-medium">{ordinal(rank)}</span>-most-likely champion
-              of 48 teams, across {data.iterations.toLocaleString()} simulations.</>
+              <>{t("team.ledeClinchedA")} <span className="text-foreground font-medium">{titlePct}</span> {t("team.ledeClinchedB")} <span className="text-foreground font-medium">{ordinal(rank)}</span>{t("team.ledeClinchedC", { iterations: data.iterations })}</>
             ) : (
-              <>, with a <span className="text-foreground font-medium">{advancePct}</span> chance to reach the Round of 32 and
-              a <span className="text-foreground font-medium">{titlePct}</span> chance to win the tournament - the{" "}
-              <span className="text-foreground font-medium">{ordinal(rank)}</span>-most-likely champion of 48 teams, across{" "}
-              {data.iterations.toLocaleString()} simulations.</>
+              <>{t("team.ledeRaceA")} <span className="text-foreground font-medium">{advancePct}</span> {t("team.ledeRaceB")}{" "}
+              <span className="text-foreground font-medium">{titlePct}</span> {t("team.ledeRaceC")}{" "}
+              <span className="text-foreground font-medium">{ordinal(rank)}</span>{t("team.ledeRaceD", { iterations: data.iterations })}</>
             )}
           </p>
         )}
@@ -118,10 +126,10 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
             <ShareBar
               text={
                 advanceClinched
-                  ? `${team.name} are through to the World Cup 2026 knockouts, with a ${titlePct} chance to win it (model).`
+                  ? t("team.shareClinched", { team: team.name, title: titlePct })
                   : advanceOut
-                    ? `${team.name} are out of the 2026 World Cup.`
-                    : `${team.name}: ${advancePct} to reach the World Cup 2026 knockouts, ${titlePct} to win it (model).`
+                    ? t("team.shareOut", { team: team.name })
+                    : t("team.shareRace", { team: team.name, advance: advancePct, title: titlePct })
               }
               path={`/team/${slug}`}
             />
@@ -131,9 +139,10 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
 
       {pred && (
         <section className="mt-8">
-          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">Chance of reaching each round</h2>
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{t("team.roundsHeading")}</h2>
           <div className="border-border bg-card grid grid-cols-3 gap-px overflow-hidden rounded-2xl border sm:grid-cols-6">
-            {ROUND_LABELS.map(([key, label]) => {
+            {ROUND_KEYS.map(([key, labelKey]) => {
+              const label = t(labelKey);
               const v = (pred as unknown as RoundVals)[key];
               const r32Clinched = key === "advance" && advanceClinched;
               const r32Out = key === "advance" && advanceOut;
@@ -141,7 +150,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                 <div key={key} className="bg-card flex flex-col items-center gap-1 px-2 py-4" style={{ backgroundColor: heat(r32Clinched ? 1 : v) }}>
                   <span className="text-muted-2 text-[10px] font-medium tracking-wide uppercase">{label}</span>
                   <span className={`font-mono text-lg font-bold tabular-nums ${r32Clinched ? "text-win" : key === "title" ? "text-primary" : ""}`}>
-                    {r32Clinched ? <span title="Clinched a Round-of-32 place">✓</span> : r32Out ? "out" : forecastPct(v)}
+                    {r32Clinched ? <span title={t("team.clinchedR32Title")}>✓</span> : r32Out ? t("team.outShort") : forecastPct(v)}
                   </span>
                 </div>
               );
@@ -156,28 +165,28 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
       {groupView && (
         <section className="lg:col-span-3">
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Group {team.group} standings</h2>
-            <Link href={`/group/${team.group.toLowerCase()}`} className="text-primary text-xs">Full group →</Link>
+            <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{t("team.groupStandingsHeading", { group: team.group })}</h2>
+            <Link href={localeHref(locale, `/group/${team.group.toLowerCase()}`)} className="text-primary text-xs">{t("team.fullGroupLink")}</Link>
           </div>
           <div className="border-border bg-card overflow-hidden rounded-2xl border">
             <table className="w-full text-sm">
               <tbody>
-                {groupView.teams.map((t, i) => {
-                  const me = t.code === team.code;
+                {groupView.teams.map((tm, i) => {
+                  const me = tm.code === team.code;
                   return (
-                    <tr key={t.code} className={`border-border/50 border-b last:border-0 ${me ? "bg-primary/[0.06]" : ""} ${i < 2 ? "border-l-win" : i === 2 ? "border-l-contention" : "border-l-transparent"} border-l-2`}>
+                    <tr key={tm.code} className={`border-border/50 border-b last:border-0 ${me ? "bg-primary/[0.06]" : ""} ${i < 2 ? "border-l-win" : i === 2 ? "border-l-contention" : "border-l-transparent"} border-l-2`}>
                       <td className="py-2 pr-1 pl-3 text-muted-2 w-6 font-mono text-[11px]">{i + 1}</td>
                       <td className="py-2">
-                        <Link href={`/team/${teamSlug(t.name)}`} className="flex items-center gap-2 hover:underline">
-                          <Flag code={t.code} size={18} />
-                          <span className={`truncate text-[13px] ${me ? "font-semibold" : "font-medium"}`}>{t.name}</span>
+                        <Link href={localeHref(locale, `/team/${teamSlug(tm.name)}`)} className="flex items-center gap-2 hover:underline">
+                          <Flag code={tm.code} size={18} />
+                          <span className={`truncate text-[13px] ${me ? "font-semibold" : "font-medium"}`}>{tm.name}</span>
                         </Link>
                       </td>
-                      <td className="px-1 text-center font-mono text-xs tabular-nums text-muted-foreground">{t.played}</td>
-                      <td className="px-1 text-center font-mono text-xs tabular-nums">{t.gd >= 0 ? "+" : ""}{t.gd}</td>
-                      <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{t.pts}</td>
+                      <td className="px-1 text-center font-mono text-xs tabular-nums text-muted-foreground">{tm.played}</td>
+                      <td className="px-1 text-center font-mono text-xs tabular-nums">{tm.gd >= 0 ? "+" : ""}{tm.gd}</td>
+                      <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{tm.pts}</td>
                       <td className="px-2 pr-3 text-right">
-                        <AdvanceBadge d={teamAdvanceDisplay(t, i)} />
+                        <AdvanceBadge d={teamAdvanceDisplay(tm, i)} />
                       </td>
                     </tr>
                   );
@@ -190,7 +199,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
 
       {fixtures.length > 0 && (
         <section className="lg:col-span-2">
-          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{team.name}&apos;s group matches</h2>
+          <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{t("team.fixturesHeading", { team: team.name })}</h2>
           <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
             {fixtures.map((m) => {
               const final = m.status === "final";
@@ -198,9 +207,9 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
               const oppName = m.home === team.code ? m.awayName : m.homeName;
               const oppCode = m.home === team.code ? m.away : m.home;
               return (
-                <Link key={m.match} href={`/match/${m.match}`} className="hover:bg-muted/30 flex items-center gap-3 px-4 py-2.5 transition-colors">
+                <Link key={m.match} href={localeHref(locale, `/match/${m.match}`)} className="hover:bg-muted/30 flex items-center gap-3 px-4 py-2.5 transition-colors">
                   <span className="text-muted-2 w-14 shrink-0 font-mono text-[11px] sm:w-24"><LocalTime utc={m.utc} mode="day" /></span>
-                  <span className="text-muted-foreground text-xs">vs</span>
+                  <span className="text-muted-foreground text-xs">{t("common.vs")}</span>
                   <Flag code={oppCode} size={18} />
                   <span className="min-w-0 flex-1 truncate text-sm">{oppName}</span>
                   {hotByMatch.get(m.match)?.hot && <HotBadge className="shrink-0" />}
@@ -209,7 +218,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                       {m.home === team.code ? m.homeScore : m.awayScore}–{m.home === team.code ? m.awayScore : m.homeScore}
                     </span>
                   ) : m.favorite ? (
-                    <span className="text-muted-2 shrink-0 text-[11px]">{m.favorite.code === team.code ? "favored" : ""}</span>
+                    <span className="text-muted-2 shrink-0 text-[11px]">{m.favorite.code === team.code ? t("team.favored") : ""}</span>
                   ) : null}
                 </Link>
               );
@@ -220,10 +229,11 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
       </div>
 
       <ExploreSection
+        title={t("team.exploreTitle")}
         links={[
-          { label: `Group ${team.group}`, href: `/group/${team.group.toLowerCase()}`, hint: "standings" },
-          { label: "Full schedule", href: "/schedule" },
-          { label: "How it works", href: "/methodology" },
+          { label: t("team.groupCrumb", { group: team.group }), href: localeHref(locale, `/group/${team.group.toLowerCase()}`), hint: t("team.standingsHint") },
+          { label: t("team.fullScheduleLink"), href: localeHref(locale, "/schedule") },
+          { label: t("team.howItWorksLink"), href: localeHref(locale, "/methodology") },
         ]}
       >
         <BracketTeaser matches={overlaid} teams={data.teams} />
@@ -232,8 +242,8 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
       </ExploreSection>
 
       <p className="text-muted-2 mt-8 text-xs">
-        Odds from a World Football Elo + Poisson model, {data.iterations.toLocaleString()} Monte Carlo simulations, updated live.{" "}
-        <Link href="/methodology" className="text-primary">How it works →</Link>
+        {t("team.footerOdds", { iterations: data.iterations })}{" "}
+        <Link href={localeHref(locale, "/methodology")} className="text-primary">{t("team.howItWorksArrow")}</Link>
       </p>
     </main>
   );

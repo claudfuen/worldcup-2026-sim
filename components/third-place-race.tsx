@@ -7,6 +7,9 @@ import { teamSlug } from "@/lib/slug";
 import { forecastPct } from "@/lib/format";
 import { ProbMeter } from "@/components/prob-meter";
 import { useHoverTip, HoverTipPanel } from "@/components/hover-tip";
+import { useT, type TFunction } from "@/lib/i18n/provider";
+import { useLocale } from "@/lib/i18n/client";
+import { localeHref } from "@/lib/i18n/config";
 
 const ordinal = (n: number) => {
   const s = ["th", "st", "nd", "rd"], v = n % 100;
@@ -30,28 +33,43 @@ function survival(e: ThirdPlaceEntry, all: ThirdPlaceEntry[]) {
 
 // One row's hover detail: what (if anything) would still change the team's Round-of-32 fate, plus the
 // model's top-3 likely opponents (probability conditional on the team actually advancing).
-function RowTip({ e, all }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[] }) {
+function RowTip({ e, all, t }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[]; t: TFunction }) {
   const through = e.status === "won_group" || e.status === "second" || e.status === "advanced";
-  const matchLine = e.match ? `Match ${e.match}${e.city ? ` · ${e.city}` : ""}` : undefined;
+  const matchLine = e.match
+    ? e.city
+      ? t("groups.tipMatchLineCity", { match: e.match, city: e.city })
+      : t("groups.tipMatchLine", { match: e.match })
+    : undefined;
 
   let headline: string;
   if (e.status === "eliminated") {
-    headline = "Eliminated — can't reach the Round of 32.";
+    headline = t("groups.tipEliminated");
   } else if (through && e.opponent) {
-    headline = `R32 match locked: vs ${e.opponent.name}${matchLine ? ` · ${matchLine}` : ""}. This can no longer change.`;
+    headline = t("groups.tipMatchLocked", {
+      opponent: e.opponent.name,
+      matchLine: matchLine ? ` · ${matchLine}` : "",
+    });
   } else if (through && e.slotLocked) {
-    headline = `Through. Plays ${matchLine ?? "the R32"} vs the Group ${e.facesGroup} winner — decided once Group ${e.facesGroup} finishes.`;
+    headline = t("groups.tipSlotLocked", {
+      matchLine: matchLine ?? t("groups.tipTheR32"),
+      group: e.facesGroup ?? "",
+    });
   } else if (through) {
-    headline = "Through to the R32 — but the bracket slot isn't fixed yet: it depends on which other groups' thirds qualify.";
+    headline = t("groups.tipThroughUnfixed");
   } else {
     const s = survival(e, all);
-    const frac = s.needBelow >= s.swingCount ? `all ${s.swingCount}` : `≥${s.needBelow} of the ${s.swingCount}`;
+    const frac =
+      s.needBelow >= s.swingCount
+        ? t("groups.fracAll", { count: s.swingCount })
+        : t("groups.fracAtLeast", { need: s.needBelow, total: s.swingCount });
+    const pct = forecastPct(e.advanceProb);
     if (s.needBelow <= 0) {
-      headline = `${ordinal(e.rank)} now (${forecastPct(e.advanceProb)}) — but mathematically safe: no run of remaining results can knock it out.`;
+      headline = t("groups.tipSafe", { ordinal: ordinal(e.rank), pct });
     } else if (e.advancing) {
-      headline = `Holding ${ordinal(e.rank)} (${forecastPct(e.advanceProb)}). Stays in unless overtaken — needs ${frac} still-playing groups (${s.letters}) to finish with a weaker 3rd.`;
+      headline = t("groups.tipHolding", { ordinal: ordinal(e.rank), pct, frac, letters: s.letters });
     } else {
-      headline = `${ordinal(e.rank)} now, below the cut (${forecastPct(e.advanceProb)}). Climbs in only if ${frac} still-playing groups (${s.letters}) finish with a 3rd weaker than this one${s.dangers.length ? ` — toughest to clear: ${s.dangers.join(", ")}` : ""}.`;
+      const dangers = s.dangers.length ? t("groups.tipDangers", { dangers: s.dangers.join(", ") }) : "";
+      headline = t("groups.tipBelowCut", { ordinal: ordinal(e.rank), pct, frac, letters: s.letters, dangers });
     }
   }
 
@@ -65,7 +83,7 @@ function RowTip({ e, all }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[] }) {
       {showOpps && (
         <div className="mt-2.5">
           <div className="text-muted-2 mb-1 font-mono text-[9px] font-semibold tracking-wide uppercase">
-            Likely R32 opponent
+            {t("groups.likelyOpponent")}
           </div>
           <ul className="space-y-1">
             {e.opponents!.map((o) => (
@@ -82,7 +100,7 @@ function RowTip({ e, all }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[] }) {
   );
 }
 
-function Row({ e, all }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[] }) {
+function Row({ e, all, t, locale }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[]; t: TFunction; locale: ReturnType<typeof useLocale> }) {
   const tip = useHoverTip();
   const elim = e.status === "eliminated";
   const through = e.status === "won_group" || e.status === "second" || e.status === "advanced";
@@ -96,11 +114,11 @@ function Row({ e, all }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[] }) {
       <td className="text-muted-foreground py-2 pr-1 pl-3 font-mono text-[11px]">{e.rank}</td>
       <td className="py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Link href={`/team/${teamSlug(e.name)}`} className="flex min-w-0 items-center gap-2 hover:underline">
+          <Link href={localeHref(locale, `/team/${teamSlug(e.name)}`)} className="flex min-w-0 items-center gap-2 hover:underline">
             <Flag code={e.code} size={20} />
             <span className={`min-w-0 flex-1 truncate text-[13px] font-medium ${elim ? "line-through" : ""}`}>{e.name}</span>
           </Link>
-          <Link href={`/group/${e.group.toLowerCase()}`} className="text-muted-foreground hover:text-primary shrink-0 text-[11px] hover:underline">Grp {e.group}</Link>
+          <Link href={localeHref(locale, `/group/${e.group.toLowerCase()}`)} className="text-muted-foreground hover:text-primary shrink-0 text-[11px] hover:underline">{t("groups.grpShort", { group: e.group })}</Link>
         </div>
       </td>
       <td className="text-muted-foreground px-1 text-center font-mono text-xs tabular-nums">{e.gf}</td>
@@ -108,54 +126,52 @@ function Row({ e, all }: { e: ThirdPlaceEntry; all: ThirdPlaceEntry[] }) {
       <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{e.pts}</td>
       <td className="px-2 pr-3 text-right text-xs tabular-nums">
         {through ? (
-          <span className="text-win font-semibold" title={decided ? "Round-of-32 match decided" : "Clinched a Round-of-32 place"}>
-            {decided ? "✓ set" : "✓ in"}
+          <span className="text-win font-semibold" title={decided ? t("groups.thirdSetTitle") : t("groups.thirdInTitle")}>
+            {decided ? t("groups.thirdSet") : t("groups.thirdIn")}
           </span>
         ) : elim ? (
-          <span className="text-muted-2">out</span>
+          <span className="text-muted-2">{t("groups.provOut")}</span>
         ) : (
           <ProbMeter p={e.advanceProb} className={`justify-end ${e.advancing ? "text-contention" : "text-muted-foreground"}`} />
         )}
       </td>
-      {tip.open && <HoverTipPanel pos={tip.pos}><RowTip e={e} all={all} /></HoverTipPanel>}
+      {tip.open && <HoverTipPanel pos={tip.pos}><RowTip e={e} all={all} t={t} /></HoverTipPanel>}
     </tr>
   );
 }
 
 export function ThirdPlaceRace({ entries }: { entries: ThirdPlaceEntry[] }) {
+  const t = useT();
+  const locale = useLocale();
   if (!entries.length) return null;
   return (
     <section className="mt-10">
-      <h2 className="text-base font-semibold tracking-tight">Third-place race</h2>
+      <h2 className="text-base font-semibold tracking-tight">{t("groups.thirdRaceHeading")}</h2>
       <p className="text-muted-foreground mt-1 mb-3 text-sm">
-        The <span className="text-foreground">8 best</span>{" "}of the 12 third-placed teams also reach the Round of 32.
-        Rows are ordered by the current standings (points → goal difference → goals scored), but the{" "}
-        <span className="text-foreground">Chance</span> column is the model&apos;s forecast — and with games still to
-        play it can disagree with today&apos;s order: a team below the line can be likelier to go through than one above
-        it, because the still-undecided groups&apos; thirds will gain points.
+        {t("groups.thirdRaceIntroLead")} <span className="text-foreground">{t("groups.thirdRaceIntroEightBest")}</span>{" "}
+        {t("groups.thirdRaceIntroMid")} <span className="text-foreground">{t("groups.thirdRaceIntroChance")}</span>{" "}
+        {t("groups.thirdRaceIntroTail")}
       </p>
       <div className="border-border bg-card overflow-hidden rounded-2xl border">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-muted-foreground border-border/60 border-b text-[10px] tracking-wide">
-              <th className="py-2 pr-1 pl-3 text-left font-medium">#</th>
-              <th className="py-2 text-left font-medium">Third-placed team</th>
-              <th className="w-8 px-1 text-center font-medium">GF</th>
-              <th className="w-8 px-1 text-center font-medium">GD</th>
-              <th className="w-8 px-1 text-center font-semibold">Pts</th>
-              <th className="px-2 pr-3 text-right font-medium" title="Model probability of reaching the Round of 32">Chance</th>
+              <th className="py-2 pr-1 pl-3 text-left font-medium">{t("groups.thirdColRank")}</th>
+              <th className="py-2 text-left font-medium">{t("groups.thirdColTeam")}</th>
+              <th className="w-8 px-1 text-center font-medium">{t("groups.colGf")}</th>
+              <th className="w-8 px-1 text-center font-medium">{t("groups.colGd")}</th>
+              <th className="w-8 px-1 text-center font-semibold">{t("groups.colPts")}</th>
+              <th className="px-2 pr-3 text-right font-medium" title={t("groups.thirdColChanceTitle")}>{t("groups.thirdColChance")}</th>
             </tr>
           </thead>
           <tbody>
-            {entries.map((e) => <Row key={e.code} e={e} all={entries} />)}
+            {entries.map((e) => <Row key={e.code} e={e} all={entries} t={t} locale={locale} />)}
           </tbody>
         </table>
       </div>
       <p className="text-muted-2 mt-2 text-xs">
-        Order is the current standings snapshot; <span className="text-foreground/80">Chance</span> is the Monte Carlo
-        probability of reaching the Round of 32 (a <span className="text-win">✓</span> is mathematically locked). Hover
-        a row for what would still change and the likely opponents. The slot assignment updates as the qualifying set
-        of groups changes (495 possible combinations).
+        {t("groups.thirdRaceFootnoteLead")} <span className="text-foreground/80">{t("groups.thirdRaceFootnoteChance")}</span>{" "}
+        {t("groups.thirdRaceFootnoteMid")} <span className="text-win">✓</span> {t("groups.thirdRaceFootnoteTail")}
       </p>
     </section>
   );

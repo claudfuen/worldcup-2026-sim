@@ -36,7 +36,7 @@ function fmtNumber(value: number, intlLocale: string): string {
   return new Intl.NumberFormat(intlLocale).format(value);
 }
 
-type Params = Record<string, string | number> | undefined;
+type Params = Record<string, string | number | null | undefined> | undefined;
 
 // Resolve one {count, plural, one {...} other {...}} block. `inner` is the text between the outer
 // braces, i.e. "count, plural, one {# x} other {# y}". Returns the chosen, fully-substituted branch.
@@ -92,13 +92,12 @@ export function formatMessage(template: string, params: Params, intlLocale: stri
         out += resolvePlural(inner, params, intlLocale);
       } else {
         const key = inner.trim();
-        const val = params?.[key];
-        out +=
-          val === undefined
-            ? `{${inner}}`
-            : typeof val === "number"
-              ? fmtNumber(val, intlLocale)
-              : String(val);
+        if (!params || !(key in params)) {
+          out += `{${inner}}`; // genuinely-absent param → keep the placeholder (defensive)
+        } else {
+          const val = params[key];
+          out += val == null ? "" : typeof val === "number" ? fmtNumber(val, intlLocale) : String(val);
+        }
       }
       i = j;
     } else {
