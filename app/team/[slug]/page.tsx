@@ -82,10 +82,10 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
       : `are ${row ? ordinal(groupRank(groupView, team.code)) : ""} in Group ${team.group}`;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
       <Link href="/groups" className="text-muted-foreground hover:text-foreground text-sm">← Groups</Link>
-      <header className="mt-3">
+      <header className="mt-3 max-w-3xl">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026 · <Link href={`/group/${team.group.toLowerCase()}`} className="hover:underline">Group {team.group}</Link></div>
         <div className="mt-1.5 flex items-center gap-3">
           <Flag code={team.code} size={40} />
@@ -147,8 +147,9 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
 
       {pred && !advanceOut && <R32ByFinish matches={overlaid} group={team.group} pred={pred} />}
 
+      <div className="mt-8 grid items-start gap-6 lg:grid-cols-5">
       {groupView && (
-        <section className="mt-8">
+        <section className="lg:col-span-3">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Group {team.group} standings</h2>
             <Link href={`/group/${team.group.toLowerCase()}`} className="text-primary text-xs">Full group →</Link>
@@ -183,7 +184,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
       )}
 
       {fixtures.length > 0 && (
-        <section className="mt-8">
+        <section className="lg:col-span-2">
           <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-wide uppercase">{team.name}&apos;s group matches</h2>
           <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
             {fixtures.map((m) => {
@@ -197,7 +198,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                   <span className="text-muted-foreground text-xs">vs</span>
                   <Flag code={oppCode} size={18} />
                   <span className="min-w-0 flex-1 truncate text-sm">{oppName}</span>
-                  {hotByMatch.get(m.match)?.hot && <HotBadge reason={hotByMatch.get(m.match)!.reason} className="shrink-0" />}
+                  {hotByMatch.get(m.match)?.hot && <HotBadge className="shrink-0" />}
                   {final || live ? (
                     <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">
                       {m.home === team.code ? m.homeScore : m.awayScore}–{m.home === team.code ? m.awayScore : m.homeScore}
@@ -211,6 +212,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
           </div>
         </section>
       )}
+      </div>
 
       <p className="text-muted-2 mt-8 text-xs">
         Odds from a World Football Elo + Poisson model, {data.iterations.toLocaleString()} Monte Carlo simulations, updated live.{" "}
