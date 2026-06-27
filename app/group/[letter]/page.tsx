@@ -12,6 +12,10 @@ import { LocalTime } from "@/components/local-time";
 import { AdvanceBadge } from "@/components/view/advance-badge";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { pct } from "@/lib/format";
+import { ProbMeter } from "@/components/prob-meter";
+import { HotBadge } from "@/components/hot-badge";
+import { computeWatchability } from "@/lib/watchability";
+import type { GroupTeamView } from "@/lib/predictions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic"; // per-request live overlay: a finished match shows its score at once
@@ -51,6 +55,16 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
     .filter((m) => m.round === "GROUP" && m.group === L)
     .sort((a, b) => a.utc.localeCompare(b.utc));
   const leader = gv.teams[0];
+  const hotByMatch = computeWatchability(overlaid, data.teams, groups).byMatch;
+
+  // A one-line "state of the group" verdict — who's through, who's chasing the third-place route, who's out.
+  const through = gv.teams.filter((t) => t.status === "won_group" || t.status === "second" || t.status === "advanced");
+  const out = gv.teams.filter((t) => t.status === "eliminated");
+  const contending = gv.teams.filter((t) => t.status === "live").sort((a, b) => b.advance - a.advance);
+  const verdict: string[] = [];
+  if (through.length) verdict.push(`${nameList(through)} ${through.length === 1 ? "has" : "have"} qualified`);
+  if (contending[0] && contending[0].advance > 0.02) verdict.push(`${contending[0].name} ${pct(contending[0].advance)} to advance`);
+  if (out.length) verdict.push(`${nameList(out)} out`);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -59,10 +73,12 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
       <header className="mt-3">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">World Cup 2026</div>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Group {L} - 2026 World Cup standings & odds</h1>
-        <p className="text-muted-foreground mt-2 text-sm text-pretty">
-          Live standings for World Cup 2026 Group {L}, with each team&apos;s probability of advancing. Top 2 qualify
-          directly, and the 8 best third-placed teams also reach the Round of 32. Sorted by the 2026 tiebreakers: points,
-          then head-to-head, then goal difference.
+        {verdict.length > 0 && (
+          <p className="text-foreground mt-2 text-base text-pretty">{verdict.join(" · ")}.</p>
+        )}
+        <p className="text-muted-2 mt-2 text-xs text-pretty">
+          Top 2 qualify directly; the 8 best third-placed teams also reach the Round of 32. Sorted by the 2026
+          tiebreakers: points, then head-to-head, then goal difference.
         </p>
         <div className="mt-4">
           <ShareBar text={`World Cup 2026 Group ${L}: ${leader ? `${leader.name} lead` : "live standings"} + advancement odds.`} path={`/group/${letter.toLowerCase()}`} />
@@ -108,7 +124,11 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
                     <Cell v={(t.gd >= 0 ? "+" : "") + t.gd} />
                     <td className="px-1 text-center font-mono text-[13px] font-bold tabular-nums">{t.pts}</td>
                     <td className="px-1 pr-3 text-right">
-                      <AdvanceBadge d={teamAdvanceDisplay(t, i)} />
+                      {t.status === "live" ? (
+                        <span className="inline-flex justify-end"><ProbMeter p={t.advance} width={18} className="text-muted-foreground text-[11px]" /></span>
+                      ) : (
+                        <AdvanceBadge d={teamAdvanceDisplay(t, i)} />
+                      )}
                     </td>
                   </tr>
                 );
@@ -129,6 +149,7 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
                 <span className="text-muted-2 w-24 shrink-0 font-mono text-[11px]"><LocalTime utc={m.utc} mode="day" /></span>
                 <Flag code={m.home} size={16} />
                 <span className="min-w-0 flex-1 truncate text-sm">{m.homeName} <span className="text-muted-foreground">v</span> {m.awayName}</span>
+                {hotByMatch.get(m.match)?.hot && <HotBadge reason={hotByMatch.get(m.match)!.reason} className="shrink-0" />}
                 {final || live ? (
                   <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">{m.homeScore}–{m.awayScore}</span>
                 ) : m.favorite ? (
@@ -150,4 +171,11 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
 
 function Cell({ v, muted, cls }: { v: number | string; muted?: boolean; cls?: string }) {
   return <td className={`px-1 text-center font-mono text-xs tabular-nums ${muted ? "text-muted-foreground" : ""} ${cls ?? ""}`}>{v}</td>;
+}
+
+function nameList(ts: GroupTeamView[]): string {
+  const n = ts.map((t) => t.name);
+  if (n.length <= 1) return n.join("");
+  if (n.length === 2) return `${n[0]} & ${n[1]}`;
+  return `${n.slice(0, -1).join(", ")} & ${n[n.length - 1]}`;
 }
