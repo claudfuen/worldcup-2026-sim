@@ -168,8 +168,14 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
   const lockedSlot = lockedSlotsFromGroups(groups);
 
   // live results indexed by sorted team-pair (group matches)
+  // Group-stage results only, keyed by team pair (used to fill the GROUP rows below). Filtered to the group
+  // window for the same reason buildGroupMatches is: two same-group teams can meet again in a knockout
+  // rematch (R16+/Final), and that later result must not overwrite the group fixture's displayed score.
   const resByPair = new Map<string, FetchedMatch>();
-  for (const r of results) resByPair.set([r.homeCode, r.awayCode].sort().join("-"), r);
+  for (const r of results) {
+    if (r.group == null || r.date.slice(0, 10) > GROUP_STAGE_END) continue;
+    resByPair.set([r.homeCode, r.awayCode].sort().join("-"), r);
+  }
 
   const matches: MatchInfo[] = SCHEDULE.map((s) => {
     const info: MatchInfo = {
