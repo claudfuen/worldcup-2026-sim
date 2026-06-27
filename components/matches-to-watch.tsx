@@ -102,8 +102,8 @@ export function MatchesToWatch({ matches, teams, certainLimit = 4, className = "
             className={`bg-card hover:border-primary/50 hover:bg-surface-raised flex flex-col rounded-xl border p-4 ${p.kind === "projected" ? "border-border/70 border-dashed" : "border-border"}`}
           >
             <div className="text-muted-foreground mb-2.5 flex items-center justify-between gap-2 text-[11px]">
-              <span className="font-mono" suppressHydrationWarning><LocalTime utc={p.m.utc} mode="day" /> · <LocalTime utc={p.m.utc} mode="time" /></span>
-              <span className={`font-mono text-[10px] tracking-wide uppercase ${p.kind === "projected" ? "text-primary/80" : "text-muted-2"}`}>
+              <span className="min-w-0 truncate font-mono" suppressHydrationWarning><LocalTime utc={p.m.utc} mode="day" /> · <LocalTime utc={p.m.utc} mode="timeshort" /></span>
+              <span className={`shrink-0 font-mono text-[10px] tracking-wide uppercase ${p.kind === "projected" ? "text-primary/80" : "text-muted-2"}`}>
                 {p.kind === "projected" ? `${STAGE_SHORT[p.m.round]} · proj` : p.m.group ? `Grp ${p.m.group}` : STAGE_SHORT[p.m.round]}
               </span>
             </div>
