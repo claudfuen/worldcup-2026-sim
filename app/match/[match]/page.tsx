@@ -61,12 +61,6 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   // Both teams' path-to-the-final odds, for the tournament-outlook comparison (only when both are known).
   const homePred = m.home ? data.teams.find((t) => t.code === m.home) : undefined;
   const awayPred = m.away ? data.teams.find((t) => t.code === m.away) : undefined;
-  // Per-slot candidate cards, but only for slots NOT already covered by the Bracket Path section (which
-  // lists W##/L## feeders). Group-fed R32 slots have no feeders, so their candidate card still shows.
-  const isFeederSlot = (s?: string) => /^[WL]\d+$/.test(s ?? "");
-  const showHomeCand = !m.home && !isFeederSlot(m.slotHome);
-  const showAwayCand = !m.away && !isFeederSlot(m.slotAway);
-
   // SportsEvent structured data - only for a real, named matchup (slot placeholders aren't teams).
   const eventLd =
     m.defined && m.homeName && m.awayName
@@ -240,27 +234,14 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       )}
 
       {state === "undefined" && (
-        <>
-          <section className="mt-6">
-            <h2 className="text-muted-foreground mb-2 text-xs font-semibold font-mono tracking-wide uppercase">Most likely matchups</h2>
-            <div className="border-border bg-card divide-border/50 divide-y rounded-2xl border">
-              {(m.topMatchups ?? []).map((mu) => (
-                <div key={`${mu.home}|${mu.away}`} className="flex items-center gap-2 px-4 py-2.5 text-sm">
-                  <Link href={`/team/${teamSlug(mu.homeName)}`} className="flex items-center gap-2 hover:underline"><Flag code={mu.home} size={18} /><span className="truncate">{mu.homeName}</span></Link>
-                  <span className="text-muted-foreground text-xs">v</span>
-                  <Link href={`/team/${teamSlug(mu.awayName)}`} className="flex flex-1 items-center gap-2 hover:underline"><Flag code={mu.away} size={18} /><span className="truncate">{mu.awayName}</span></Link>
-                  <ProbMeter p={mu.prob} className="text-muted-foreground text-xs" />
-                </div>
-              ))}
-            </div>
-          </section>
-          {(showHomeCand || showAwayCand) && (
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {showHomeCand && <Candidates title={prettySlot(m.slotHome)} list={m.projHome} />}
-              {showAwayCand && <Candidates title={prettySlot(m.slotAway)} list={m.projAway} />}
-            </div>
-          )}
-        </>
+        <section className="mt-6">
+          <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">Who fills each slot</h2>
+          <div className="border-border bg-card flex rounded-2xl border">
+            <div className="min-w-0 flex-1 p-4 sm:p-5"><SlotColumn slot={m.slotHome} resolved={m.home} name={m.homeName} cands={m.projHome} /></div>
+            <div className="border-border/50 min-w-0 flex-1 border-l p-4 sm:p-5"><SlotColumn slot={m.slotAway} resolved={m.away} name={m.awayName} cands={m.projAway} /></div>
+          </div>
+          <p className="text-muted-2 mt-2 text-xs">How likely each contender is to fill the slot, across {data.iterations.toLocaleString()} simulations.</p>
+        </section>
       )}
     </main>
   );
@@ -333,17 +314,38 @@ function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   );
 }
 
-function Candidates({ title, list }: { title: string; list?: { code: string; name: string; prob: number }[] }) {
+// One side of an unconfirmed match: a clinched team rendered editorial (flag + bold name + ✓), or the
+// race for the slot — the top contenders with prob bars, mirroring the bracket's contender stack.
+function SlotColumn({ slot, resolved, name, cands }: { slot?: string; resolved: string | null; name: string | null; cands?: { code: string; name: string; prob: number }[] }) {
+  if (resolved && name) {
+    return (
+      <div>
+        <div className="text-muted-2 mb-2.5 font-mono text-[10px] font-semibold tracking-wide uppercase">Confirmed</div>
+        <Link href={`/team/${teamSlug(name)}`} className="flex items-center gap-2.5 hover:underline">
+          <Flag code={resolved} size={28} />
+          <span className="min-w-0 flex-1 truncate font-semibold">{name}</span>
+          <span className="text-win shrink-0 text-sm font-bold" title="Confirmed">✓</span>
+        </Link>
+      </div>
+    );
+  }
+  const list = (cands ?? []).filter((c) => c.prob >= 0.03).slice(0, 4);
+  const shown = list.length ? list : (cands ?? []).slice(0, 1);
   return (
-    <div className="border-border bg-card rounded-2xl border p-4">
-      <div className="text-muted-foreground mb-2 font-mono text-[10px] font-semibold tracking-wide uppercase">Likely · {title}</div>
-      <div className="space-y-1.5">
-        {(list ?? []).slice(0, 5).map((c) => (
-          <div key={c.code} className="flex items-center gap-2 text-sm">
-            <Link href={`/team/${teamSlug(c.name)}`} className="flex flex-1 items-center gap-2 hover:underline"><Flag code={c.code} size={16} /><span className="truncate">{c.name}</span></Link>
-            <ProbMeter p={c.prob} className="text-muted-foreground text-xs" />
-          </div>
-        ))}
+    <div>
+      <div className="text-muted-2 mb-2.5 truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
+      <div className="space-y-2">
+        {shown.length === 0 ? (
+          <span className="text-muted-2 text-sm">TBD</span>
+        ) : (
+          shown.map((c) => (
+            <Link key={c.code} href={`/team/${teamSlug(c.name)}`} className="flex items-center gap-2 text-sm hover:underline">
+              <Flag code={c.code} size={18} />
+              <span className="min-w-0 flex-1 truncate">{c.name}</span>
+              <ProbMeter p={c.prob} width={36} className="text-muted-foreground shrink-0" />
+            </Link>
+          ))
+        )}
       </div>
     </div>
   );
