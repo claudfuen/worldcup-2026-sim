@@ -18,6 +18,7 @@ import { computeWatchability } from "@/lib/watchability";
 import { TicketLink } from "@/components/ticket-link";
 import { hasTickets, TICKET_PROVIDER } from "@/lib/tickets";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { Countdown } from "@/components/countdown";
 import { type RelLink } from "@/components/related-links";
 import { ExploreSection } from "@/components/explore-section";
 import { GroupStandingMini } from "@/components/group-standing-mini";
@@ -175,6 +176,11 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
           <p className="text-muted-2 mx-auto mt-7 max-w-xl rounded-xl bg-background/30 px-5 py-4 text-center text-xs text-pretty ring-1 ring-white/5 ring-inset dark:bg-black/10">
             The model&apos;s most likely team for each slot, across {data.iterations.toLocaleString()} simulations.
           </p>
+        )}
+        {(state === "defined" || state === "undefined") && (
+          <div className="mt-6 flex justify-center">
+            <Countdown utc={m.utc} label="to kickoff" />
+          </div>
         )}
       </section>
 

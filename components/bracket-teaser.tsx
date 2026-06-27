@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Flag } from "@/components/flag";
-import { FinalCountdown } from "@/components/final-countdown";
+import { Countdown } from "@/components/countdown";
 import { pct } from "@/lib/format";
 import type { MatchInfo, TeamPrediction } from "@/lib/predictions";
 
@@ -33,7 +33,7 @@ export function BracketTeaser({ matches, teams, className = "" }: { matches: Mat
         <FinalSide code={awayCode} name={awayName} reach={reachOf.get(awayCode ?? "")} align="right" />
       </div>
       <div className="border-border/50 mt-3 flex flex-col items-center gap-1 border-t pt-2.5 text-center">
-        <FinalCountdown utc={final.utc} />
+        <Countdown utc={final.utc} label="to the final" />
         <div className="text-muted-2 text-[11px]">{setCount} of {r32.length} Round-of-32 ties confirmed · full bracket</div>
       </div>
     </Link>
