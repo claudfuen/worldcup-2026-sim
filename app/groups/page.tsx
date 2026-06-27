@@ -48,16 +48,27 @@ export default async function GroupsPage() {
   const thirdRace = hasLive
     ? liveThirdPlaceRace(groups, provByGroup, ratings, data.thirdPlaceRace)
     : (data.thirdPlaceRace ?? []);
+  // A one-line state-of-the-group-stage verdict, mirroring the editorial lede on the other pages.
+  const decidedCount = groups.filter((g) => g.decided).length;
+  const qualified = groups
+    .flatMap((g) => g.teams)
+    .filter((t) => t.status === "won_group" || t.status === "second" || t.status === "advanced").length;
+  const verdict =
+    decidedCount === groups.length
+      ? `All ${groups.length} groups are settled — the 32-team Round of 32 field is set.`
+      : `${decidedCount} of ${groups.length} groups settled · ${qualified} teams through to the Round of 32 · the final places ride on the best-third race below.`;
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">World Cup 2026 groups</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Live standings with each team&apos;s probability of advancing. Top 2 qualify directly; the 8 best third-placed
-          teams also reach the Round of 32. Sorted by the 2026 tiebreakers (points → head-to-head → goal difference).
+      <header className="mb-6 max-w-3xl">
+        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">Group stage standings</div>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">World Cup 2026 groups</h1>
+        <p className="text-foreground mt-2 text-base text-pretty">{verdict}</p>
+        <p className="text-muted-2 mt-2 text-xs text-pretty">
+          Each team&apos;s probability of advancing. Top 2 qualify directly; the 8 best third-placed teams also reach the
+          Round of 32. Sorted by the 2026 tiebreakers (points → head-to-head → goal difference).
         </p>
-      </div>
+      </header>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {groups.map((g) => (
           <GroupCard key={g.group} group={g.group} teams={g.teams} decided={g.decided} prov={provByGroup[g.group]} />
