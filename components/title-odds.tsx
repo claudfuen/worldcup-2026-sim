@@ -22,8 +22,9 @@ export function TitleOdds({ teams, className = "" }: { teams: TeamPrediction[]; 
             <div className="bg-muted/30 relative hidden h-1.5 w-12 shrink-0 overflow-hidden rounded-full sm:block">
               <div className="bg-primary/85 absolute inset-y-0 left-0 rounded-full" style={{ width: `${(t.title / maxTitle) * 100}%` }} />
             </div>
-            <span className="flex shrink-0 items-center justify-end gap-1 font-mono text-sm font-semibold tabular-nums">
-              {forecastPct(t.title)}<Delta v={t.titleDelta} />
+            <span className="flex shrink-0 items-center justify-end font-mono text-sm font-semibold tabular-nums">
+              <span className="w-9 text-right">{forecastPct(t.title)}</span>
+              <span className="ml-1 w-5 text-left">{<Delta v={t.titleDelta} />}</span>
             </span>
           </Link>
         ))}
