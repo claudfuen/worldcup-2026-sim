@@ -87,9 +87,15 @@ export default async function RootLayout({
     } catch {
       // live feed unavailable — fall back to the cached payload's results
     }
+    // Live (now) → upcoming confirmed fixtures (next, with kickoff time) → recent finals (past). Upcoming
+    // is limited to matches with both teams known, so the ticker never shows a "TBD" knockout slot.
     const live = matches.filter((m) => m.status === "live")
-    const finals = matches.filter((m) => m.status === "final").sort((a, b) => b.utc.localeCompare(a.utc)).slice(0, 12)
-    tickerItems = [...live, ...finals]
+    const upcoming = matches
+      .filter((m) => m.status === "scheduled" && m.home && m.away)
+      .sort((a, b) => a.utc.localeCompare(b.utc))
+      .slice(0, 6)
+    const finals = matches.filter((m) => m.status === "final").sort((a, b) => b.utc.localeCompare(a.utc)).slice(0, 10)
+    tickerItems = [...live, ...upcoming, ...finals]
   } catch {
     updatedAt = null
   }

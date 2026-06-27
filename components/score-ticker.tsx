@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Flag } from "@/components/flag";
+import { LocalTime } from "@/components/local-time";
 import type { MatchInfo } from "@/lib/predictions";
 
-// A persistent, auto-scrolling scores strip under the nav — the tournament's pulse on every page. Live
-// matches (score + clock) lead, then the most recent finals. Pure CSS marquee (two copies, translate -50%),
-// pauses on hover, every item links to its match. Server-rendered; no live win-prob, just real scores.
+// A persistent, auto-scrolling pulse strip under the nav — present on every page. Three states, colour-
+// coded for a clear at-a-glance distinction: LIVE (red, pulsing dot + clock) → UPCOMING (cool blue, local
+// kickoff time) → FINISHED (green FT + score). Pure CSS marquee (two copies, translate -50%), pauses on
+// hover, every item links to its match. Server-rendered; no live win-prob, just real scores and times.
 export function ScoreTicker({ items }: { items: MatchInfo[] }) {
   if (items.length === 0) return null;
   const dur = Math.max(40, items.length * 6); // scale duration with count → consistent scroll speed
@@ -31,8 +33,10 @@ function Track({ items, ariaHidden }: { items: MatchInfo[]; ariaHidden?: boolean
 
 function TickerItem({ m }: { m: MatchInfo }) {
   const live = m.status === "live";
+  const final = m.status === "final";
   const homeWon = m.winner != null && m.winner === m.home;
   const awayWon = m.winner != null && m.winner === m.away;
+  const nameCls = (won: boolean) => (final ? (won ? "text-foreground" : "text-muted-foreground") : "text-foreground/90");
   return (
     <Link
       href={`/match/${m.match}`}
@@ -40,12 +44,16 @@ function TickerItem({ m }: { m: MatchInfo }) {
     >
       {live && <span className="bg-live size-1.5 shrink-0 animate-pulse rounded-full" aria-hidden />}
       <Flag code={m.home} size={13} />
-      <span className={`font-medium ${homeWon ? "text-foreground" : "text-muted-foreground"}`}>{m.home}</span>
-      <span className="text-foreground font-mono font-semibold tabular-nums">{m.homeScore}<span className="text-muted-2">–</span>{m.awayScore}</span>
-      <span className={`font-medium ${awayWon ? "text-foreground" : "text-muted-foreground"}`}>{m.away}</span>
+      <span className={`font-medium ${nameCls(homeWon)}`}>{m.home}</span>
+      {live || final ? (
+        <span className="text-foreground font-mono font-semibold tabular-nums">{m.homeScore}<span className="text-muted-2">–</span>{m.awayScore}</span>
+      ) : (
+        <span className="text-muted-2 px-0.5">v</span>
+      )}
+      <span className={`font-medium ${nameCls(awayWon)}`}>{m.away}</span>
       <Flag code={m.away} size={13} />
-      <span className={`ml-0.5 font-mono text-[10px] tracking-wide uppercase ${live ? "text-live" : "text-muted-2"}`}>
-        {live ? m.liveDetail ?? "Live" : "FT"}
+      <span className={`ml-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase ${live ? "text-live" : final ? "text-win" : "text-data-cool"}`}>
+        {live ? (m.liveDetail ?? "Live") : final ? "FT" : <LocalTime utc={m.utc} mode="timeshort" />}
       </span>
     </Link>
   );
