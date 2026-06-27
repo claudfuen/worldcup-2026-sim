@@ -6,6 +6,7 @@ import { Flag } from "@/components/flag";
 import { Delta } from "@/components/delta";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { TodaySection } from "@/components/today-section";
+import { MatchesToWatch } from "@/components/matches-to-watch";
 import { ShareBar } from "@/components/share-bar";
 import { teamSlug } from "@/lib/slug";
 import { forecastPct } from "@/lib/format";
@@ -72,6 +73,8 @@ export default async function Page() {
           </>
         )}
       </header>
+
+      <MatchesToWatch matches={matches} teams={data.teams} className="mb-10" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Title contenders */}
