@@ -1,5 +1,5 @@
 // End-to-end: pull live results -> live ratings -> Monte Carlo -> assemble the payload stored in KV / rendered.
-import { fetchResults, liveRatings, preMatchRatingsByPair, buildGroupMatches, type FetchedMatch } from "./espn";
+import { fetchResults, liveRatings, preMatchRatingsByPair, buildGroupMatches, GROUP_STAGE_END, type FetchedMatch } from "./espn";
 import { runMonteCarlo } from "./sim/simulate";
 import { rankThirds, selectAndAssignThirds, lockedThirdSlots } from "./sim/thirdPlace";
 import { wdlProbs, eloToLambdas, scorelineDist } from "./sim/poisson";
@@ -253,7 +253,7 @@ export async function computePredictions(iterations = 20000, seed = 20260611): P
     }
   }
 
-  const matchesPlayed = results.filter((r) => r.group != null && r.date.slice(0, 10) <= "2026-06-27").length;
+  const matchesPlayed = results.filter((r) => r.group != null && r.date.slice(0, 10) <= GROUP_STAGE_END).length;
 
   // Third-place race: rank the 12 current 3rd-placed teams; top 8 advance; apply Annex C for slot assignment.
   const rankedThirds = rankThirds(thirdRows, ratings);

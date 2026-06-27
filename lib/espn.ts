@@ -11,7 +11,16 @@ const VENUE_BY_PAIR = new Map<string, string>(
 );
 
 const SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
-const GROUP_STAGE_END = "2026-06-27";
+// Last calendar day (UTC) any GROUP match is played — DERIVED from the schedule so it can't go stale.
+// Its job: separate group results from knockout REMATCHES of two same-group teams. `group` is set whenever
+// both teams share a group (see below), so a same-group QF/SF would otherwise pollute group standings; the
+// date cutoff drops it. Safe because the R32 has no same-group pairings (so 06-28's R32 games have
+// group=null and are excluded anyway) and same-group matchups are first possible in the R16, which starts
+// well after the last group day. Hardcoding "2026-06-27" previously dropped the real 06-28 Group J finals.
+export const GROUP_STAGE_END = SCHEDULE.reduce(
+  (mx, m) => (m.round === "GROUP" && m.utc.slice(0, 10) > mx ? m.utc.slice(0, 10) : mx),
+  "2026-06-11",
+);
 
 export interface FetchedMatch {
   date: string;
