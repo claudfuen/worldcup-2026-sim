@@ -50,7 +50,10 @@ export function MatchesToWatch({
   // group standings, for "is this group match a decider?"
   const gctx = new Map<string, { advance: number }>();
   for (const g of groups) for (const t of g.teams) gctx.set(t.code, { advance: t.advance });
-  const NOW = Date.now();
+  // Proximity reference = the soonest upcoming kickoff. Deterministic (no wall-clock read during render),
+  // and it advances on its own: as games finish they drop out, so t0 rolls forward with the tournament.
+  let t0 = Infinity;
+  for (const m of matches) if (m.status === "scheduled") t0 = Math.min(t0, Date.parse(m.utc));
 
   // a match's representative pairing: real teams when known, else the modal projected matchup
   const rep = (m: MatchInfo) => {
@@ -92,7 +95,7 @@ export function MatchesToWatch({
       const decTerm = dec ? 0.16 * both : 0;
       const marquee = 0.18 * both * star; // two genuine heavyweights — name-clash draw
       const base = qappeal + stk + hostTerm + decTerm + marquee;
-      const days = Math.max(0, (Date.parse(m.utc) - NOW) / 86400000);
+      const days = Math.max(0, (Date.parse(m.utc) - t0) / 86400000);
       const prox = Math.exp(-days / 20);
       const score = base * rp.lik * prox;
       return { m, home: rp.h, away: rp.a, homeName: rp.hn, awayName: rp.an, lik: rp.lik, defined: rp.defined, star, both, comp, dec: decTerm, host, score };
@@ -102,9 +105,9 @@ export function MatchesToWatch({
     .filter((p) => p.comp >= 0.18 || p.dec > 0)
     .sort((a, b) => b.score - a.score);
 
-  // adaptive size: an absolute appeal floor (stable across tournament stages), clamped to [4, 6]
-  const n = Math.max(4, Math.min(6, scored.filter((p) => p.score >= 0.3).length, scored.length));
-  const plan = scored.slice(0, n).sort((a, b) => a.m.utc.localeCompare(b.m.utc));
+  // The plan: the six best upcoming matches by appeal, in date order. It repopulates on its own — the
+  // score is recomputed every render against live results, so finished games drop and the next-best surface.
+  const plan = scored.slice(0, 6).sort((a, b) => a.m.utc.localeCompare(b.m.utc));
   if (plan.length === 0) return null;
 
   return (
@@ -113,7 +116,7 @@ export function MatchesToWatch({
         <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Matches to watch</h2>
         <Link href="/schedule" className="text-primary text-xs hover:underline">Full schedule →</Link>
       </div>
-      <p className="text-muted-2 mb-3 text-xs text-pretty">A curated watch plan — the most consequential games coming up, from group-stage deciders to the knockout ties the bracket is heading toward.</p>
+      <p className="text-muted-2 mb-3 text-xs text-pretty">A curated watch plan — the most consequential games coming up, from group-stage deciders to the knockout ties the bracket is heading toward. Dashed cards are projected pairings, with how likely they are to happen.</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {plan.map((p) => {
           const projected = !p.defined && p.lik < CERTAINISH;
