@@ -24,36 +24,32 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
   const yest = fmtDayKey(new Date(Date.parse(nowIso) - 86400000).toISOString(), zone);
 
   const live = matches.filter((m) => m.status === "live").sort((a, b) => a.utc.localeCompare(b.utc));
-  // Today leads (chronological — morning results then the evening slate), then last night's finals fill any
-  // remaining room. Sorting the whole set by time would bury today's upcoming behind yesterday's scores.
+  // Two clearly-separated slates (easier to parse than one combined list): TODAY (chronological) and
+  // RECENT RESULTS = yesterday's finals (most-recent first).
   const todayMatches = matches
     .filter((m) => m.status !== "live" && fmtDayKey(m.utc, zone) === today)
     .sort((a, b) => a.utc.localeCompare(b.utc));
-  const lastNight = matches
+  const recentResults = matches
     .filter((m) => m.status === "final" && fmtDayKey(m.utc, zone) === yest)
     .sort((a, b) => b.utc.localeCompare(a.utc));
-  const slate = [...todayMatches, ...lastNight];
 
-  // Nothing live and nothing today: collapse to a single "up next" line.
-  if (live.length === 0 && slate.length === 0) {
+  // Nothing live, nothing today, nothing recent: collapse to a single "up next" line.
+  if (live.length === 0 && todayMatches.length === 0 && recentResults.length === 0) {
     const next = matches.filter((m) => m.status === "scheduled").sort((a, b) => a.utc.localeCompare(b.utc))[0];
     if (!next) return null;
     return (
       <section className={className} suppressHydrationWarning>
         <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">{t("home.upNext")}</h2>
         <div className="border-border bg-card overflow-hidden rounded-2xl border">
-          <SlateRow m={next} zone={zone} today={today} hotReason={hotReasons[next.match]} t={t} locale={locale} />
+          <SlateRow m={next} zone={zone} hotReason={hotReasons[next.match]} t={t} locale={locale} />
         </div>
       </section>
     );
   }
 
-  // Room for the full day plus several last-night results — also lets the rail balance the homepage's
-  // right-hand snapshot column (stage/bracket/groups/title) so the dashboard's two columns end together.
-  const CAP = 10;
-  const shownSlate = slate.slice(0, CAP);
-  const hasLastNight = shownSlate.some((m) => m.status === "final" && fmtDayKey(m.utc, zone) === yest);
-  const slateLabel = live.length > 0 ? t("home.alsoToday") : hasLastNight ? t("home.todayAndLastNight") : t("home.today");
+  // Caps keep the rail curated and roughly balance the homepage's right-hand snapshot column.
+  const TODAY_CAP = 10;
+  const RECENT_CAP = 6;
 
   return (
     <section className={className} suppressHydrationWarning>
@@ -70,17 +66,62 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
           )}
         </div>
       )}
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{slateLabel}</h2>
-        <Link href={localeHref(locale, "/schedule")} className="text-primary text-xs hover:underline">{t("home.fullSchedule")}</Link>
-      </div>
-      <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
-        {shownSlate.map((m) => <SlateRow key={m.match} m={m} zone={zone} today={today} hotReason={hotReasons[m.match]} t={t} locale={locale} />)}
-      </div>
-      {slate.length > CAP && (
-        <Link href={localeHref(locale, "/schedule")} className="text-primary mt-2 inline-block text-xs hover:underline">{t("home.moreCount", { n: slate.length - CAP })}</Link>
+      {todayMatches.length > 0 && (
+        <RailSection
+          heading={live.length > 0 ? t("home.alsoToday") : t("home.today")}
+          showFullSchedule
+          matches={todayMatches}
+          cap={TODAY_CAP}
+          zone={zone}
+          hotReasons={hotReasons}
+          t={t}
+          locale={locale}
+        />
+      )}
+      {recentResults.length > 0 && (
+        <RailSection
+          heading={t("home.recentResults")}
+          matches={recentResults}
+          cap={RECENT_CAP}
+          zone={zone}
+          hotReasons={hotReasons}
+          t={t}
+          locale={locale}
+        />
       )}
     </section>
+  );
+}
+
+// One labelled slate (heading + card of rows + overflow link). Used for both "Today" and "Recent results".
+function RailSection({
+  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false,
+}: {
+  heading: string;
+  matches: MatchInfo[];
+  cap: number;
+  zone?: import("@/lib/format").Zone;
+  hotReasons: Record<number, string>;
+  t: TFunction;
+  locale: Locale;
+  showFullSchedule?: boolean;
+}) {
+  const shown = matches.slice(0, cap);
+  return (
+    <div className="mb-5 last:mb-0">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{heading}</h2>
+        {showFullSchedule && (
+          <Link href={localeHref(locale, "/schedule")} className="text-primary text-xs hover:underline">{t("home.fullSchedule")}</Link>
+        )}
+      </div>
+      <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
+        {shown.map((m) => <SlateRow key={m.match} m={m} zone={zone} hotReason={hotReasons[m.match]} t={t} locale={locale} />)}
+      </div>
+      {matches.length > cap && (
+        <Link href={localeHref(locale, "/schedule")} className="text-primary mt-2 inline-block text-xs hover:underline">{t("home.moreCount", { n: matches.length - cap })}</Link>
+      )}
+    </div>
   );
 }
 
@@ -102,17 +143,16 @@ function LiveRow({ m, t, locale }: { m: MatchInfo; t: TFunction; locale: Locale 
   );
 }
 
-function SlateRow({ m, zone, today, hotReason, t, locale }: { m: MatchInfo; zone?: import("@/lib/format").Zone; today: string; hotReason?: string; t: TFunction; locale: Locale }) {
+function SlateRow({ m, zone, hotReason, t, locale }: { m: MatchInfo; zone?: import("@/lib/format").Zone; hotReason?: string; t: TFunction; locale: Locale }) {
   const final = m.status === "final";
   const homeCode = m.home ?? m.projHome?.[0]?.code ?? null;
   const awayCode = m.away ?? m.projAway?.[0]?.code ?? null;
   const homeName = m.homeName ?? m.projHome?.[0]?.name ?? m.slotHome ?? t("common.tbd");
   const awayName = m.awayName ?? m.projAway?.[0]?.name ?? m.slotAway ?? t("common.tbd");
-  const isYesterday = final && fmtDayKey(m.utc, zone) !== today;
   return (
     <Link href={localeHref(locale, `/match/${m.match}`)} className="hover:bg-muted/20 flex items-center gap-2 px-4 py-2.5 sm:gap-3">
       <span className="text-muted-2 w-12 shrink-0 font-mono text-[11px] sm:w-16" suppressHydrationWarning>
-        {isYesterday ? t("home.lastNight") : fmtTime(m.utc, zone)}
+        {fmtTime(m.utc, zone)}
       </span>
       <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
         <Flag code={homeCode} size={16} />
