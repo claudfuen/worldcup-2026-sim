@@ -16,7 +16,11 @@ import { ProbMeter } from "@/components/prob-meter";
 import { HotBadge } from "@/components/hot-badge";
 import { computeWatchability } from "@/lib/watchability";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { RelatedLinks, type RelLink } from "@/components/related-links";
+import { type RelLink } from "@/components/related-links";
+import { ExploreSection } from "@/components/explore-section";
+import { BracketTeaser } from "@/components/bracket-teaser";
+import { GroupsPreview } from "@/components/groups-preview";
+import { TitleOdds } from "@/components/title-odds";
 import type { GroupTeamView } from "@/lib/predictions";
 
 export const runtime = "nodejs";
@@ -68,15 +72,14 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
   if (contending[0] && contending[0].advance > 0.02) verdict.push(`${contending[0].name} ${pct(contending[0].advance)} to advance`);
   if (out.length) verdict.push(`${nameList(out)} out`);
 
-  // Sibling-group navigation + hub links, so a group-page lander can sweep across all 12 groups and out
-  // to the bracket/schedule rather than dead-ending here.
+  // Thin secondary links beneath the preview cards: jump to the adjacent groups + the schedule (the bracket
+  // and all-groups grid get rich preview cards below).
   const gi = GROUPS.indexOf(L);
   const related: RelLink[] = [];
   if (gi > 0) related.push({ label: `Group ${GROUPS[gi - 1]}`, href: `/group/${GROUPS[gi - 1].toLowerCase()}` });
   if (gi < GROUPS.length - 1) related.push({ label: `Group ${GROUPS[gi + 1]}`, href: `/group/${GROUPS[gi + 1].toLowerCase()}` });
-  related.push({ label: "All groups", href: "/groups" });
-  related.push({ label: "Bracket", href: "/bracket", hint: "knockout path" });
   related.push({ label: "Full schedule", href: "/schedule" });
+  related.push({ label: "How it works", href: "/methodology" });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -174,7 +177,11 @@ export default async function GroupPage({ params }: { params: Promise<{ letter: 
         </section>
       </div>
 
-      <RelatedLinks links={related} />
+      <ExploreSection links={related}>
+        <GroupsPreview groups={groups} />
+        <BracketTeaser matches={overlaid} teams={data.teams} />
+        <TitleOdds teams={data.teams} />
+      </ExploreSection>
 
       <p className="text-muted-2 mt-8 text-xs">
         Odds from {data.iterations.toLocaleString()} Monte Carlo simulations, updated live.{" "}

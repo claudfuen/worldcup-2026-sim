@@ -19,7 +19,12 @@ import { computeWatchability } from "@/lib/watchability";
 import { TicketLink } from "@/components/ticket-link";
 import { hasTickets, TICKET_PROVIDER } from "@/lib/tickets";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { RelatedLinks, type RelLink } from "@/components/related-links";
+import { type RelLink } from "@/components/related-links";
+import { ExploreSection } from "@/components/explore-section";
+import { GroupStandingMini } from "@/components/group-standing-mini";
+import { BracketTeaser } from "@/components/bracket-teaser";
+import { GroupsPreview } from "@/components/groups-preview";
+import { TitleOdds } from "@/components/title-odds";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,13 +110,15 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
     m.round === "GROUP" && m.group
       ? [{ label: "Home", href: "/" }, { label: "Groups", href: "/groups" }, { label: `Group ${m.group}`, href: `/group/${m.group.toLowerCase()}` }, { label: matchLabel }]
       : [{ label: "Home", href: "/" }, { label: "Bracket", href: "/bracket" }, { label: ROUND_NAME[m.round], href: "/bracket" }, { label: matchLabel }];
-  // "Keep exploring" windows: both teams, the parent group/bracket, and the schedule.
-  const related: RelLink[] = [];
-  if (m.home && m.homeName) related.push({ label: m.homeName, href: `/team/${teamSlug(m.homeName)}`, code: m.home });
-  if (m.away && m.awayName) related.push({ label: m.awayName, href: `/team/${teamSlug(m.awayName)}`, code: m.away });
-  if (m.round === "GROUP" && m.group) related.push({ label: `Group ${m.group}`, href: `/group/${m.group.toLowerCase()}`, hint: "standings" });
-  related.push({ label: "Bracket", href: "/bracket", hint: "knockout path" });
-  related.push({ label: "Full schedule", href: "/schedule" });
+  // Live-finalized standings for the explore-section group preview (a window into the match's own group).
+  const groups = hasLive ? finalizeGroups(data.groups, overlaid, ratings) : data.groups;
+  const groupView = m.group ? groups.find((g) => g.group === m.group) : undefined;
+  // Secondary pill links beneath the preview cards: both teams (so non-top-6 sides stay reachable) + schedule.
+  const exploreLinks: RelLink[] = [];
+  if (m.home && m.homeName) exploreLinks.push({ label: m.homeName, href: `/team/${teamSlug(m.homeName)}`, code: m.home });
+  if (m.away && m.awayName) exploreLinks.push({ label: m.awayName, href: `/team/${teamSlug(m.awayName)}`, code: m.away });
+  exploreLinks.push({ label: "Full schedule", href: "/schedule" });
+  exploreLinks.push({ label: "How it works", href: "/methodology" });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -283,7 +290,15 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
         </section>
       )}
 
-      <RelatedLinks links={related} />
+      <ExploreSection links={exploreLinks}>
+        {m.round === "GROUP" && groupView ? (
+          <GroupStandingMini group={groupView.group} teams={groupView.teams} />
+        ) : (
+          <GroupsPreview groups={groups} />
+        )}
+        <BracketTeaser matches={allMatches} teams={data.teams} />
+        <TitleOdds teams={data.teams} />
+      </ExploreSection>
     </main>
   );
 }

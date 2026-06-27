@@ -14,7 +14,10 @@ import { R32ByFinish } from "@/components/r32-by-finish";
 import { HotBadge } from "@/components/hot-badge";
 import { computeWatchability } from "@/lib/watchability";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { RelatedLinks } from "@/components/related-links";
+import { ExploreSection } from "@/components/explore-section";
+import { BracketTeaser } from "@/components/bracket-teaser";
+import { GroupsPreview } from "@/components/groups-preview";
+import { TitleOdds } from "@/components/title-odds";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { isClinched } from "@/lib/view/types";
 import { forecastPct } from "@/lib/format";
@@ -216,13 +219,17 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
       )}
       </div>
 
-      <RelatedLinks
+      <ExploreSection
         links={[
           { label: `Group ${team.group}`, href: `/group/${team.group.toLowerCase()}`, hint: "standings" },
-          { label: "Bracket", href: "/bracket", hint: "projected path" },
           { label: "Full schedule", href: "/schedule" },
+          { label: "How it works", href: "/methodology" },
         ]}
-      />
+      >
+        <BracketTeaser matches={overlaid} teams={data.teams} />
+        <GroupsPreview groups={groups} />
+        <TitleOdds teams={data.teams} />
+      </ExploreSection>
 
       <p className="text-muted-2 mt-8 text-xs">
         Odds from a World Football Elo + Poisson model, {data.iterations.toLocaleString()} Monte Carlo simulations, updated live.{" "}
