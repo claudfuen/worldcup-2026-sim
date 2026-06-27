@@ -50,8 +50,15 @@ export default function MethodologyPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_LD) }} />
-      <h1 className="text-2xl font-semibold tracking-tight">How it works</h1>
-      <div className="mt-6 space-y-7 text-sm leading-relaxed">
+      <header>
+        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">Methodology</div>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">How it works</h1>
+        <p className="text-muted-foreground mt-3 text-base text-pretty">
+          World Football Elo ratings feed a Poisson scoreline model, run through ~20,000 Monte Carlo tournaments — with
+          the 2026 head-to-head tiebreakers and FIFA&apos;s 495-row Annex C third-place table applied on every iteration.
+        </p>
+      </header>
+      <div className="mt-8 space-y-7 text-sm leading-relaxed">
         <Section title="Ratings - World Football Elo">
           Every team carries an Elo rating seeded from ~49,000 international matches (1872-present) and updated after each
           result. Updates are tournament-weighted (a World Cup match moves ratings more than a friendly), scaled by margin
@@ -60,7 +67,7 @@ export default function MethodologyPage() {
         </Section>
         <Section title="Match model - Poisson scorelines">
           The Elo gap between two teams maps to an expected goal supremacy and total, which feed two Poisson goal rates
-          (with a Dixon-Coles low-score correction). Those two rates are the <b>expected goals (xG)</b> shown on each
+          (with a Dixon-Coles low-score correction). Those two rates are the <b>expected goals (xG)</b>{" "}shown on each
           match - the model&apos;s average goals for each side, which drive the scoreline distribution. This yields both
           win/draw/loss probabilities and full scorelines - the latter needed to break group ties on goal difference.
           Knockout ties are decided by extra time and then penalties, which the win probabilities account for.
@@ -73,7 +80,7 @@ export default function MethodologyPage() {
         </Section>
         <Section title="How third-placed teams reach the bracket">
           With 12 groups, the top 2 of each (24 teams) advance automatically. To fill the 32-team Round of 32, the{" "}
-          <b>8 best of the 12 third-placed teams</b> also go through, ranked across groups by points → goal difference →
+          <b>8 best of the 12 third-placed teams</b>{" "}also go through, ranked across groups by points → goal difference →
           goals scored → FIFA ranking (conduct/fair-play is part of the official tiebreak but isn&apos;t modelled here, so
           we fall straight through to the ranking). The twist: <i>which</i> third-placed team is sent to <i>which</i> group
           winner is not free-form. Only 8 group winners host a third-placed team - the winners of groups{" "}
