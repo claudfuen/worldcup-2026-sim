@@ -100,6 +100,12 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       <MatchStats stats={summary.stats} />
     </>
   );
+  const shareText =
+    state === "final"
+      ? t("match.shareFinal", { home: m.homeName, homeScore: m.homeScore, awayScore: m.awayScore, away: m.awayName, round: roundName(t, m.round) })
+      : m.favorite && m.home && m.away
+        ? t("match.shareFavorite", { favorite: m.favorite.name, pct: Math.round(m.favorite.winProb * 100), home: m.homeName, away: m.awayName })
+        : t("match.shareUpcoming", { home: m.homeName ?? prettySlot(t, m.slotHome), away: m.awayName ?? prettySlot(t, m.slotAway) });
   // Is this one of the current watch-plan picks? (same scorer as the homepage "matches to watch")
   const heat = computeWatchability(allMatches, data.teams, data.groups).byMatch.get(m.match);
   // Both teams' path-to-the-final odds, for the tournament-outlook comparison (only when both are known).
@@ -180,8 +186,11 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
           A resolved tie shows the teams + score/win-prob; a PREDICTED tie shows each slot's contender race
           inline (like the bracket cards) — no thin "likely X%" + redundant repeat. */}
       <section className="hero-sheen border-border-strong relative mt-5 overflow-hidden rounded-3xl border bg-surface-raised px-5 py-7 sm:px-10 sm:py-9 dark:inset-ring dark:inset-ring-white/5">
-        <div className="text-primary mb-6 text-center font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">
-          {m.group ? t("match.heroEyebrowGroup", { round: roundName(t, m.round), group: m.group }) : roundName(t, m.round)} <span className="text-muted-2">{t("match.heroMatchNo", { match: m.match })}</span>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <span className="text-primary font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">
+            {m.group ? t("match.heroEyebrowGroup", { round: roundName(t, m.round), group: m.group }) : roundName(t, m.round)} <span className="text-muted-2">{t("match.heroMatchNo", { match: m.match })}</span>
+          </span>
+          <ShareBar text={shareText} path={`/match/${m.match}`} compact />
         </div>
         {state === "undefined" ? (
           <div className="flex items-start justify-center gap-3 sm:gap-12">
@@ -267,19 +276,6 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
             <TicketLink matchNo={m.match} placement="match_facts" variant="button" className="sm:w-auto sm:px-5" />
           </div>
         )}
-      </div>
-
-      <div className="mt-8 flex justify-center">
-        <ShareBar
-          text={
-            state === "final"
-              ? t("match.shareFinal", { home: m.homeName, homeScore: m.homeScore, awayScore: m.awayScore, away: m.awayName, round: roundName(t, m.round) })
-              : m.favorite && m.home && m.away
-                ? t("match.shareFavorite", { favorite: m.favorite.name, pct: Math.round(m.favorite.winProb * 100), home: m.homeName, away: m.awayName })
-                : t("match.shareUpcoming", { home: m.homeName ?? prettySlot(t, m.slotHome), away: m.awayName ?? prettySlot(t, m.slotAway) })
-          }
-          path={`/match/${m.match}`}
-        />
       </div>
 
       {state === "defined" && m.probs && (
