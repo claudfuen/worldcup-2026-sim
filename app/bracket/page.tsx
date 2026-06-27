@@ -6,7 +6,7 @@ import { Bracket } from "@/components/bracket";
 import { Flag } from "@/components/flag";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { ShareBar } from "@/components/share-bar";
-import { forecastPct, pct } from "@/lib/format";
+import { forecastPct } from "@/lib/format";
 import { teamSlug } from "@/lib/slug";
 
 export const runtime = "nodejs";
@@ -33,64 +33,40 @@ export default async function BracketPage() {
   const ratings = ratingsFromTeams(data.teams);
   const matches = hasLive ? finalizeBracket(overlaid, finalizeGroups(data.groups, overlaid, ratings), ratings) : data.matches;
   const champ = data.teams[0];
-  const reachFinal = new Map(data.teams.map((t) => [t.code, t.final]));
   const finalM = matches.find((m) => m.round === "FINAL");
-  const fHome = finalM?.home ?? finalM?.projHome?.[0]?.code ?? null;
-  const fAway = finalM?.away ?? finalM?.projAway?.[0]?.code ?? null;
-  const fHomeName = finalM?.homeName ?? finalM?.projHome?.[0]?.name ?? "TBD";
-  const fAwayName = finalM?.awayName ?? finalM?.projAway?.[0]?.name ?? "TBD";
+  const fHomeName = finalM?.homeName ?? finalM?.projHome?.[0]?.name ?? null;
+  const fAwayName = finalM?.awayName ?? finalM?.projAway?.[0]?.name ?? null;
   const r32 = matches.filter((m) => m.round === "R32");
   const r32Set = r32.filter((m) => m.defined).length;
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">World Cup 2026 bracket</h1>
-
-        {/* At-a-glance dashboard strip: the takeaways before the tree */}
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {champ && (
-            <Link href={`/team/${teamSlug(champ.name)}`} className="group border-border bg-card hover:border-primary/50 hover:bg-surface-raised rounded-2xl border p-4 transition-colors">
-              <div className="text-muted-foreground font-mono text-[10px] font-semibold tracking-wide uppercase">Projected champion</div>
-              <div className="mt-2 flex items-center gap-2">
-                <Flag code={champ.code} size={24} />
-                <span className="truncate font-semibold group-hover:underline">{champ.name}</span>
-                <span className="text-primary ml-auto shrink-0 font-mono text-sm font-semibold tabular-nums">{forecastPct(champ.title)}</span>
-              </div>
-            </Link>
-          )}
-          <div className="border-border bg-card rounded-2xl border p-4">
-            <div className="text-muted-foreground font-mono text-[10px] font-semibold tracking-wide uppercase">Projected final</div>
-            <div className="mt-2 flex items-center gap-2 text-sm">
-              <Flag code={fHome} size={20} /><span className="min-w-0 truncate font-medium">{fHomeName}</span>
-              <span className="text-muted-2 shrink-0 text-xs">v</span>
-              <Flag code={fAway} size={20} /><span className="min-w-0 truncate font-medium">{fAwayName}</span>
-            </div>
-            {fHome && fAway && (
-              <div className="text-muted-2 mt-1.5 font-mono text-[10px] tabular-nums">{pct(reachFinal.get(fHome) ?? 0)} · {pct(reachFinal.get(fAway) ?? 0)} to reach</div>
-            )}
-          </div>
-          <div className="border-border bg-card rounded-2xl border p-4">
-            <div className="text-muted-foreground font-mono text-[10px] font-semibold tracking-wide uppercase">Round of 32</div>
-            <div className="mt-2 text-sm"><span className="font-semibold tabular-nums">{r32Set} of {r32.length}</span> ties confirmed</div>
-            <div className="text-muted-2 mt-1.5 text-[11px]">{r32.length - r32Set} still projected</div>
-          </div>
-        </div>
-
-        <p className="text-muted-2 mt-4 text-xs text-pretty">
+      <header className="mb-6 max-w-3xl">
+        <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">Projected knockout bracket</div>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">World Cup 2026 bracket</h1>
+        {champ && (
+          <p className="mt-3 text-base text-pretty">
+            The model&apos;s road to the final:{" "}
+            <Link href={`/team/${teamSlug(champ.name)}`} className="text-foreground font-semibold hover:underline">{champ.name}</Link> are projected to lift the trophy{" "}
+            <span className="text-primary font-semibold tabular-nums">{forecastPct(champ.title)}</span>
+            {fHomeName && fAwayName && <>, with a <span className="text-foreground/90 font-medium">{fHomeName}</span>–<span className="text-foreground/90 font-medium">{fAwayName}</span> final the most likely outcome</>}.
+            <span className="text-muted-foreground"> {r32Set} of {r32.length} Round-of-32 ties are confirmed; the rest are projections.</span>
+          </p>
+        )}
+        <p className="text-muted-2 mt-3 text-xs text-pretty">
           Each <span className="text-foreground/70">%</span> is how often a team fills that slot across our simulations — not its
           chance of winning the match. Third-place slots lock once the group stage ends; resolved teams are bold. Scroll across
           to follow the path to the final.
         </p>
         {champ && (
-          <div className="mt-3">
+          <div className="mt-4">
             <ShareBar
               text={`The model's projected World Cup 2026 champion: ${champ.name} (${forecastPct(champ.title)}). See the full bracket:`}
               path="/bracket"
             />
           </div>
         )}
-      </div>
+      </header>
       <Bracket
         matches={matches}
         champion={data.teams[0] ? { code: data.teams[0].code, name: data.teams[0].name, prob: data.teams[0].title } : undefined}
