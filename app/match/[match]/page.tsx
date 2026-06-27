@@ -115,26 +115,35 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       </div>
       <div className="text-muted-foreground mt-1 text-sm"><LocalTime utc={m.utc} mode="datetime" /> · {m.venue}, {m.city}</div>
 
-      {/* Scoreboard header: teams flank a centered score (no dead center void) */}
-      <div className="bg-surface-raised border-border-strong mt-6 flex items-center justify-center gap-2 rounded-2xl border p-6 sm:gap-5">
-        <ScoreTeam m={m} side="home" />
-        <div className="flex shrink-0 flex-col items-center gap-1.5 px-1">
-          {m.status === "final" || m.status === "live" ? (
-            <span className="font-display text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
-              {m.homeScore}<span className="text-muted-2 mx-1.5">–</span>{m.awayScore}
-            </span>
-          ) : (
-            <span className="text-muted-foreground font-display text-2xl">vs</span>
-          )}
-          {m.status === "final" ? (
-            <span className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Full time</span>
-          ) : m.status === "live" ? (
-            <span className="text-live inline-flex items-center gap-1.5 text-xs font-semibold">
-              <span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail}
-            </span>
-          ) : null}
+      {/* Hero: the matchup, with the model's win-probability built right in for an upcoming game — the
+          prediction IS the hero, no separate section needed. */}
+      <div className="bg-surface-raised border-border-strong mt-6 rounded-2xl border p-6">
+        <div className="flex items-center justify-center gap-2 sm:gap-5">
+          <ScoreTeam m={m} side="home" />
+          <div className="flex shrink-0 flex-col items-center gap-1.5 px-1">
+            {m.status === "final" || m.status === "live" ? (
+              <span className="font-display text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+                {m.homeScore}<span className="text-muted-2 mx-1.5">–</span>{m.awayScore}
+              </span>
+            ) : (
+              <span className="text-muted-foreground font-display text-2xl">vs</span>
+            )}
+            {m.status === "final" ? (
+              <span className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Full time</span>
+            ) : m.status === "live" ? (
+              <span className="text-live inline-flex items-center gap-1.5 text-xs font-semibold">
+                <span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail}
+              </span>
+            ) : null}
+          </div>
+          <ScoreTeam m={m} side="away" />
         </div>
-        <ScoreTeam m={m} side="away" />
+        {state === "defined" && m.probs && (
+          <div className="border-border/60 mt-5 border-t pt-4">
+            <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
+            {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-xs">Regulation odds; knockout ties are settled by extra time and penalties.</p>}
+          </div>
+        )}
       </div>
 
       {heat?.hot && (
@@ -183,23 +192,17 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
         </section>
       )}
 
-      {(state === "defined" || state === "live") && m.probs && (
+      {state === "live" && m.probs && (
         <section className="mt-6">
           <h2 className="text-muted-foreground mb-2 text-xs font-semibold font-mono tracking-wide uppercase">
-            {state === "live" ? "Pre-match win probability" : "Win probability"}
+            Pre-match win probability
           </h2>
           <div className="border-border bg-card rounded-2xl border p-4">
-            {state === "live" && (
-              <p className="text-live mb-3 text-xs font-medium">
-                Live: {m.homeName} {m.homeScore}–{m.awayScore} {m.awayName} · {m.liveDetail}
-              </p>
-            )}
+            <p className="text-live mb-3 text-xs font-medium">
+              Live: {m.homeName} {m.homeScore}–{m.awayScore} {m.awayName} · {m.liveDetail}
+            </p>
             <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
-            {state === "live" ? (
-              <p className="text-muted-2 mt-4 text-xs">The full tournament forecast updates once the match is final.</p>
-            ) : m.round !== "GROUP" ? (
-              <p className="text-muted-2 mt-4 text-xs">Regulation result; knockout ties are decided by extra time and penalties.</p>
-            ) : null}
+            <p className="text-muted-2 mt-4 text-xs">The full tournament forecast updates once the match is final.</p>
           </div>
         </section>
       )}
