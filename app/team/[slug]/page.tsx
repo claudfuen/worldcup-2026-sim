@@ -10,6 +10,7 @@ import { ShareBar } from "@/components/share-bar";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { LocalTime } from "@/components/local-time";
 import { AdvanceBadge } from "@/components/view/advance-badge";
+import { R32ByFinish } from "@/components/r32-by-finish";
 import { teamAdvanceDisplay } from "@/lib/view/advance";
 import { isClinched } from "@/lib/view/types";
 import { forecastPct } from "@/lib/format";
@@ -62,7 +63,6 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   const fixtures = overlaid
     .filter((m) => m.round === "GROUP" && (m.home === team.code || m.away === team.code))
     .sort((a, b) => a.utc.localeCompare(b.utc));
-  const opp = (data.r32Opponents[team.code] ?? [])[0];
 
   const advancePct = pred ? forecastPct(pred.advance) : "-";
   const titlePct = pred ? forecastPct(pred.title) : "-";
@@ -142,6 +142,8 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
         </section>
       )}
 
+      {pred && !advanceOut && <R32ByFinish matches={overlaid} group={team.group} pred={pred} />}
+
       {groupView && (
         <section className="mt-8">
           <div className="mb-3 flex items-baseline justify-between">
@@ -174,11 +176,6 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
               </tbody>
             </table>
           </div>
-          {opp && !advanceOut && (
-            <p className="text-muted-2 mt-3 text-xs">
-              Most likely Round-of-32 opponent: <Link href={`/team/${teamSlug(opp.name)}`} className="text-foreground/80 hover:text-primary hover:underline">{opp.name}</Link> ({forecastPct(opp.prob)}).
-            </p>
-          )}
         </section>
       )}
 
