@@ -310,7 +310,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
                 <WinProbBar home={liveProbs.home} draw={liveProbs.draw} away={liveProbs.away} homeName={m.homeName!} awayName={m.awayName!} />
                 {liveProbs.advance && (
                   <p className="text-muted-2 mt-3 text-xs">
-                    {t("match.liveAdvance", { home: m.homeName, homePct: pct(liveProbs.advance.home), away: m.awayName, awayPct: pct(liveProbs.advance.away) })}
+                    {t("match.liveAdvance", { home: m.homeName, homePct: forecastPct(liveProbs.advance.home), away: m.awayName, awayPct: forecastPct(liveProbs.advance.away) })}
                   </p>
                 )}
                 {/* The pre-match line, for comparison */}

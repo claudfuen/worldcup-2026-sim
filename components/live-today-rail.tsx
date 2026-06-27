@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { useViewerZone } from "@/lib/useViewerZone";
-import { fmtTime, fmtDay, fmtDayKey, pct } from "@/lib/format";
+import { fmtTime, fmtDay, fmtDayKey, pct, forecastPct } from "@/lib/format";
 import { HotBadge } from "@/components/hot-badge";
 import { useT, type TFunction } from "@/lib/i18n/provider";
 import { useLocale } from "@/lib/i18n/client";
@@ -142,8 +142,29 @@ function LiveRow({ m, t, locale }: { m: MatchInfo; t: TFunction; locale: Locale 
           <span className="bg-live size-2 animate-pulse rounded-full" />{m.liveDetail ?? t("home.liveUpper")}
         </span>
       </div>
-      {m.favorite && <div className="text-muted-2 mt-1 truncate text-[11px]">{t("home.preMatch", { name: m.favorite.name, pct: pct(m.favorite.winProb) })}</div>}
+      <LiveOdds m={m} t={t} />
     </Link>
+  );
+}
+
+// For an in-progress match: the model's CURRENT win probability (conditioned on the live score + minute)
+// led primary, with the pre-match favorite kept beneath for context. Falls back to pre-match only when the
+// live read isn't available (unknown clock).
+function LiveOdds({ m, t }: { m: MatchInfo; t: TFunction }) {
+  const lp = m.liveProbs;
+  const live = lp ? (lp.home >= lp.away ? { name: m.homeName, p: lp.home } : { name: m.awayName, p: lp.away }) : null;
+  return (
+    <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[11px]">
+      {live && (
+        <span className="text-foreground/80 truncate">
+          {/* forecastPct: never show a live match as 100% — cap at 99% (it can still swing) */}
+          {t("home.liveProb", { name: live.name, pct: forecastPct(live.p) })}
+        </span>
+      )}
+      {m.favorite && (
+        <span className="text-muted-2 truncate">{t("home.preMatch", { name: m.favorite.name, pct: pct(m.favorite.winProb) })}</span>
+      )}
+    </div>
   );
 }
 

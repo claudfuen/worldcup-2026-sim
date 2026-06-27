@@ -1,4 +1,4 @@
-import { pct } from "@/lib/format";
+import { forecastPct } from "@/lib/format";
 import { getT } from "@/lib/i18n/server";
 
 // A single 100%-wide stacked bar (home | draw | away) - no empty track. Home reads as the model/forecast
@@ -43,7 +43,9 @@ function Legend({ dot, name, value, align }: { dot: string; name: string; value:
         <span className="text-muted-foreground truncate text-xs">{name}</span>
         {isRight && <span className={`size-2 shrink-0 rounded-full ${dot}`} aria-hidden />}
       </div>
-      <div className="mt-0.5 font-mono text-base font-semibold tabular-nums">{pct(value)}</div>
+      {/* forecastPct (not pct): a win probability is never definitive — cap at 99%, never round to 100%,
+          and show "<1%" for a marginal chance rather than 0% (a live match can always still swing). */}
+      <div className="mt-0.5 font-mono text-base font-semibold tabular-nums">{forecastPct(value)}</div>
     </div>
   );
 }

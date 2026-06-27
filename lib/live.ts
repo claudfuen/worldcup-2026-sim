@@ -95,6 +95,16 @@ export function liveMatchProbs(m: MatchInfo, ratings: Ratings): LiveProbs | null
   return out;
 }
 
+// Attach the current (live-conditioned) W/D/L to every in-progress match, so client components that lack the
+// ratings can still show a live win probability. A render-time enrichment (not stored in KV); a no-op for
+// matches that aren't live or whose clock is unknown.
+export function attachLiveProbs(matches: MatchInfo[], ratings: Ratings): MatchInfo[] {
+  return matches.map((m) => {
+    const lp = liveMatchProbs(m, ratings);
+    return lp ? { ...m, liveProbs: { home: lp.home, draw: lp.draw, away: lp.away } } : m;
+  });
+}
+
 // Safety bound: keep auto-refreshing for at most 6h after a match's kickoff while the model catches up,
 // so an ESPN/ingestion edge case can never pin a tab into refreshing forever.
 const RECENT_FINAL_WINDOW_MS = 6 * 60 * 60 * 1000;

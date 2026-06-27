@@ -1,5 +1,5 @@
 import { getPredictions } from "@/lib/getPredictions";
-import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
+import { getLiveMatches, overlayLive, liveActivity, attachLiveProbs } from "@/lib/live";
 import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { MastheadVerdict } from "@/components/masthead-verdict";
@@ -23,10 +23,12 @@ export const revalidate = 0;
 export default async function Page() {
   const t = await getT();
   const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
-  const matches = overlayLive(data.matches, live);
+  const ratings = ratingsFromTeams(data.teams);
+  // Overlay live scores, then attach the current (live-conditioned) win probability to each in-progress match.
+  const matches = attachLiveProbs(overlayLive(data.matches, live), ratings);
   const hasLive = liveActivity(data.matches, live);
   // Finalize group clinch from results known right now, so the watch plan's decider signal is live-accurate.
-  const groups = hasLive ? finalizeGroups(data.groups, matches, ratingsFromTeams(data.teams)) : data.groups;
+  const groups = hasLive ? finalizeGroups(data.groups, matches, ratings) : data.groups;
   // Live-accurate group progress for the stage tracker (counts group finals as they land, ahead of cron).
   const groupPlayed = matches.filter((m) => m.round === "GROUP" && m.status === "final").length;
   // Hot-match reasons, so today's worth-watching games are badged in the live rail (consistent with the plan).

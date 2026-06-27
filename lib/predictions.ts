@@ -2,9 +2,9 @@
 import { fetchResults, liveRatings, preMatchRatingsByPair, buildGroupMatches, GROUP_STAGE_END, type FetchedMatch, type LiveMatch } from "./espn";
 import { runMonteCarlo } from "./sim/simulate";
 import { rankThirds, selectAndAssignThirds, lockedThirdSlots, type ThirdTeam } from "./sim/thirdPlace";
-import { resolveKnockoutResults, type GroupOutcome, type KOPlayed } from "./sim/knockout";
+import { resolveKnockoutResults, type GroupOutcome, type KOPlayed, type KOLive } from "./sim/knockout";
 import { rankGroup } from "./sim/standings";
-import { wdlProbs, eloToLambdas, scorelineDist } from "./sim/poisson";
+import { wdlProbs, eloToLambdas, scorelineDist, fracRemaining } from "./sim/poisson";
 import { hostEloBoost } from "./sim/hosts";
 import { buildGroupViews, lockedSlotsFromGroups } from "./groupView";
 import { TEAM_BY_CODE, TEAMS, GROUPS } from "./data/teams";
@@ -63,6 +63,7 @@ export interface MatchInfo {
   winner?: string; // advancing team of a completed knockout match (set even when decided on penalties)
   liveDetail?: string; // clock/state for in-progress matches, e.g. "45'+3'"
   liveMinute?: number; // parsed elapsed minute for an in-progress match (drives live win-probability)
+  liveProbs?: { home: number; draw: number; away: number }; // CURRENT W/D/L given the live score + minute (render-time)
   // forecast for DEFINED matches only
   favorite?: { code: string; name: string; winProb: number };
   probs?: { home: number; draw: number; away: number };
@@ -174,7 +175,17 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
   for (const [mn, code] of Object.entries(koWinners)) koSlotTeam[`W${mn}`] = code;
   for (const [mn, code] of Object.entries(koLosers)) koSlotTeam[`L${mn}`] = code;
 
-  const sim = runMonteCarlo(groupMatches, ratings, iterations, seed, koWinners);
+  // In-progress KNOCKOUT matches: condition advancement on the live score so it propagates downstream
+  // (group-stage live matches are handled by buildGroupMatches above; KO matches are split off by date).
+  const koLive: KOLive = {};
+  for (const l of live) {
+    if (l.state !== "in" || l.minute == null || l.date.slice(0, 10) <= GROUP_STAGE_END) continue;
+    koLive[[l.homeCode, l.awayCode].sort().join("-")] = {
+      homeCode: l.homeCode, homeScore: l.homeGoals, awayScore: l.awayGoals, frac: fracRemaining(l.minute),
+    };
+  }
+
+  const sim = runMonteCarlo(groupMatches, ratings, iterations, seed, koWinners, koLive);
 
   const teams: TeamPrediction[] = Object.values(sim.teams)
     .map((t) => {

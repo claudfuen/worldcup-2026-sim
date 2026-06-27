@@ -97,6 +97,7 @@
     "moreCount": "+{n} more →",
     "liveUpper": "LIVE",
     "preMatch": "pre-match: {name} {pct}",
+    "liveProb": "live: {name} {pct}",
     "lastNight": "Last night",
     "versusShort": "v",
     "ft": "FT",

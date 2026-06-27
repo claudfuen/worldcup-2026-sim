@@ -3,8 +3,13 @@
 import { KNOCKOUT } from "../data/bracket";
 import { SCHEDULE_BY_MATCH } from "../data/schedule";
 import type { Ratings } from "./types";
-import { koAdvanceProb } from "./poisson";
+import { koAdvanceProb, liveKoAdvance } from "./poisson";
 import { hostEloBoost } from "./hosts";
+
+// A live (in-progress) knockout match, keyed by its sorted team-pair. The Monte Carlo conditions that
+// match's advancement on the current score + time left instead of a fresh pre-match read, so a live KO
+// result propagates to the rest of the bracket.
+export type KOLive = Record<string, { homeCode: string; homeScore: number; awayScore: number; frac: number }>;
 
 export interface GroupOutcome {
   // group letter -> [1st code, 2nd code, 3rd code, 4th code]
@@ -95,6 +100,7 @@ export function simulateKnockout(
   ratings: Ratings,
   rand: () => number,
   decided: Record<number, string> = {}, // match -> ACTUAL winner (already played); overrides the simulated result
+  liveKO: KOLive = {}, // in-progress KO matches (by sorted pair): advance conditioned on the live score
 ): KnockoutResult {
   const winners: Record<number, string> = {};
   const losers: Record<number, string> = {};
@@ -126,9 +132,25 @@ export function simulateKnockout(
     if (m.round === "F") { reached.F.add(home); reached.F.add(away); }
     lineups[m.match] = [home, away];
     if (m.round === "3P") continue; // third-place playoff doesn't affect our tallies
-    // A match that has actually been played is fixed to its real winner; everything else is simulated.
+    // Played -> fixed to its real winner. In-progress -> advancement conditioned on the live score + time
+    // left. Otherwise simulated fresh.
     const dw = decided[m.match];
-    const w = dw === home || dw === away ? dw : playKO(home, away, ratings, rand, SCHEDULE_BY_MATCH[m.match]?.venue ?? "");
+    let w: string;
+    if (dw === home || dw === away) {
+      w = dw;
+    } else {
+      const venue = SCHEDULE_BY_MATCH[m.match]?.venue ?? "";
+      const lk = liveKO[[home, away].sort().join("-")];
+      if (lk) {
+        const orient = lk.homeCode === home;
+        const hg = orient ? lk.homeScore : lk.awayScore;
+        const ag = orient ? lk.awayScore : lk.homeScore;
+        const diff = (ratings[home] ?? 1500) - (ratings[away] ?? 1500) + hostEloBoost(home, venue) - hostEloBoost(away, venue);
+        w = rand() < liveKoAdvance(diff, hg, ag, lk.frac) ? home : away;
+      } else {
+        w = playKO(home, away, ratings, rand, venue);
+      }
+    }
     winners[m.match] = w;
     losers[m.match] = w === home ? away : home;
   }

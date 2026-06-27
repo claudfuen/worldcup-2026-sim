@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { buildGroupMatches, type LiveMatch } from "../lib/espn";
 import { runMonteCarlo } from "../lib/sim/simulate";
+import { simulateKnockout, type KOLive } from "../lib/sim/knockout";
+import { fracRemaining } from "../lib/sim/poisson";
+import { mulberry32 } from "../lib/sim/rng";
+import { KNOCKOUT } from "../lib/data/bracket";
 import { TEAMS } from "../lib/data/teams";
 
 const ratings = Object.fromEntries(TEAMS.map((t) => [t.code, t.rating]));
@@ -47,6 +51,25 @@ describe("live-conditioned Monte Carlo", () => {
     const base = winGroup([]);
     const kickoff = winGroup([liveMatch(0, 0, 1)]);
     expect(Math.abs(kickoff - base)).toBeLessThan(0.05);
+  });
+
+  it("a live KNOCKOUT match conditions its advancement (and propagates downstream)", () => {
+    const r32matches = KNOCKOUT.filter((m) => m.round === "R32").map((m) => m.match);
+    const codes = TEAMS.map((t) => t.code).slice(0, r32matches.length * 2);
+    const r32: Record<number, [string, string]> = {};
+    r32matches.forEach((mn, i) => (r32[mn] = [codes[2 * i], codes[2 * i + 1]]));
+    const mn = r32matches[0];
+    const [H, A] = r32[mn];
+    const homeWinRate = (liveKO: KOLive) => {
+      const rand = mulberry32(5);
+      let c = 0;
+      for (let i = 0; i < 2500; i++) if (simulateKnockout(r32, ratings, rand, {}, liveKO).winners[mn] === H) c++;
+      return c / 2500;
+    };
+    const base = homeWinRate({});
+    const leading = homeWinRate({ [[H, A].sort().join("-")]: { homeCode: H, homeScore: 3, awayScore: 0, frac: fracRemaining(88) } });
+    expect(leading).toBeGreaterThan(0.95); // 3-0 with minutes left -> almost certainly through
+    expect(leading).toBeGreaterThan(base);
   });
 
   it("a live match with an unknown clock is frozen at its current score (counted as played)", () => {

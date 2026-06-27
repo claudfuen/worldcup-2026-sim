@@ -2,7 +2,7 @@
 import type { GroupMatch, Ratings } from "./types";
 import { rankGroup } from "./standings";
 import { selectAndAssignThirds, type ThirdTeam } from "./thirdPlace";
-import { buildR32, simulateKnockout, type GroupOutcome } from "./knockout";
+import { buildR32, simulateKnockout, type GroupOutcome, type KOLive } from "./knockout";
 import { sampleScoreline, sampleRemainingScoreline } from "./poisson";
 import { mulberry32, gaussian } from "./rng";
 import { hostEloBoost } from "./hosts";
@@ -50,6 +50,7 @@ export function runMonteCarlo(
   iterations: number,
   seed = 12345,
   koWinners: Record<number, string> = {}, // actual knockout results: each iteration fixes these matches to their real winner
+  koLive: KOLive = {}, // in-progress knockout matches: advancement conditioned on the live score
 ): SimResult {
   const rand = mulberry32(seed);
   const teams: Record<string, TeamProb> = {};
@@ -107,7 +108,7 @@ export function runMonteCarlo(
       r32Opp[a][h] = (r32Opp[a][h] ?? 0) + 1;
     }
 
-    const ko = simulateKnockout(r32, pr, rand, koWinners);
+    const ko = simulateKnockout(r32, pr, rand, koWinners, koLive);
     for (const [mn, [h, a]] of Object.entries(ko.lineups)) {
       const m = Number(mn);
       if (!matchAgg[m]) matchAgg[m] = { home: {}, away: {} };
