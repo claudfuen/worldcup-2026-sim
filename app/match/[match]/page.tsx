@@ -413,7 +413,8 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
       </div>
     );
   }
-  const rest = cands.slice(1).filter((c) => c.prob >= 0.05).slice(0, 2);
+  // The projected occupant is shown big; the next three contenders sit beneath as "if not" alternates.
+  const rest = cands.slice(1).filter((c) => c.prob >= 0.02).slice(0, 3);
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
       <div className="text-muted-2 max-w-full truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
@@ -428,7 +429,16 @@ function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
         <div className="text-foreground/90 mt-2 font-mono text-sm font-semibold tabular-nums">{pct(Math.min(top.prob, 0.99))} <span className="text-muted-2 font-normal">to reach</span></div>
       </div>
       {rest.length > 0 && (
-        <div className="text-muted-2 text-xs text-pretty">or {rest.map((r) => `${r.name} ${pct(Math.min(r.prob, 0.99))}`).join(" · ")}</div>
+        <div className="border-border/50 mt-1 w-full max-w-[11rem] space-y-1.5 border-t pt-3">
+          <div className="text-muted-2 font-mono text-[9px] font-semibold tracking-wide uppercase">If not</div>
+          {rest.map((r) => (
+            <Link key={r.code} href={`/team/${teamSlug(r.name)}`} className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors">
+              <Flag code={r.code} size={14} />
+              <span className="min-w-0 flex-1 truncate text-left">{r.name}</span>
+              <span className="shrink-0 font-mono tabular-nums">{pct(Math.min(r.prob, 0.99))}</span>
+            </Link>
+          ))}
+        </div>
       )}
     </div>
   );
