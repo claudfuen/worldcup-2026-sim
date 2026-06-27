@@ -13,7 +13,6 @@ import { ProvisionalStandings } from "@/components/provisional-standings";
 import { WinProbBar } from "@/components/win-prob-bar";
 import { MatchOutlook } from "@/components/match-outlook";
 import { BracketPath } from "@/components/bracket-path";
-import { ProbMeter } from "@/components/prob-meter";
 import { ShareBar } from "@/components/share-bar";
 import { computeWatchability } from "@/lib/watchability";
 import { TicketLink } from "@/components/ticket-link";
@@ -134,10 +133,10 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
           inline (like the bracket cards) — no thin "likely X%" + redundant repeat. */}
       <section className="bg-surface-raised border-border-strong mt-5 rounded-2xl border px-5 py-7 sm:px-10 sm:py-9">
         {state === "undefined" ? (
-          <div className="mx-auto grid max-w-2xl grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-6">
-            <div className="w-full max-w-[15rem] justify-self-center"><HeroSlot m={m} side="home" /></div>
-            <span className="text-muted-foreground font-display self-center text-2xl sm:text-3xl" aria-hidden>v</span>
-            <div className="w-full max-w-[15rem] justify-self-center"><HeroSlot m={m} side="away" /></div>
+          <div className="flex items-start justify-center gap-5 sm:gap-12">
+            <HeroSlot m={m} side="home" />
+            <span className="text-muted-foreground font-display self-center text-3xl sm:text-4xl" aria-hidden>v</span>
+            <HeroSlot m={m} side="away" />
           </div>
         ) : (
           <div className="flex items-center justify-center gap-5 sm:gap-12">
@@ -382,47 +381,55 @@ function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   );
 }
 
-// One side of a PREDICTED matchup in the hero: a clinched team (editorial, ✓) or the slot's contender
-// race — top teams with prob bars, mirroring the bracket cards. Every row links to a team page.
+// One side of a PREDICTED matchup hero. Mirrors the settled side (big flag + name) so both heroes feel
+// the same, but the headline is the projected team's chance of filling this slot — with a probability bar
+// and the next-most-likely alternate beneath. A clinched side (partially-decided tie) shows a ✓ instead.
 function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   const resolved = side === "home" ? m.home : m.away;
   const name = side === "home" ? m.homeName : m.awayName;
   const slot = side === "home" ? m.slotHome : m.slotAway;
   const cands = (side === "home" ? m.projHome : m.projAway) ?? [];
-  const third = !!slot?.startsWith("3:");
 
   if (resolved && name) {
     return (
-      <div className="min-w-0">
-        <div className="text-win/80 mb-3 font-mono text-[10px] font-semibold tracking-wide uppercase">Confirmed</div>
-        <Link href={`/team/${teamSlug(name)}`} className="hover:bg-muted/30 -mx-2 flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors">
-          <Flag code={resolved} size={26} />
-          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{name}</span>
-          <span className="text-win shrink-0 text-sm font-bold" title="Confirmed">✓</span>
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
+        <div className="text-muted-2 max-w-full truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
+        <Link href={`/team/${teamSlug(name)}`} className="flex flex-col items-center gap-3 transition-opacity hover:opacity-80">
+          <Flag code={resolved} size={64} />
+          <div className="font-display text-xl leading-tight font-semibold text-balance sm:text-2xl">{name}</div>
         </Link>
+        <div className="text-win inline-flex items-center gap-1 font-mono text-[11px] font-semibold tracking-wide uppercase">✓ Confirmed</div>
       </div>
     );
   }
 
-  const list = cands.filter((c) => c.prob >= 0.05).slice(0, 3);
-  const shown = list.length ? list : cands.slice(0, 1);
-  return (
-    <div className="min-w-0">
-      <div className="text-muted-2 mb-3 truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
-      <div className="space-y-1">
-        {shown.length === 0 ? (
-          <span className="text-muted-2 text-sm">To be decided</span>
-        ) : (
-          shown.map((c) => (
-            <Link key={c.code} href={`/team/${teamSlug(c.name)}`} className="hover:bg-muted/30 -mx-2 flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors">
-              <Flag code={c.code} size={24} />
-              {third && <span className="text-muted-2 shrink-0 font-mono text-[8px] font-semibold tracking-wide uppercase">3rd</span>}
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name}</span>
-              <ProbMeter p={c.prob} width={32} className="text-muted-foreground shrink-0 text-xs" />
-            </Link>
-          ))
-        )}
+  const top = cands[0];
+  if (!top) {
+    return (
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center">
+        <div className="text-muted-2 max-w-full truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
+        <Flag code={null} size={64} />
+        <div className="text-muted-2 text-sm">To be decided</div>
       </div>
+    );
+  }
+  const rest = cands.slice(1).filter((c) => c.prob >= 0.05).slice(0, 2);
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
+      <div className="text-muted-2 max-w-full truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
+      <Link href={`/team/${teamSlug(top.name)}`} className="flex flex-col items-center gap-3 transition-opacity hover:opacity-80">
+        <Flag code={top.code} size={64} />
+        <div className="font-display text-xl leading-tight font-semibold text-balance sm:text-2xl">{top.name}</div>
+      </Link>
+      <div className="w-full max-w-[11rem]">
+        <div className="bg-muted/50 h-1.5 overflow-hidden rounded-full">
+          <div className="bg-primary/80 h-full rounded-full" style={{ width: `${Math.round(Math.min(top.prob, 0.99) * 100)}%` }} />
+        </div>
+        <div className="text-foreground/90 mt-2 font-mono text-sm font-semibold tabular-nums">{pct(Math.min(top.prob, 0.99))} <span className="text-muted-2 font-normal">to reach</span></div>
+      </div>
+      {rest.length > 0 && (
+        <div className="text-muted-2 text-xs text-pretty">or {rest.map((r) => `${r.name} ${pct(Math.min(r.prob, 0.99))}`).join(" · ")}</div>
+      )}
     </div>
   );
 }
