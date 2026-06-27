@@ -1,7 +1,6 @@
 import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { ScheduleList } from "@/components/schedule-list";
-import { MatchesToWatch } from "@/components/matches-to-watch";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 
 export const runtime = "nodejs";
@@ -32,7 +31,6 @@ export default async function SchedulePage() {
           show the model favorite.
         </p>
       </div>
-      <MatchesToWatch matches={matches} teams={data.teams} groups={data.groups} className="mb-8" />
       <ScheduleList matches={matches} />
     </main>
   );
