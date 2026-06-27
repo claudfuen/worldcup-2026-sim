@@ -7,6 +7,7 @@ import { GoogleAnalytics } from "@next/third-parties/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Nav } from "@/components/nav"
 import { ScoreTicker } from "@/components/score-ticker"
+import { AnalyticsListener } from "@/components/analytics-listener"
 import { getPredictions } from "@/lib/getPredictions"
 import { getLiveMatches, overlayLive } from "@/lib/live"
 import { cn } from "@/lib/utils";
@@ -111,6 +112,7 @@ export default async function RootLayout({
       <body className="bg-background text-foreground min-h-svh">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
         <ThemeProvider defaultTheme="dark" enableSystem={false}>
+          <AnalyticsListener />
           <Nav updatedAt={updatedAt} />
           <ScoreTicker items={tickerItems} />
           {children}

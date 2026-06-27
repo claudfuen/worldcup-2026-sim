@@ -1,11 +1,9 @@
-"use client";
-
 import { ticketUrl, hasTickets, TICKET_REL, TICKET_PROVIDER } from "@/lib/tickets";
-import { trackEvent } from "@/lib/analytics";
 
 // Single, centralized renderer for every ticket link on the site. Placement + UTM + rel + target all
-// flow through lib/tickets.ts, so monetizing later (affiliate wrapper) needs zero changes here. Every click
-// fires a `ticket_click` key event to both analytics backends (the headline outbound/commercial event).
+// flow through lib/tickets.ts, so monetizing later (affiliate wrapper) needs zero changes here. The
+// `data-evt="ticket_click"` markup is picked up by <AnalyticsListener> and routed to both analytics
+// backends (the headline outbound/commercial event) — no per-component tracking call needed.
 //
 // variant:
 //   "button" — prominent CTA (match page).
@@ -36,7 +34,8 @@ export function TicketLink({
   if (!hasTickets(matchNo)) return null;
   const href = ticketUrl(matchNo, placement);
   if (!href) return null;
-  const onClick = () => trackEvent("ticket_click", { match: matchNo, placement, provider: TICKET_PROVIDER });
+  // Declarative tracking — <AnalyticsListener> reads these on click.
+  const evt = { "data-evt": "ticket_click", "data-match": matchNo, "data-placement": placement, "data-provider": TICKET_PROVIDER };
 
   if (variant === "button") {
     return (
@@ -44,7 +43,7 @@ export function TicketLink({
         href={href}
         target="_blank"
         rel={TICKET_REL}
-        onClick={onClick}
+        {...evt}
         className={`border-primary/25 bg-primary/5 text-primary hover:border-primary/50 hover:bg-primary/10 inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors ${className}`}
       >
         <TicketIcon className="size-4 shrink-0" />
@@ -61,7 +60,7 @@ export function TicketLink({
       href={href}
       target="_blank"
       rel={TICKET_REL}
-      onClick={onClick}
+      {...evt}
       className={`text-muted-foreground hover:text-primary inline-flex shrink-0 items-center gap-1 text-xs transition-colors ${className}`}
       aria-label={`Find tickets for this match on ${TICKET_PROVIDER} (opens in a new tab)`}
     >
