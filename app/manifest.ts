@@ -16,6 +16,12 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "en",
     orientation: "portrait",
     categories: ["sports"],
+    // Lets getInstalledRelatedApps() report THIS PWA as installed, so we can stop prompting a user who
+    // already added it even when they're browsing in a normal tab (not the standalone app).
+    prefer_related_applications: false,
+    related_applications: [
+      { platform: "webapp", url: "https://worldcup2026predictions.app/manifest.webmanifest" },
+    ],
     icons: [
       { src: "/icon", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon", sizes: "512x512", type: "image/png", purpose: "maskable" },

@@ -9,6 +9,7 @@ import { Nav } from "@/components/nav"
 import { ScoreTicker } from "@/components/score-ticker"
 import { AnalyticsListener } from "@/components/analytics-listener"
 import { InstallPrompt } from "@/components/install-prompt"
+import { ServiceWorkerRegister } from "@/components/sw-register"
 import { getPredictions } from "@/lib/getPredictions"
 import { getLiveMatches, overlayLive } from "@/lib/live"
 import { cn } from "@/lib/utils";
@@ -119,6 +120,7 @@ export default async function RootLayout({
           {children}
           <InstallPrompt />
         </ThemeProvider>
+        <ServiceWorkerRegister />
         <Analytics />
       </body>
       <GoogleAnalytics gaId="G-8JXT39L2S9" />

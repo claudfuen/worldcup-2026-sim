@@ -13,7 +13,15 @@ const SESSIONS_KEY = "wc:sessions";
 const SESSION_GUARD = "wc:session-started";
 const SHOWN_SESSION_KEY = "wc:install-shown-session";
 const INSTALLED_KEY = "wc:installed";
-const COOLDOWN_MS = 2 * 60 * 60 * 1000; // after a dismiss, suppress for ~2h (so a new session re-prompts)
+const DISMISS_COUNT_KEY = "wc:install-dismiss-count";
+const HOUR = 60 * 60 * 1000;
+// Escalating back-off: pushy at first, but if they keep saying no we leave them alone.
+const COOLDOWN_MS = 2 * HOUR;
+function cooldownForDismissCount(n: number): number {
+  if (n >= 3) return 7 * 24 * HOUR; // 3+ refusals → effectively done (tournament is weeks long)
+  if (n === 2) return 12 * HOUR;
+  return COOLDOWN_MS;
+}
 export const OPEN_INSTALL_EVENT = "wc:open-install";
 
 function isInstalled(): boolean {
@@ -60,6 +68,28 @@ export function InstallPrompt() {
     } catch {
       /* storage blocked */
     }
+  }, []);
+
+  // Robust "already installed?" check (Android/Chrome): catches users who installed on a prior visit but
+  // are now in a normal tab (not standalone), so we never nag someone who already has the app.
+  useEffect(() => {
+    const nav = navigator as Navigator & { getInstalledRelatedApps?: () => Promise<unknown[]> };
+    if (typeof nav.getInstalledRelatedApps !== "function") return;
+    nav
+      .getInstalledRelatedApps()
+      .then((apps) => {
+        if (Array.isArray(apps) && apps.length > 0) {
+          try {
+            localStorage.setItem(INSTALLED_KEY, "1");
+          } catch {
+            /* ignore */
+          }
+          setShow(false);
+        }
+      })
+      .catch(() => {
+        /* unsupported */
+      });
   }, []);
 
   // Fired by the browser when the PWA is actually installed — record the conversion and never prompt again.
@@ -149,9 +179,9 @@ export function InstallPrompt() {
     };
   }, [show]);
 
-  function remember() {
+  function remember(cooldownMs: number) {
     try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now() + COOLDOWN_MS));
+      localStorage.setItem(DISMISS_KEY, String(Date.now() + cooldownMs));
     } catch {
       /* ignore */
     }
@@ -159,8 +189,15 @@ export function InstallPrompt() {
     setIosTip(false);
   }
   function dismiss() {
-    trackEvent("pwa_install_dismissed", { platform: isIos() ? "ios" : "android" });
-    remember();
+    let count = 1;
+    try {
+      count = Number(localStorage.getItem(DISMISS_COUNT_KEY) ?? "0") + 1;
+      localStorage.setItem(DISMISS_COUNT_KEY, String(count));
+    } catch {
+      /* ignore */
+    }
+    trackEvent("pwa_install_dismissed", { platform: isIos() ? "ios" : "android", dismiss_count: count });
+    remember(cooldownForDismissCount(count));
   }
   async function install() {
     if (deferred) {
@@ -168,7 +205,7 @@ export function InstallPrompt() {
       const choice = await deferred.userChoice.catch(() => undefined);
       trackEvent("pwa_install_choice", { platform: "android", outcome: choice?.outcome ?? "unknown" });
       setDeferred(null);
-      remember();
+      remember(7 * 24 * HOUR); // installed (or chose) → don't reappear; appinstalled also locks it out
     } else {
       // No native prompt (iOS, or a manual open without an install event) → show instructions.
       trackEvent("pwa_install_instructions", { platform: isIos() ? "ios" : "other" });
