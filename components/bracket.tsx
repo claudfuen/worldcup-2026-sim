@@ -20,7 +20,6 @@ const ORDER: Record<string, number[]> = {
 };
 const ROUNDS = ["R32", "R16", "QF", "SF", "FINAL"] as const;
 const ROUND_LABEL: Record<string, string> = { R32: "Round of 32", R16: "Round of 16", QF: "Quarter-finals", SF: "Semi-finals", FINAL: "Final" };
-const ROUND_SHORT: Record<string, string> = { R32: "R32", R16: "R16", QF: "QF", SF: "SF", FINAL: "Final" };
 
 export function Bracket({
   matches,
@@ -68,77 +67,38 @@ export function Bracket({
         )}
       </div>
 
-      {/* Mobile: a full tree doesn't fit a phone, so show one round at a time as a readable list. */}
-      <MobileRounds byMatch={byMatch} tickets={tickets} highlightCode={hl} champion={champion} />
-
-      {/* Desktop: the full connected tree. */}
-      <div className="hidden overflow-x-auto pb-4 md:block">
-        <div className="flex min-w-[1140px] items-stretch">
-          {ROUNDS.map((round, ri) => (
-            <Fragment key={round}>
-              <div className="flex min-w-[176px] flex-1 flex-col">
-                <div className="text-muted-foreground mb-3 h-4 px-1 text-[10px] font-semibold font-mono tracking-wide uppercase">
-                  {ROUND_LABEL[round]}
+      {/* One enclosed, horizontally-scrollable bracket: the border frames the scroll so it reads as
+          intentional on desktop, and on mobile the full connected tree is pannable by touch (edge fades
+          hint there's more) instead of being flattened into per-round tabs. */}
+      <div className="border-border bg-card/20 relative overflow-hidden rounded-2xl border">
+        <div className="overflow-x-auto overscroll-x-contain p-3 sm:p-4 [scrollbar-width:thin] [mask-image:linear-gradient(to_right,transparent,#000_1.25rem,#000_calc(100%-1.25rem),transparent)] md:[mask-image:none]">
+          <div className="flex min-w-[1100px] items-stretch">
+            {ROUNDS.map((round, ri) => (
+              <Fragment key={round}>
+                <div className="flex min-w-[168px] flex-1 flex-col">
+                  <div className="text-muted-foreground mb-3 h-4 px-1 font-mono text-[10px] font-semibold tracking-wide uppercase">
+                    {ROUND_LABEL[round]}
+                  </div>
+                  {round === "FINAL" && champion && <ChampionCard champion={champion} />}
+                  <div className="flex flex-1 flex-col gap-y-2.5">
+                    {ORDER[round].map((mn) => {
+                      const m = byMatch.get(mn);
+                      return (
+                        <div key={mn} className="flex flex-1 items-center">
+                          {m && <Node m={m} hasTicket={tickets.has(mn)} highlightCode={hl} final={round === "FINAL"} />}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                {round === "FINAL" && champion && <ChampionCard champion={champion} />}
-                <div className="flex flex-1 flex-col gap-y-2.5">
-                  {ORDER[round].map((mn) => {
-                    const m = byMatch.get(mn);
-                    return (
-                      <div key={mn} className="flex flex-1 items-center">
-                        {m && <Node m={m} hasTicket={tickets.has(mn)} highlightCode={hl} final={round === "FINAL"} />}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              {ri < ROUNDS.length - 1 && <Connectors count={ORDER[ROUNDS[ri + 1]].length} />}
-            </Fragment>
-          ))}
+                {ri < ROUNDS.length - 1 && <Connectors count={ORDER[ROUNDS[ri + 1]].length} />}
+              </Fragment>
+            ))}
+          </div>
         </div>
       </div>
+      <p className="text-muted-2 mt-2 text-center text-xs md:hidden">Swipe across to explore the full bracket</p>
     </>
-  );
-}
-
-function MobileRounds({
-  byMatch,
-  tickets,
-  highlightCode,
-  champion,
-}: {
-  byMatch: Map<number, MatchInfo>;
-  tickets: Set<number>;
-  highlightCode?: string;
-  champion?: { code: string; name: string; prob: number };
-}) {
-  const [round, setRound] = useState<(typeof ROUNDS)[number]>("R32");
-  return (
-    <div className="md:hidden">
-      <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
-        {ROUNDS.map((r) => (
-          <button
-            key={r}
-            onClick={() => setRound(r)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium ${
-              round === r ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
-            }`}
-          >
-            {ROUND_SHORT[r]}
-          </button>
-        ))}
-      </div>
-      <div className="text-muted-foreground mb-2.5 px-0.5 text-[10px] font-semibold font-mono tracking-wide uppercase">
-        {ROUND_LABEL[round]}
-      </div>
-      <div className="space-y-2.5">
-        {round === "FINAL" && champion && <ChampionCard champion={champion} />}
-        {ORDER[round].map((mn) => {
-          const m = byMatch.get(mn);
-          return m ? <Node key={mn} m={m} hasTicket={tickets.has(mn)} highlightCode={highlightCode} big final={round === "FINAL"} /> : null;
-        })}
-      </div>
-    </div>
   );
 }
 
