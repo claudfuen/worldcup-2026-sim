@@ -1,6 +1,6 @@
 import { Space_Grotesk, Geist_Mono, Inter } from "next/font/google"
 
-import "./globals.css"
+import "../globals.css"
 import "flag-icons/css/flag-icons.min.css"
 import { Analytics } from "@vercel/analytics/next"
 import { GoogleAnalytics } from "@next/third-parties/google"
@@ -13,6 +13,7 @@ import { ServiceWorkerRegister } from "@/components/sw-register"
 import { getPredictions } from "@/lib/getPredictions"
 import { getLiveMatches, overlayLive } from "@/lib/live"
 import { cn } from "@/lib/utils";
+import { localeConfig } from "@/lib/i18n/config"
 import type { MatchInfo } from "@/lib/predictions"
 import type { Metadata, Viewport } from "next"
 
@@ -78,9 +79,14 @@ const fontMono = Geist_Mono({
 
 export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode
+  params: Promise<{ lang: string }>
 }>) {
+  const { lang } = await params
+  // The proxy guarantees lang is a valid locale here; localeConfig falls back to the default otherwise.
+  const cfg = localeConfig(lang)
   let updatedAt: string | null = null
   let tickerItems: MatchInfo[] = []
   try {
@@ -108,7 +114,8 @@ export default async function RootLayout({
   }
   return (
     <html
-      lang="en"
+      lang={cfg.hreflang}
+      dir={cfg.dir}
       suppressHydrationWarning
       className={cn("dark scheme-only-dark antialiased", fontMono.variable, display.variable, "font-sans", inter.variable)}
     >

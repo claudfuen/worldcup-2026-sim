@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "siteName": "World Cup Predictor",
+    "titleTemplate": "%s · World Cup Predictor",
+    "defaultTitle": "World Cup Predictor — 2026 World Cup Odds, Bracket & Champion %",
+    "description": "Monte Carlo predictions for the 2026 FIFA World Cup — group-winner odds, advancement, knockout-round and champion probabilities, updated live from real results."
+  },
+  "nav": {
+    "overview": "Overview",
+    "groups": "Groups",
+    "bracket": "Bracket",
+    "schedule": "Schedule",
+    "method": "Method",
+    "addToHome": "Add to home screen",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "language": "Language",
+    "homeAria": "World Cup Predictor — home"
+  },
+  "freshness": {
+    "updated": "Updated {rel}",
+    "justNow": "just now",
+    "minsAgo": "{n}m ago",
+    "hoursAgo": "{n}h ago",
+    "daysAgo": "{n}d ago",
+    "final": "Final"
+  },
+  "rounds": {
+    "GROUP": "Group stage",
+    "R32": "Round of 32",
+    "R16": "Round of 16",
+    "QF": "Quarter-finals",
+    "SF": "Semi-finals",
+    "FINAL": "Final",
+    "THIRD": "Third-place play-off",
+    "shortR32": "R32",
+    "shortR16": "R16",
+    "shortQF": "QF",
+    "shortSF": "SF",
+    "shortFinal": "Final",
+    "shortThird": "3rd",
+    "shortChamp": "Champ"
+  },
+  "common": {
+    "vs": "vs",
+    "tbd": "TBD",
+    "projected": "Projected",
+    "live": "Live",
+    "liveNow": "Live now",
+    "final": "Final",
+    "eliminated": "Eliminated",
+    "champion": "Champion",
+    "tickets": "Tickets",
+    "newTab": "opens in a new tab"
+  }
+}
