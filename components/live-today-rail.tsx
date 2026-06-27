@@ -42,8 +42,9 @@ export function LiveTodayRail({ matches, className = "" }: { matches: MatchInfo[
     );
   }
 
-  // Room for the full day plus a couple of last-night results, so the look-back survives a busy slate.
-  const CAP = 8;
+  // Room for the full day plus several last-night results — also lets the rail balance the homepage's
+  // right-hand snapshot column (stage/bracket/groups/title) so the dashboard's two columns end together.
+  const CAP = 10;
   const shownSlate = slate.slice(0, CAP);
   const hasLastNight = shownSlate.some((m) => m.status === "final" && fmtDayKey(m.utc, zone) === yest);
   const slateLabel = live.length > 0 ? "Also today" : hasLastNight ? "Today & last night" : "Today";

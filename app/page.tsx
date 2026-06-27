@@ -27,35 +27,30 @@ export default async function Page() {
   const groupPlayed = matches.filter((m) => m.round === "GROUP" && m.status === "final").length;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
 
-      {/* 1. The model's call — the signature, the most-important thing first */}
-      <header className="mb-6 max-w-3xl">
-        <MastheadVerdict teams={data.teams} iterations={data.iterations} />
-        <MoverStrip teams={data.teams} />
-      </header>
-
-      {/* 2. Where the whole tournament is right now */}
-      <TournamentStage matches={matches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} className="mb-10" />
-
-      {/* 3. What's happening now */}
-      <LiveTodayRail matches={matches} className="mb-10" />
-
-      {/* 4. What to watch next — the curated plan */}
-      <MatchesToWatch matches={matches} teams={data.teams} groups={groups} className="mb-10" />
-
-      {/* 5. Launchpad — dive into the bracket and the groups */}
-      <div className="mb-10 grid gap-4 sm:grid-cols-2">
-        <BracketTeaser matches={matches} teams={data.teams} />
-        <GroupsPreview groups={groups} />
+      {/* Dashboard: left = the call + live scores; right = a continuous snapshot rail (stage, bracket, groups) */}
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <div className="space-y-8 lg:col-span-2">
+          <header>
+            <MastheadVerdict teams={data.teams} iterations={data.iterations} />
+            <MoverStrip teams={data.teams} />
+          </header>
+          <LiveTodayRail matches={matches} />
+        </div>
+        <aside className="space-y-4">
+          <TournamentStage matches={matches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} />
+          <BracketTeaser matches={matches} teams={data.teams} />
+          <GroupsPreview groups={groups} />
+          <TitleOdds teams={data.teams} />
+        </aside>
       </div>
 
-      {/* 6. The title race in depth */}
-      <TitleOdds teams={data.teams} className="mb-10" />
+      {/* What to watch next — the curated plan */}
+      <MatchesToWatch matches={matches} teams={data.teams} groups={groups} className="mt-8" />
 
-      {/* 7. Launch anywhere + trust */}
-      <LaunchRail teams={data.teams} iterations={data.iterations} />
+      <LaunchRail teams={data.teams} iterations={data.iterations} className="mt-12" />
     </main>
   );
 }

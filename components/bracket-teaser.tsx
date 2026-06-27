@@ -44,7 +44,7 @@ function FinalSide({ code, name, reach, align }: { code: string | null; name: st
       <Flag code={code} size={26} />
       <div className="min-w-0">
         <div className="truncate text-sm font-semibold">{name}</div>
-        {reach != null && <div className="text-muted-2 font-mono text-[10px] tabular-nums">{pct(reach)} to reach final</div>}
+        {reach != null && <div className="text-muted-2 font-mono text-[10px] tabular-nums">{pct(reach)} to final</div>}
       </div>
     </div>
   );
