@@ -129,61 +129,76 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       </h1>
       <Breadcrumbs items={crumbs} />
 
-      {/* Top band: the matchup hero beside a match-facts rail — uses the width instead of a lonely column. */}
-      <div className="mt-4 grid items-stretch gap-5 lg:grid-cols-5">
-        {/* Hero: the matchup, with the model's win-probability built right in for an upcoming game. */}
-        <div className="bg-surface-raised border-border-strong flex flex-col justify-center rounded-2xl border p-6 lg:col-span-3">
-          <div className="flex items-center justify-center gap-2 sm:gap-5">
+      {/* The matchup IS the header — a big, full-width hero. Supporting facts/odds form the "tail" below.
+          A resolved tie shows the teams + score/win-prob; a PREDICTED tie shows each slot's contender race
+          inline (like the bracket cards) — no thin "likely X%" + redundant repeat. */}
+      <section className="bg-surface-raised border-border-strong mt-5 rounded-2xl border px-5 py-7 sm:px-10 sm:py-9">
+        {state === "undefined" ? (
+          <div className="mx-auto grid max-w-2xl grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-6">
+            <div className="w-full max-w-[15rem] justify-self-center"><HeroSlot m={m} side="home" /></div>
+            <span className="text-muted-foreground font-display self-center text-2xl sm:text-3xl" aria-hidden>v</span>
+            <div className="w-full max-w-[15rem] justify-self-center"><HeroSlot m={m} side="away" /></div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-5 sm:gap-12">
             <ScoreTeam m={m} side="home" />
-            <div className="flex shrink-0 flex-col items-center gap-1.5 px-1">
-              {m.status === "final" || m.status === "live" ? (
-                <span className="font-display text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
-                  {m.homeScore}<span className="text-muted-2 mx-1.5">–</span>{m.awayScore}
+            <div className="flex shrink-0 flex-col items-center gap-2 px-1">
+              {state === "final" || state === "live" ? (
+                <span className="font-display text-5xl font-bold tracking-tight tabular-nums sm:text-6xl">
+                  {m.homeScore}<span className="text-muted-2 mx-1.5 font-normal">–</span>{m.awayScore}
                 </span>
               ) : (
-                <span className="text-muted-foreground font-display text-2xl">vs</span>
+                <span className="text-muted-foreground font-display text-3xl sm:text-4xl">v</span>
               )}
-              {m.status === "final" ? (
-                <span className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">Full time</span>
-              ) : m.status === "live" ? (
+              {state === "final" ? (
+                <span className="text-muted-foreground font-mono text-[11px] font-semibold tracking-wide uppercase">Full time</span>
+              ) : state === "live" ? (
                 <span className="text-live inline-flex items-center gap-1.5 text-xs font-semibold">
                   <span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail}
                 </span>
-              ) : null}
+              ) : (
+                <span className="text-muted-2 font-mono text-[11px] tracking-wide uppercase" suppressHydrationWarning><LocalTime utc={m.utc} mode="day" /></span>
+              )}
             </div>
             <ScoreTeam m={m} side="away" />
           </div>
-          {state === "defined" && m.probs && (
-            <div className="border-border/60 mt-5 border-t pt-4">
-              <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
-              {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-xs">Regulation odds; knockout ties are settled by extra time and penalties.</p>}
-            </div>
-          )}
-        </div>
+        )}
+        {state === "defined" && m.probs && (
+          <div className="border-border/60 mx-auto mt-6 max-w-xl border-t pt-5">
+            <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={m.homeName!} awayName={m.awayName!} />
+            {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-center text-xs">Regulation odds; knockout ties are settled by extra time and penalties.</p>}
+          </div>
+        )}
+        {state === "undefined" && (
+          <p className="text-muted-2 border-border/60 mx-auto mt-7 max-w-2xl border-t pt-4 text-center text-xs text-pretty">
+            The model&apos;s most likely team for each slot, across {data.iterations.toLocaleString()} simulations.
+          </p>
+        )}
+      </section>
 
-        {/* Match facts rail */}
-        <aside className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border lg:col-span-2">
-          <FactRow label="Kickoff" value={<LocalTime utc={m.utc} mode="datetime" />} />
-          <FactRow label="Venue" value={`${m.venue}, ${m.city}`} />
-          <FactRow label="Stage" value={
+      {/* Facts strip — the tail: kickoff, venue, stage, watchability, and the ticket CTA. */}
+      <div className="border-border bg-card mt-4 rounded-2xl border p-4 sm:p-5">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+          <Fact label="Kickoff" value={<LocalTime utc={m.utc} mode="datetime" />} />
+          <Fact label="Venue" value={`${m.venue}, ${m.city}`} />
+          <Fact label="Stage" value={
             <>
               {m.round === "GROUP" && m.group ? (
-                <>Group stage · <Link href={`/group/${m.group.toLowerCase()}`} className="hover:text-primary underline-offset-2 hover:underline">Group {m.group}</Link></>
+                <Link href={`/group/${m.group.toLowerCase()}`} className="hover:text-primary underline-offset-2 hover:underline">Group {m.group}</Link>
               ) : (
                 <Link href="/bracket" className="hover:text-primary underline-offset-2 hover:underline">{ROUND_NAME[m.round]}</Link>
               )}
-              <span className="text-muted-2"> · Match {m.match}</span>
+              <span className="text-muted-2"> · M{m.match}</span>
             </>
           } />
-          <FactRow label="Status" value={state === "final" ? "Full time" : state === "live" ? `Live · ${m.liveDetail}` : "Upcoming"} />
-          {heat?.hot && <FactRow label="Worth watching" value={heat.reason} />}
-          {state !== "final" && state !== "live" && hasTickets(m.match) && (
-            <div className="p-3">
-              <TicketLink matchNo={m.match} placement="match_facts" variant="button" />
-              <p className="text-muted-2 mt-1.5 text-center text-[10px]">Resale via {TICKET_PROVIDER} · opens in a new tab</p>
-            </div>
-          )}
-        </aside>
+          <Fact label={heat?.hot ? "Worth watching" : "Status"} value={heat?.hot ? heat.reason : state === "final" ? "Full time" : state === "live" ? "Live now" : "Upcoming"} />
+        </div>
+        {state !== "final" && state !== "live" && hasTickets(m.match) && (
+          <div className="border-border/50 mt-4 flex flex-col gap-2.5 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-muted-2 text-xs">Tickets on the {TICKET_PROVIDER} resale market · opens in a new tab</p>
+            <TicketLink matchNo={m.match} placement="match_facts" variant="button" className="sm:w-auto sm:px-5" />
+          </div>
+        )}
       </div>
 
       <div className="mt-6 flex justify-center">
@@ -279,17 +294,6 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
         </section>
       )}
 
-      {state === "undefined" && (
-        <section className="mt-6">
-          <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">Who fills each slot</h2>
-          <div className="border-border bg-card flex rounded-2xl border">
-            <div className="min-w-0 flex-1 p-4 sm:p-5"><SlotColumn slot={m.slotHome} resolved={m.home} name={m.homeName} cands={m.projHome} /></div>
-            <div className="border-border/50 min-w-0 flex-1 border-l p-4 sm:p-5"><SlotColumn slot={m.slotAway} resolved={m.away} name={m.awayName} cands={m.projAway} /></div>
-          </div>
-          <p className="text-muted-2 mt-2 text-xs">How likely each contender is to fill the slot, across {data.iterations.toLocaleString()} simulations.</p>
-        </section>
-      )}
-
       <ExploreSection links={exploreLinks}>
         {m.round === "GROUP" && groupView ? (
           <GroupStandingMini group={groupView.group} teams={groupView.teams} />
@@ -344,76 +348,77 @@ function prettySlot(s?: string): string {
   return s;
 }
 
-function FactRow({ label, value }: { label: string; value: React.ReactNode }) {
+function Fact({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 px-4 py-2.5">
-      <span className="text-muted-2 shrink-0 font-mono text-[10px] font-semibold tracking-wide uppercase">{label}</span>
-      <span className="text-foreground/90 min-w-0 text-right text-sm">{value}</span>
+    <div className="min-w-0">
+      <div className="text-muted-2 mb-1 font-mono text-[10px] font-semibold tracking-wide uppercase">{label}</div>
+      <div className="text-foreground/90 text-sm leading-snug">{value}</div>
     </div>
   );
 }
 
+// One side of a RESOLVED matchup (defined/live/final): flag + team name, linking to the team page. The
+// winner is tinted green, the loser muted. Predicted (unresolved) ties use <HeroSlot> instead.
 function ScoreTeam({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
   const resolved = side === "home" ? m.home : m.away;
   const name = side === "home" ? m.homeName : m.awayName;
-  const slot = side === "home" ? m.slotHome : m.slotAway;
-  const top = (side === "home" ? m.projHome : m.projAway)?.[0];
-  const hasScore = m.status === "final" || m.status === "live";
-  const score = hasScore ? (side === "home" ? m.homeScore : m.awayScore) : undefined;
-  const other = hasScore ? (side === "home" ? m.awayScore : m.homeScore) : undefined;
-  // The advancing team: ESPN's winner flag when present (covers penalty wins, where the score is level),
-  // else the higher score. Never marked while live.
+  const score = side === "home" ? m.homeScore : m.awayScore;
+  const other = side === "home" ? m.awayScore : m.homeScore;
   const win = m.status === "final" && (m.winner ? m.winner === resolved : score != null && other != null && score > other);
+  const lose = m.status === "final" && m.winner != null && !win;
+  if (!resolved || !name) {
+    return (
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center">
+        <Flag code={null} size={64} />
+        <div className="text-muted-2 text-sm">TBD</div>
+      </div>
+    );
+  }
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
-      {resolved && name ? (
-        <Link href={`/team/${teamSlug(name)}`} className="flex flex-col items-center gap-2 hover:underline">
-          <Flag code={resolved} size={44} />
-          <div className={`leading-tight font-semibold ${win ? "text-win" : ""}`}>{name}</div>
-        </Link>
-      ) : (
-        <>
-          {/* Unresolved slot: show the model's most-likely occupant's flag, dimmed, instead of an empty box. */}
-          <span className={top ? "opacity-65" : ""}><Flag code={top?.code ?? null} size={44} /></span>
-          <div className="min-w-0">
-            <div className="text-foreground/80 truncate text-sm font-medium">{prettySlot(slot)}</div>
-            {top && <div className="text-muted-2 mt-0.5 truncate text-xs">likely {top.name} {pct(Math.min(top.prob, 0.99))}</div>}
-          </div>
-        </>
-      )}
-    </div>
+    <Link href={`/team/${teamSlug(name)}`} className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center transition-opacity hover:opacity-80">
+      <Flag code={resolved} size={64} />
+      <div className={`font-display text-xl leading-tight font-semibold text-balance sm:text-2xl ${win ? "text-win" : lose ? "text-muted-foreground" : ""}`}>{name}</div>
+    </Link>
   );
 }
 
-// One side of an unconfirmed match: a clinched team rendered editorial (flag + bold name + ✓), or the
-// race for the slot — the top contenders with prob bars, mirroring the bracket's contender stack.
-function SlotColumn({ slot, resolved, name, cands }: { slot?: string; resolved: string | null; name: string | null; cands?: { code: string; name: string; prob: number }[] }) {
+// One side of a PREDICTED matchup in the hero: a clinched team (editorial, ✓) or the slot's contender
+// race — top teams with prob bars, mirroring the bracket cards. Every row links to a team page.
+function HeroSlot({ m, side }: { m: MatchInfo; side: "home" | "away" }) {
+  const resolved = side === "home" ? m.home : m.away;
+  const name = side === "home" ? m.homeName : m.awayName;
+  const slot = side === "home" ? m.slotHome : m.slotAway;
+  const cands = (side === "home" ? m.projHome : m.projAway) ?? [];
+  const third = !!slot?.startsWith("3:");
+
   if (resolved && name) {
     return (
-      <div>
-        <div className="text-muted-2 mb-2.5 font-mono text-[10px] font-semibold tracking-wide uppercase">Confirmed</div>
-        <Link href={`/team/${teamSlug(name)}`} className="flex items-center gap-2.5 hover:underline">
-          <Flag code={resolved} size={28} />
-          <span className="min-w-0 flex-1 truncate font-semibold">{name}</span>
+      <div className="min-w-0">
+        <div className="text-win/80 mb-3 font-mono text-[10px] font-semibold tracking-wide uppercase">Confirmed</div>
+        <Link href={`/team/${teamSlug(name)}`} className="hover:bg-muted/30 -mx-2 flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors">
+          <Flag code={resolved} size={26} />
+          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{name}</span>
           <span className="text-win shrink-0 text-sm font-bold" title="Confirmed">✓</span>
         </Link>
       </div>
     );
   }
-  const list = (cands ?? []).filter((c) => c.prob >= 0.03).slice(0, 4);
-  const shown = list.length ? list : (cands ?? []).slice(0, 1);
+
+  const list = cands.filter((c) => c.prob >= 0.05).slice(0, 3);
+  const shown = list.length ? list : cands.slice(0, 1);
   return (
-    <div>
-      <div className="text-muted-2 mb-2.5 truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
-      <div className="space-y-2">
+    <div className="min-w-0">
+      <div className="text-muted-2 mb-3 truncate font-mono text-[10px] font-semibold tracking-wide uppercase">{prettySlot(slot)}</div>
+      <div className="space-y-1">
         {shown.length === 0 ? (
-          <span className="text-muted-2 text-sm">TBD</span>
+          <span className="text-muted-2 text-sm">To be decided</span>
         ) : (
           shown.map((c) => (
-            <Link key={c.code} href={`/team/${teamSlug(c.name)}`} className="flex items-center gap-2 text-sm hover:underline">
-              <Flag code={c.code} size={18} />
-              <span className="min-w-0 flex-1 truncate">{c.name}</span>
-              <ProbMeter p={c.prob} width={36} className="text-muted-foreground shrink-0" />
+            <Link key={c.code} href={`/team/${teamSlug(c.name)}`} className="hover:bg-muted/30 -mx-2 flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors">
+              <Flag code={c.code} size={24} />
+              {third && <span className="text-muted-2 shrink-0 font-mono text-[8px] font-semibold tracking-wide uppercase">3rd</span>}
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">{c.name}</span>
+              <ProbMeter p={c.prob} width={32} className="text-muted-foreground shrink-0 text-xs" />
             </Link>
           ))
         )}
