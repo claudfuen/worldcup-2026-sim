@@ -95,7 +95,7 @@ function Connectors({ count }: { count: number }) {
       <div className="flex flex-1 flex-col gap-y-2.5">
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="flex flex-1 items-center">
-            <div className="border-muted-foreground/30 h-1/2 w-full rounded-r-md border-t border-r border-b" />
+            <div className="border-muted-foreground/45 h-1/2 w-full rounded-r-md border-t border-r border-b" />
           </div>
         ))}
       </div>
@@ -103,25 +103,19 @@ function Connectors({ count }: { count: number }) {
   );
 }
 
-function Node({ m, hasTicket, highlightCode, big, final }: { m: MatchInfo; hasTicket: boolean; highlightCode?: string; big?: boolean; final?: boolean }) {
+function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; big?: boolean; final?: boolean }) {
   const { zone } = useViewerZone();
-  const hi =
-    !!highlightCode &&
-    (m.home === highlightCode ||
-      m.away === highlightCode ||
-      !!m.projHome?.some((c) => c.code === highlightCode) ||
-      !!m.projAway?.some((c) => c.code === highlightCode));
+  // Uniform min-height keeps every node the same size, so the flex slots divide each column evenly and the
+  // ⊐ connectors land on feeder centers. The matchup is vertically centred to absorb the spare height.
   return (
     <Link
       href={`/match/${m.match}`}
-      className={`bg-card hover:bg-muted/30 block w-full rounded-xl border transition-colors ${big ? "text-sm" : "text-xs"} ${
-        hi
-          ? "border-primary/60 ring-primary/20 ring-1"
-          : final
-            ? "border-primary/45 ring-primary/15 bg-primary/[0.04] ring-1"
-            : hasTicket
-              ? "border-contention/50"
-              : "border-border"
+      className={`bg-card hover:bg-muted/30 flex min-h-[124px] w-full flex-col rounded-xl border transition-colors ${big ? "text-sm" : "text-xs"} ${
+        final
+          ? "border-primary/45 ring-primary/15 bg-primary/[0.04] ring-1"
+          : hasTicket
+            ? "border-contention/50"
+            : "border-border"
       }`}
     >
       <div className={`flex items-center justify-between gap-1 ${final ? "text-primary/90" : "text-muted-foreground"} ${big ? "px-2.5 pt-2 pb-1 text-[10px]" : "px-2 pt-1.5 pb-1 text-[9px]"}`}>
@@ -132,14 +126,16 @@ function Node({ m, hasTicket, highlightCode, big, final }: { m: MatchInfo; hasTi
           </svg>
         )}
       </div>
-      <Side m={m} side="home" highlightCode={highlightCode} big={big} />
-      <div className="border-border border-t" />
-      <Side m={m} side="away" highlightCode={highlightCode} big={big} />
+      <div className="flex flex-1 flex-col justify-center">
+        <Side m={m} side="home" big={big} />
+        <div className="border-border border-t" />
+        <Side m={m} side="away" big={big} />
+      </div>
     </Link>
   );
 }
 
-function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "away"; highlightCode?: string; big?: boolean }) {
+function Side({ m, side, big }: { m: MatchInfo; side: "home" | "away"; big?: boolean }) {
   const resolved = side === "home" ? m.home : m.away;
   const name = side === "home" ? m.homeName : m.awayName;
   const slot = side === "home" ? m.slotHome : m.slotAway;
@@ -149,14 +145,13 @@ function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "a
   // CONFIRMED — a clinched team or a played result. Rendered EDITORIAL: bigger flag, bold name, a green ✓
   // (or the score), so a locked slot reads as settled against the smaller "race" on the other side.
   if (resolved) {
-    const isHi = highlightCode && resolved === highlightCode;
     const played = m.status === "final";
     const score = side === "home" ? m.homeScore : m.awayScore;
     const isWinner = played && !!m.winner && m.winner === resolved;
     const isLoser = played && !!m.winner && m.winner !== resolved;
     const onPens = played && m.homeScore != null && m.homeScore === m.awayScore;
     return (
-      <div className={`flex items-center ${big ? "gap-2.5 px-3 py-2.5" : "gap-2 px-2.5 py-2"} ${isHi ? "bg-primary/10" : ""}`}>
+      <div className={`flex items-center ${big ? "gap-2.5 px-3 py-2.5" : "gap-2 px-2.5 py-2"}`}>
         <Flag code={resolved} size={big ? 24 : 20} />
         <span className={`min-w-0 flex-1 truncate ${big ? "text-sm" : "text-[13px]"} ${isLoser ? "text-muted-foreground" : "font-semibold"}`}>{name}</span>
         {played ? (
@@ -174,7 +169,9 @@ function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "a
   // UNCONFIRMED — surface the RACE for this slot inline (no hover): the top contenders with their fill %,
   // rendered small/secondary so a settled team opposite reads as the bigger, editorial one. A near-locked
   // slot (one candidate dominant) naturally collapses to a single row.
-  const shown = cands.filter((c) => c.prob >= 0.05).slice(0, 3);
+  // Top 2 contenders in the bracket (the full top-4 with bars lives on the match page) — keeps node heights
+  // uniform so the connector tree stays aligned.
+  const shown = cands.filter((c) => c.prob >= 0.05).slice(0, 2);
   const list = shown.length ? shown : cands.slice(0, 1);
   if (list.length === 0) {
     return (
@@ -187,9 +184,8 @@ function Side({ m, side, highlightCode, big }: { m: MatchInfo; side: "home" | "a
   return (
     <div className={`${big ? "space-y-1.5 px-3 py-2" : "space-y-1 px-2.5 py-1.5"}`}>
       {list.map((c) => {
-        const isHi = highlightCode && c.code === highlightCode;
         return (
-          <div key={c.code} className={`flex items-center gap-1.5 ${isHi ? "bg-primary/10 -mx-1 rounded px-1" : ""}`}>
+          <div key={c.code} className="flex items-center gap-1.5">
             <Flag code={c.code} size={big ? 16 : 14} />
             {third && <span className="text-muted-2 font-mono text-[8px] font-semibold tracking-wide uppercase" title="Third-placed team">3rd</span>}
             <span className={`text-foreground/70 min-w-0 flex-1 truncate ${big ? "text-xs" : "text-[11px]"}`}>{c.name}</span>
