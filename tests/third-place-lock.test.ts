@@ -18,6 +18,19 @@ describe("lockedThirdSlots", () => {
     expect(lockedThirdSlots([])).toEqual({});
   });
 
+  it("locks more once eliminated groups are excluded (the real Ecuador case)", () => {
+    // Real 2026 state: thirds B,D,E,F,I,L guaranteed in; C and H thirds eliminated. Without excluding the
+    // eliminated groups, Ecuador (E) looks variable (rows containing C/H route E elsewhere). Excluding them —
+    // those sets can never happen — proves E is locked to 1A (faces the Group A winner, Mexico).
+    const guaranteed = ["B", "D", "E", "F", "I", "L"];
+    expect(lockedThirdSlots(guaranteed)["E"]).toBeUndefined(); // hidden by impossible C/H sets
+    expect(lockedThirdSlots(guaranteed, ["C", "H"])["E"]).toBe("1A"); // genuinely locked
+    // excluding eliminated groups can only ever lock the same or more slots (sound)
+    const a = lockedThirdSlots(guaranteed);
+    const b = lockedThirdSlots(guaranteed, ["C", "H"]);
+    for (const g of Object.keys(a)) expect(b[g]).toBe(a[g]);
+  });
+
   it("returns slots only for groups whose Annex C slot is single-valued across the matching rows", () => {
     const locked = lockedThirdSlots(["B", "E", "F"]);
     for (const slot of Object.values(locked)) expect(slot).toMatch(/^1[A-L]$/);

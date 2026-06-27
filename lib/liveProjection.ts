@@ -110,6 +110,18 @@ export function finalizeBracket(matches: MatchInfo[], groups: GroupView[], ratin
       /* needs >=8 distinct group thirds; always true with 12 groups */
     }
   }
+  // Per-slot lock: a third whose Annex C slot can't change across any reachable qualifying set resolves to its
+  // exact team even before the whole group stage finishes (mirrors the cron). Guaranteed/eliminated thirds come
+  // from decided groups, so teams[2] is final.
+  const lockedThirdTeamBySlot: Record<string, string> = {};
+  {
+    const guaranteed = groups.filter((g) => g.teams[2]?.status === "advanced").map((g) => g.group);
+    const eliminated = groups.filter((g) => g.teams[2]?.status === "eliminated").map((g) => g.group);
+    for (const [g, slot] of Object.entries(lockedThirdSlots(guaranteed, eliminated))) {
+      const gv = groups.find((x) => x.group === g);
+      if (gv?.decided && gv.teams[2]) lockedThirdTeamBySlot[slot] = gv.teams[2].code;
+    }
+  }
   // A just-finished knockout match (final, before the next cron) resolves its W##/L## feeders for the next
   // round, and marks its own winner — so the bracket advances live. A penalty result (level score, no winner
   // flag yet) is left for the cron, which reads ESPN's advancing flag.
@@ -138,7 +150,7 @@ export function finalizeBracket(matches: MatchInfo[], groups: GroupView[], ratin
       const thirdSide = m.slotHome?.startsWith("3:") ? "home" : m.slotAway?.startsWith("3:") ? "away" : null;
       if (thirdSide) {
         const hostSlot = thirdSide === "home" ? m.slotAway : m.slotHome;
-        const code = hostSlot ? thirdSlotToTeam[hostSlot] : undefined;
+        const code = hostSlot ? (thirdSlotToTeam[hostSlot] ?? lockedThirdTeamBySlot[hostSlot]) : undefined;
         if (code) {
           if (thirdSide === "home" && !home) home = code;
           else if (thirdSide === "away" && !away) away = code;
@@ -191,7 +203,8 @@ export function liveThirdPlaceRace(
 
   // Bracket-slot certainty over the live snapshot, mirroring the cron builder.
   const guaranteedThirdGroups = groups.filter((g) => g.teams[2]?.status === "advanced").map((g) => g.group);
-  const lockedThird = lockedThirdSlots(guaranteedThirdGroups);
+  const eliminatedThirdGroups = groups.filter((g) => g.teams[2]?.status === "eliminated").map((g) => g.group);
+  const lockedThird = lockedThirdSlots(guaranteedThirdGroups, eliminatedThirdGroups);
   let teamSlot: Record<string, string> = {};
   try {
     for (const [slot, code] of Object.entries(selectAndAssignThirds(thirds, ratings).slotToTeam)) teamSlot[code] = slot;

@@ -41,7 +41,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      participants/scores (played W##/L## feeders propagate; penalty winners come from ESPN's flag).
 // v11: Monte Carlo now also conditions on LIVE (in-progress) group matches — every probability re-routes
 //      off the live scoreline; matches gained `liveMinute`.
-export const PRED_KEY = "predictions:v11";
+// v12: bracket now resolves a third-place R32 slot to its exact team as soon as it's mathematically locked
+//      (per-slot Annex C invariance, excluding eliminated groups) — not only once the whole group stage ends.
+export const PRED_KEY = "predictions:v12";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

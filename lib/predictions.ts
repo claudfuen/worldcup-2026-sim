@@ -341,7 +341,16 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
   // same across every still-reachable qualifying set); if the group winner that slot faces is also clinched,
   // the whole R32 match is decided. lockedThirdSlots scans the Annex C table for that invariance.
   const guaranteedThirdGroups = groups.filter((g) => g.teams[2]?.status === "advanced").map((g) => g.group);
-  const lockedThird = lockedThirdSlots(guaranteedThirdGroups);
+  const eliminatedThirdGroups = groups.filter((g) => g.teams[2]?.status === "eliminated").map((g) => g.group);
+  const lockedThird = lockedThirdSlots(guaranteedThirdGroups, eliminatedThirdGroups);
+  // host winner-slot -> the team whose 3rd is locked into it (so the bracket can resolve a settled third
+  // slot to an exact team even before the whole group stage finishes). The group is decided (it's a
+  // "guaranteed advanced" third), so teams[2] is its final 3rd-placed team.
+  const lockedThirdTeamBySlot: Record<string, string> = {};
+  for (const [g, slot] of Object.entries(lockedThird)) {
+    const gv = groups.find((x) => x.group === g);
+    if (gv?.decided && gv.teams[2]) lockedThirdTeamBySlot[slot] = gv.teams[2].code;
+  }
   const winnerByGroup: Record<string, string> = {};
   for (const g of groups) { const w = g.teams.find((t) => t.status === "won_group"); if (w) winnerByGroup[g.group] = w.code; }
   const groupDecided = new Map(groups.map((gg) => [gg.group, gg.decided]));
@@ -372,22 +381,22 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
   });
 
   // Third-place R32 slots carry the Monte Carlo forecast in projHome/projAway (the full Annex C assignment is
-  // modelled in EVERY iteration, so this distribution is rule-correct and sharpens as groups finalize). Once the
-  // group stage is COMPLETE, the best-eight thirds and their Annex C slots are final and deterministic, so we
-  // resolve each third-place slot to its exact team (rendered as a locked participant, not a forecast).
+  // modelled in EVERY iteration, so this distribution is rule-correct and sharpens as groups finalize). We
+  // resolve a third-place slot to its EXACT team as soon as it's mathematically settled — either the whole
+  // group stage is complete (the full Annex C assignment is final) OR that individual slot is locked
+  // (lockedThirdTeamBySlot: the group→slot mapping can't change across any reachable qualifying set).
   const groupStageComplete = groups.every((g) => g.decided);
-  if (groupStageComplete) {
-    for (const mi of matches) {
-      if (mi.round !== "R32" || mi.status === "final") continue; // a played R32 already has its real teams
-      const thirdSide = mi.slotHome?.startsWith("3:") ? "home" : mi.slotAway?.startsWith("3:") ? "away" : null;
-      if (!thirdSide) continue;
-      const hostSlot = thirdSide === "home" ? mi.slotAway : mi.slotHome; // winner-slot facing the third, e.g. "1D"
-      const code = hostSlot ? slotToTeamMap[hostSlot] : undefined;
-      if (!code) continue;
-      if (thirdSide === "home") { mi.home = code; mi.homeName = TEAM_BY_CODE[code].name; }
-      else { mi.away = code; mi.awayName = TEAM_BY_CODE[code].name; }
-      mi.defined = Boolean(mi.home && mi.away);
-    }
+  const resolvedThirdBySlot = groupStageComplete ? slotToTeamMap : lockedThirdTeamBySlot;
+  for (const mi of matches) {
+    if (mi.round !== "R32" || mi.status === "final") continue; // a played R32 already has its real teams
+    const thirdSide = mi.slotHome?.startsWith("3:") ? "home" : mi.slotAway?.startsWith("3:") ? "away" : null;
+    if (!thirdSide) continue;
+    const hostSlot = thirdSide === "home" ? mi.slotAway : mi.slotHome; // winner-slot facing the third, e.g. "1D"
+    const code = hostSlot ? resolvedThirdBySlot[hostSlot] : undefined;
+    if (!code) continue;
+    if (thirdSide === "home") { if (!mi.home) { mi.home = code; mi.homeName = TEAM_BY_CODE[code].name; } }
+    else if (!mi.away) { mi.away = code; mi.awayName = TEAM_BY_CODE[code].name; }
+    mi.defined = Boolean(mi.home && mi.away);
   }
 
   return {
