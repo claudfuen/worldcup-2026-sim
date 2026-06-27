@@ -39,6 +39,20 @@ describe("parseKeyEvents", () => {
     expect(evs.find((e) => e.player === "Jarell Quansah")!.card).toBe("yellow");
   });
 
+  it("parses substitutions (participants[0] on, [1] off)", () => {
+    const evs = parseKeyEvents([
+      {
+        type: { text: "Substitution" }, clock: { displayValue: "63'" }, team: { displayName: "England" }, scoringPlay: false,
+        participants: [{ athlete: { displayName: "Djed Spence" } }, { athlete: { displayName: "Jarell Quansah" } }],
+      },
+    ] as never);
+    expect(evs).toHaveLength(1);
+    expect(evs[0].kind).toBe("sub");
+    expect(evs[0].player).toBe("Djed Spence"); // on
+    expect(evs[0].playerOff).toBe("Jarell Quansah"); // off
+    expect(evs[0].teamCode).toBe("ENG");
+  });
+
   it("orders stoppage time after the minute (45'+2' between 45' and 46')", () => {
     const evs = parseKeyEvents([
       card("Yellow Card", "46'", "England", "C"),

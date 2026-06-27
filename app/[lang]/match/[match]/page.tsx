@@ -96,7 +96,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   // dynamic win-probability leads and this follows.
   const matchFacts = (
     <>
-      {m.home && m.away && <MatchTimeline events={summary.events} homeCode={m.home} awayCode={m.away} />}
+      {m.home && m.away && <MatchTimeline events={summary.events} homeCode={m.home} awayCode={m.away} homeName={m.homeName!} awayName={m.awayName!} />}
       <MatchStats stats={summary.stats} />
     </>
   );

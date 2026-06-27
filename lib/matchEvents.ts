@@ -10,14 +10,15 @@ const SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.wo
 const SUMMARY = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary";
 
 export interface MatchEvent {
-  kind: "goal" | "card";
+  kind: "goal" | "card" | "sub";
   minute: string; // ESPN clock, e.g. "62'", "90'+3'"
   sortMinute: number; // numeric, for ordering (45'+2' -> 45.02)
   teamCode: string | null; // internal team code (mapped from ESPN), if resolvable
-  player: string;
+  player: string; // scorer / carded player / player coming ON
   assist?: string; // open-play goals only
   goalType?: "goal" | "penalty" | "own";
   card?: "yellow" | "red";
+  playerOff?: string; // substitutions: the player going off (player = the one coming on)
 }
 
 export interface TeamStats {
@@ -115,6 +116,12 @@ export function parseKeyEvents(keyEvents: EspnKeyEvent[] | undefined): MatchEven
       const player = k.participants?.[0]?.athlete?.displayName;
       if (!player) continue;
       out.push({ kind: "card", minute, sortMinute: sortMinute(minute), teamCode, player, card: /red/i.test(t) ? "red" : "yellow" });
+    } else if (/substitution/i.test(t)) {
+      // ESPN "X replaces Y": participants[0] comes on, participants[1] goes off.
+      const on = k.participants?.[0]?.athlete?.displayName;
+      const off = k.participants?.[1]?.athlete?.displayName;
+      if (!on) continue;
+      out.push({ kind: "sub", minute, sortMinute: sortMinute(minute), teamCode, player: on, playerOff: off });
     }
   }
   return out.sort((a, b) => a.sortMinute - b.sortMinute);

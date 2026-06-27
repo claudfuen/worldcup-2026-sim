@@ -57,4 +57,5 @@ export const LIVE_FEED_KEY = "live:scoreboard:v1";
 
 // Per-match timeline + stats from ESPN's summary endpoint (suffixed with the match number). Short TTL for
 // live matches, hours for finished ones — set by the caller; this is just the key prefix.
-export const MATCH_EVENTS_KEY = "match:summary:v1";
+// v2: timeline gained substitutions.
+export const MATCH_EVENTS_KEY = "match:summary:v2";
