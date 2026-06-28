@@ -23,6 +23,7 @@ const ROUTES = [
   { key: "nav.schedule", href: "/schedule" },
   { key: "nav.calendar", href: "/calendar" },
   { key: "nav.awards", href: "/awards" },
+  { key: "nav.scorecard", href: "/scorecard" },
   { key: "nav.method", href: "/methodology" },
 ] as const;
 
