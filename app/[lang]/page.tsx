@@ -10,6 +10,7 @@ import { MatchesToWatch } from "@/components/matches-to-watch";
 import { BracketTeaser } from "@/components/bracket-teaser";
 import { GroupsPreview } from "@/components/groups-preview";
 import { TitleOdds } from "@/components/title-odds";
+import { GoldenBootRace } from "@/components/golden-boot-race";
 import { LaunchRail } from "@/components/launch-rail";
 import { computeWatchability } from "@/lib/watchability";
 import { getT } from "@/lib/i18n/server";
@@ -61,6 +62,7 @@ export default async function Page() {
           <BracketTeaser matches={lMatches} teams={teams} />
           <GroupsPreview groups={lGroups} />
           <TitleOdds teams={teams} />
+          <GoldenBootRace entries={data.awards.goldenBoot} />
         </aside>
       </div>
 

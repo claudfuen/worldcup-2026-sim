@@ -43,7 +43,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      off the live scoreline; matches gained `liveMinute`.
 // v12: bracket now resolves a third-place R32 slot to its exact team as soon as it's mathematically locked
 //      (per-slot Annex C invariance, excluding eliminated groups) — not only once the whole group stage ends.
-export const PRED_KEY = "predictions:v12";
+// v13: payload gained `awards` — Golden Boot + assists race (live tallies aggregated from match timelines,
+//      plus a forecast of the final finish: projected tally + P(win) via a seeded Monte Carlo).
+export const PRED_KEY = "predictions:v13";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

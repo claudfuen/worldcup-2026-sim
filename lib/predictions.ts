@@ -7,6 +7,8 @@ import { rankGroup } from "./sim/standings";
 import { wdlProbs, eloToLambdas, scorelineDist, fracRemaining } from "./sim/poisson";
 import { hostEloBoost } from "./sim/hosts";
 import { buildGroupViews, lockedSlotsFromGroups } from "./groupView";
+import { getMatchSummary } from "./matchEvents";
+import { computeAwards, type Awards } from "./awards";
 import { TEAM_BY_CODE, TEAMS, GROUPS } from "./data/teams";
 import { SCHEDULE } from "./data/schedule";
 import { KNOCKOUT } from "./data/bracket";
@@ -102,6 +104,7 @@ export interface PredictionsPayload {
   r32Opponents: Record<string, OpponentProb[]>;
   matches: MatchInfo[];
   thirdPlaceRace: ThirdPlaceEntry[];
+  awards: Awards; // Golden Boot + assists race (current standings + forecast finish)
 }
 
 // Start-of-day odds snapshot, for "moved since yesterday" deltas.
@@ -399,6 +402,13 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
     mi.defined = Boolean(mi.home && mi.away);
   }
 
+  // Golden Boot + assists race, aggregated from the parsed match timelines and projected forward over each
+  // team's expected remaining matches. Best-effort: a feed hiccup leaves the awards empty, never breaks the
+  // rest of the payload.
+  const awards = await computeAwards(matches, sim.teams, getMatchSummary).catch(
+    () => ({ goldenBoot: [], assists: [], matchesCounted: 0 }) as Awards,
+  );
+
   return {
     updatedAt: new Date().toISOString(),
     iterations,
@@ -409,5 +419,6 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
     r32Opponents,
     matches,
     thirdPlaceRace,
+    awards,
   };
 }
