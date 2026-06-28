@@ -20,6 +20,9 @@ export interface AwardEntry {
   // the upside lever: a player on a deep-run team has more games left to add to their tally
   projected: number; // forecast FINAL value (mean), incl. goals still to come
   winProb: number; // P(finishes the tournament top of this race), incl. ties split
+  eliminated: boolean; // mathematically out: team has no matches left AND already below the leader (frozen
+  // tally that someone has already beaten). A definitive state, not a probability — there is no symmetric
+  // "clinched", because an active player can always score more, so the lead can never be locked mid-tournament.
 }
 
 export interface Awards {
@@ -165,6 +168,9 @@ function buildBoard(
       return { player: t.player, teamCode: t.teamCode, value: valueOf(t), rate, groupRemaining: gr, depth, expRemaining };
     });
   const winProbs = simulateRace(cands, rand);
+  // The current race leader: anyone frozen (no matches left) and strictly below this can never catch up.
+  const leaderValue = cands.reduce((m, c) => Math.max(m, c.value), 0);
+  const FROZEN = 0.01; // expected remaining matches ≈ 0 → the team has no game left to add to the tally
   return cands
     .map((c, i) => {
       const t = tallies.find((x) => x.player === c.player && x.teamCode === c.teamCode)!;
@@ -179,6 +185,7 @@ function buildBoard(
         matchesLeft: c.expRemaining,
         projected: c.value + c.rate * c.expRemaining,
         winProb: winProbs.get(i) ?? 0,
+        eliminated: c.expRemaining < FROZEN && c.value < leaderValue,
       };
     })
     .sort((a, b) => b.value - a.value || b.projected - a.projected || b.winProb - a.winProb);

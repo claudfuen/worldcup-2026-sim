@@ -82,3 +82,24 @@ describe("computeAwards", () => {
     expect(assists[0].assists).toBe(1);
   });
 });
+
+describe("computeAwards elimination", () => {
+  it("marks a player whose team is out of matches and behind the leader as eliminated", async () => {
+    // Ava (AAA, deep run) leads on 2. Zed (ZZZ) has 1 but ZZZ played all 3 group games and isn't in the
+    // knockout (absent from the probs map) → frozen tally, already behind → mathematically out.
+    const sums: Record<number, MatchSummary> = {
+      1: { events: [goal("AAA", "Ava"), goal("AAA", "Ava")], stats: null },
+      10: { events: [goal("ZZZ", "Zed")], stats: null },
+    };
+    const gs = async (m: MatchInfo): Promise<MatchSummary> => sums[m.match] ?? { events: [], stats: null };
+    const ms = [mkMatch(1, "AAA", "BBB"), mkMatch(10, "ZZZ", "P1"), mkMatch(11, "ZZZ", "P2"), mkMatch(12, "ZZZ", "P3")];
+    const tms: Record<string, TeamProb> = { AAA: team({ code: "AAA", advance: 0.9, r16: 0.7, qf: 0.5, sf: 0.3, final: 0.15 }) };
+    const { goldenBoot } = await computeAwards(ms, tms, gs, 1);
+    const ava = goldenBoot.find((e) => e.player === "Ava")!;
+    const zed = goldenBoot.find((e) => e.player === "Zed")!;
+    expect(zed.matchesLeft).toBe(0); // ZZZ played all 3 group games, not in the knockout
+    expect(zed.eliminated).toBe(true); // frozen and below the leader
+    expect(zed.winProb).toBe(0); // and indeed cannot win
+    expect(ava.eliminated).toBe(false); // leader on a deep-run team
+  });
+});

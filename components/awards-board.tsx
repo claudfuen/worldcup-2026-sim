@@ -111,7 +111,7 @@ function Row({ entry, rank, metric, accent, max, t, locale }: { entry: AwardEntr
     <li>
       <Link
         href={localeHref(locale, `/team/${slugForCode(entry.teamCode)}`)}
-        className="hover:bg-muted/20 flex items-center gap-2.5 rounded-md px-1.5 py-2.5 transition-colors"
+        className={`hover:bg-muted/20 flex items-center gap-2.5 rounded-md px-1.5 py-2.5 transition-colors ${entry.eliminated ? "opacity-55" : ""}`}
       >
         <span className="text-muted-2 w-5 shrink-0 text-right font-mono text-xs tabular-nums">{rank}</span>
         <Flag code={entry.teamCode} size={20} />
@@ -126,16 +126,24 @@ function Row({ entry, rank, metric, accent, max, t, locale }: { entry: AwardEntr
         <div className="w-6 shrink-0 text-right font-mono text-base font-semibold tabular-nums">
           {value}<span className="sr-only"> {unit}</span>
         </div>
-        {/* current → projected bar + projected number (the forecast, kept on mobile too) */}
-        <div className="flex w-[5.5rem] shrink-0 items-center gap-1.5 sm:w-32">
-          <ProjBar current={value} projected={entry.projected} max={max} accent={accent} className="h-1.5 flex-1" />
-          <span className="text-muted-2 w-7 shrink-0 text-right font-mono text-[11px] tabular-nums">
-            {entry.projected.toFixed(1)}<span className="sr-only"> {t("awards.projected")}</span>
-          </span>
-        </div>
-        {/* P(win) */}
+        {entry.eliminated ? (
+          // Definitive "out": team has no matches left and is already behind the leader — a fixed tally that
+          // someone has already beaten. Show the certainty, not a 0% probability.
+          <div className="flex w-[5.5rem] shrink-0 justify-end sm:w-32" title={t("awards.outTitle")}>
+            <span className="text-muted-2 font-mono text-[11px] tracking-wide uppercase">{t("awards.out")}</span>
+          </div>
+        ) : (
+          // current → projected bar + projected number (the forecast, kept on mobile too)
+          <div className="flex w-[5.5rem] shrink-0 items-center gap-1.5 sm:w-32">
+            <ProjBar current={value} projected={entry.projected} max={max} accent={accent} className="h-1.5 flex-1" />
+            <span className="text-muted-2 w-7 shrink-0 text-right font-mono text-[11px] tabular-nums">
+              {entry.projected.toFixed(1)}<span className="sr-only"> {t("awards.projected")}</span>
+            </span>
+          </div>
+        )}
+        {/* P(win), or a dash when out */}
         <span className="w-9 shrink-0 text-right font-mono text-sm font-semibold tabular-nums">
-          {forecastPct(entry.winProb)}<span className="sr-only"> {t("awards.chance")}</span>
+          {entry.eliminated ? <span className="text-muted-2" aria-hidden>—</span> : <>{forecastPct(entry.winProb)}<span className="sr-only"> {t("awards.chance")}</span></>}
         </span>
       </Link>
     </li>

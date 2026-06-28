@@ -47,7 +47,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      plus a forecast of the final finish: projected tally + P(win) via a seeded Monte Carlo).
 // v14: award entries gained `matchesLeft` (expected remaining matches a player's team plays) — the forecast's
 //      upside lever, surfaced in the UI.
-export const PRED_KEY = "predictions:v14";
+// v15: award entries gained `eliminated` — a definitive "out" for a player whose team has no matches left and
+//      is already below the leader (shown as "out", not a 0% probability).
+export const PRED_KEY = "predictions:v15";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

@@ -40,6 +40,8 @@
     "colChance": "Win",
     "leaderLabel": "Current leader",
     "toWin": "to win",
+    "out": "out",
+    "outTitle": "Out of matches and behind the leader — can't catch up",
     "now": "now",
     "proj": "proj",
     "projected": "Projected final",
