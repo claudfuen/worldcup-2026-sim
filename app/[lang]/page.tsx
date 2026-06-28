@@ -44,26 +44,34 @@ export default async function Page() {
   const lMatches = localizeMatches(matches, t);
   const lGroups = localizeGroups(groups, t);
 
+  // Once every group match is in, the group stage is settled — drop the (now-static) groups snapshot so the
+  // homepage doesn't carry dead weight into the knockouts.
+  const groupStageOver = groupPlayed >= data.totalGroupMatches;
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
 
-      {/* Dashboard: left = the call + live scores; right = a continuous snapshot rail (stage, bracket, groups) */}
-      <div className="grid items-start gap-6 lg:grid-cols-3">
-        <div className="space-y-8 lg:col-span-2">
-          <header>
-            <MastheadVerdict teams={teams} iterations={data.iterations} complete={data.complete} champion={data.champion} />
-            <MoverStrip teams={teams} />
-          </header>
-          <LiveTodayRail matches={lMatches} hotReasons={hotReasons} />
-        </div>
-        <aside className="space-y-4">
-          <TournamentStage matches={lMatches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} />
-          <BracketTeaser matches={lMatches} teams={teams} />
-          <GroupsPreview groups={lGroups} />
-          <TitleOdds teams={teams} />
-          <GoldenBootRace entries={data.awards.goldenBoot} />
-        </aside>
+      {/* The call — the hero, full width */}
+      <header>
+        <MastheadVerdict teams={teams} iterations={data.iterations} complete={data.complete} champion={data.champion} />
+        <MoverStrip teams={teams} />
+      </header>
+
+      {/* Where the whole tournament is — a full-width progress strip under the call */}
+      <TournamentStage matches={lMatches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} className="mt-6" />
+
+      {/* Clear tiers, stacked so neither side can tower over a thin other side. TIER 2 — the live heartbeat:
+          a full-width primary feed (on now / today / next / just finished), its sections flowing into balanced
+          internal columns so a wide row never looks empty. TIER 3 — a quieter row of reference tiles (bracket
+          heading, title race, golden boot), visibly smaller so they read as secondary. */}
+      <LiveTodayRail matches={lMatches} hotReasons={hotReasons} wide className="mt-8" />
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <BracketTeaser matches={lMatches} teams={teams} />
+        {!groupStageOver && <GroupsPreview groups={lGroups} />}
+        <TitleOdds teams={teams} />
+        <GoldenBootRace entries={data.awards.goldenBoot} />
       </div>
 
       {/* What to watch next — the curated plan */}

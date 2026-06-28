@@ -51,9 +51,11 @@ export async function TournamentStage({
     );
   }
 
+  // A full-width strip: the phase tracker on the left, the live context on the right (md+). Stacks on mobile.
+  // Full-width (rather than a narrow aside tile) so it reads as a tournament-wide progress bar and leaves no gap.
   return (
-    <div className={`border-border bg-card rounded-2xl border px-4 py-3 ${className}`}>
-      <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [mask-image:linear-gradient(to_right,transparent,#000_1.25rem,#000_calc(100%-1.25rem),transparent)] md:[mask-image:none]">
+    <div className={`border-border bg-card flex flex-col gap-2 rounded-2xl border px-4 py-3 md:flex-row md:items-center md:justify-between md:gap-6 ${className}`}>
+      <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [mask-image:linear-gradient(to_right,transparent,#000_1.25rem,#000_calc(100%-1.25rem),transparent)] md:shrink-0 md:[mask-image:none]">
         {phases.map((p, i) => (
           <Fragment key={p.key}>
             <span className={`font-mono text-[10px] font-semibold tracking-wide whitespace-nowrap uppercase ${i === cur ? "text-primary" : p.done ? "text-muted-foreground" : "text-muted-2"}`}>
@@ -63,7 +65,7 @@ export async function TournamentStage({
           </Fragment>
         ))}
       </div>
-      <p className="text-muted-2 mt-2 text-xs" suppressHydrationWarning>{context}</p>
+      <p className="text-muted-2 text-xs md:text-right" suppressHydrationWarning>{context}</p>
     </div>
   );
 }
