@@ -22,7 +22,6 @@ export function MatchTimeline({
 }) {
   const t = useT();
   const [showSubs, setShowSubs] = useState(false);
-  if (!events.length) return null;
   const hasSubs = events.some((e) => e.kind === "sub");
 
   // Running score after each goal (own goals count for the opponent) — computed over ALL events so it stays
@@ -63,9 +62,16 @@ export function MatchTimeline({
           <span className="flex min-w-0 items-center gap-1.5"><Flag code={homeCode} size={16} /><span className="truncate">{homeName}</span></span>
           <span className="flex min-w-0 flex-row-reverse items-center gap-1.5"><Flag code={awayCode} size={16} /><span className="truncate">{awayName}</span></span>
         </div>
-        <ol className="relative mt-2">
-          <div className="bg-border/70 absolute inset-y-0 left-1/2 w-px -translate-x-1/2" aria-hidden />
-          {shown.map(({ e, score, onHome }, i) => (
+        {shown.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <GoalIcon label="" className="text-muted-foreground/40" size={26} />
+            <p className="text-muted-2 text-sm text-pretty">{t("match.noEventsYet")}</p>
+            {hasSubs && !showSubs && <p className="text-muted-2 text-xs">{t("match.onlySubs")}</p>}
+          </div>
+        ) : (
+          <ol className="relative mt-2">
+            <div className="bg-border/70 absolute inset-y-0 left-1/2 w-px -translate-x-1/2" aria-hidden />
+            {shown.map(({ e, score, onHome }, i) => (
             <li key={i} className="grid grid-cols-[1fr_3rem_1fr] items-center gap-2 py-2 sm:grid-cols-[1fr_3.5rem_1fr] sm:gap-3">
               <div className="flex justify-end">{onHome && <Event e={e} side="home" t={t} />}</div>
               <div className="bg-card relative z-10 flex flex-col items-center gap-1 py-0.5">
@@ -78,8 +84,9 @@ export function MatchTimeline({
               </div>
               <div className="flex justify-start">{!onHome && <Event e={e} side="away" t={t} />}</div>
             </li>
-          ))}
-        </ol>
+            ))}
+          </ol>
+        )}
       </div>
     </section>
   );
@@ -115,10 +122,10 @@ function Event({ e, side, t }: { e: MatchEvent; side: "home" | "away"; t: T }) {
   );
 }
 
-// A pitch-green soccer ball — the universal "goal" mark.
-function GoalIcon({ label }: { label: string }) {
+// A pitch-green soccer ball — the universal "goal" mark. Muted/larger via props for the empty state.
+function GoalIcon({ label, className = "text-primary", size = 15 }: { label: string; className?: string; size?: number }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="text-primary" role="img" aria-label={label || undefined} aria-hidden={!label}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} role="img" aria-label={label || undefined} aria-hidden={!label}>
       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
       <path d="M12 8.2l3.8 2.76-1.45 4.47h-4.7L8.2 10.96z" fill="currentColor" />
       <path
