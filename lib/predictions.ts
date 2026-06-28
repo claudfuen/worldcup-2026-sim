@@ -4,7 +4,7 @@ import { runMonteCarlo } from "./sim/simulate";
 import { rankThirds, selectAndAssignThirds, lockedThirdSlots, type ThirdTeam } from "./sim/thirdPlace";
 import { resolveKnockoutResults, type GroupOutcome, type KOPlayed, type KOLive } from "./sim/knockout";
 import { rankGroup } from "./sim/standings";
-import { wdlProbs, eloToLambdas, scorelineDist, fracRemaining } from "./sim/poisson";
+import { wdlProbs, eloToLambdas, scorelineDist, fracRemaining, koAdvanceProb } from "./sim/poisson";
 import { hostEloBoost } from "./sim/hosts";
 import { buildGroupViews, lockedSlotsFromGroups } from "./groupView";
 import { getMatchSummary } from "./matchEvents";
@@ -69,6 +69,9 @@ export interface MatchInfo {
   // forecast for DEFINED matches only
   favorite?: { code: string; name: string; winProb: number };
   probs?: { home: number; draw: number; away: number };
+  // Knockout only: P(each side ADVANCES) — regulation + extra time + penalty shootout, summing to 1. The
+  // meaningful KO outcome (someone always goes through), distinct from the regulation W/D/L above.
+  advance?: { home: number; away: number };
   xg?: { home: number; away: number }; // model expected goals
   topScores?: { h: number; a: number; prob: number }[]; // most likely exact scorelines
 }
@@ -150,6 +153,11 @@ function fillMatchForecast(info: MatchInfo, ratings: Record<string, number>, pre
   info.probs = { home: p.win, draw: p.draw, away: p.loss };
   const favCode = p.win >= p.loss ? info.home : info.away;
   info.favorite = { code: favCode, name: TEAM_BY_CODE[favCode].name, winProb: Math.max(p.win, p.loss) };
+  // Knockout: who ADVANCES (regulation + ET + shootout). The draw above is the chance it goes the distance.
+  if (info.round !== "GROUP") {
+    const adv = koAdvanceProb(diff);
+    info.advance = { home: adv, away: 1 - adv };
+  }
   const [lh, la] = eloToLambdas(diff);
   info.xg = { home: Math.round(lh * 10) / 10, away: Math.round(la * 10) / 10 };
   if (info.status !== "final") {

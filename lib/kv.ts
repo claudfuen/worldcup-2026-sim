@@ -52,7 +52,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 // v16: award entries gained `clinched` (won — only once the tournament is over); AND a fix so a knockout match
 //      whose participant resolves from a locked third-place slot (e.g. Mexico v Ecuador) now gets its pre-match
 //      W/D/L / xG / scorelines (previously null because the slot resolved after the forecast pass).
-export const PRED_KEY = "predictions:v16";
+// v17: knockout matches gained `advance` ({home,away}) — P(each side progresses incl. extra time + shootout),
+//      so the KO match page leads with "to advance" instead of a regulation draw.
+export const PRED_KEY = "predictions:v17";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

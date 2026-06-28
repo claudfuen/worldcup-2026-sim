@@ -63,6 +63,14 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   if (!loaded) notFound();
   const { data, all, groups, m: foundRaw, summary, liveProbs, proj, hasLive } = loaded;
 
+  // Each side's strength rank by our Elo (of the 48-team field) — the "top-X vs top-Y" matchup context.
+  const eloRanked = [...data.teams].sort((a, b) => (b.ratingExact ?? b.rating) - (a.ratingExact ?? a.rating));
+  const eloRankOf = (code?: string | null): number | undefined => {
+    if (!code) return undefined;
+    const i = eloRanked.findIndex((tm) => tm.code === code);
+    return i >= 0 ? i + 1 : undefined;
+  };
+
   // The client islands take the RAW (code-keyed) payload and localize themselves via the i18n provider, so
   // every poll stays locale-agnostic. The server-rendered shell below uses a localized copy.
   const initial: MatchLivePayload = { m: foundRaw, summary, liveProbs, proj, hasLive };
@@ -137,7 +145,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       <Breadcrumbs items={crumbs} />
 
       {/* The matchup IS the header — a big, full-width hero. Live-updating (score/clock/win-prob) via SWR. */}
-      <MatchHero matchNo={m.match} initial={initial} iterations={data.iterations} />
+      <MatchHero matchNo={m.match} initial={initial} iterations={data.iterations} homeRank={eloRankOf(m.home)} awayRank={eloRankOf(m.away)} />
 
       {/* Facts strip — the tail: a recessed well bonded to the hero. Live status/tickets via SWR. */}
       <MatchFacts matchNo={m.match} initial={initial} heat={heat} />

@@ -80,10 +80,39 @@ function shareTextFor(t: TFunction, m: MatchInfo, state: State, homeName?: strin
   });
 }
 
+// A two-way "to advance" bar for knockout matches (someone always goes through — no draw endpoint). Home in
+// pitch-green, away in cool-blue; percentages below, mirroring WinProbBar so the two read consistently.
+function AdvanceBar({ home, away, homeName, awayName, t }: { home: number; away: number; homeName: string; awayName: string; t: TFunction }) {
+  return (
+    <div>
+      <div className="bg-muted/40 flex h-2.5 w-full overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
+        <div className="bg-primary transition-[width] duration-700 ease-out" style={{ width: `${home * 100}%` }} />
+        <div className="bg-data-cool transition-[width] duration-700 ease-out" style={{ width: `${away * 100}%` }} />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+        <div className="min-w-0 text-left">
+          <div className="flex items-center gap-1.5">
+            <span className="bg-primary size-2 shrink-0 rounded-full" aria-hidden />
+            <span className="text-muted-foreground truncate text-xs">{homeName}</span>
+          </div>
+          <div className="mt-0.5 font-mono text-base font-semibold tabular-nums">{forecastPct(home)}<span className="sr-only"> {t("awards.toWin")}</span></div>
+        </div>
+        <div className="min-w-0 text-right">
+          <div className="flex items-center justify-end gap-1.5">
+            <span className="text-muted-foreground truncate text-xs">{awayName}</span>
+            <span className="bg-data-cool size-2 shrink-0 rounded-full" aria-hidden />
+          </div>
+          <div className="mt-0.5 font-mono text-base font-semibold tabular-nums">{forecastPct(away)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Hero ─────────────────────────────────────────────────────────────────────────────────────────────
 // The matchup IS the header. Score/clock/winner-tint and the whole state layout re-render from the poll, so
 // kickoff (defined→live) and full-time (live→final) flip in place — no router.refresh.
-export function MatchHero({ matchNo, initial, iterations }: { matchNo: number; initial: MatchLivePayload; iterations: number }) {
+export function MatchHero({ matchNo, initial, iterations, homeRank, awayRank }: { matchNo: number; initial: MatchLivePayload; iterations: number; homeRank?: number; awayRank?: number }) {
   const t = useT();
   const locale = useLocale();
   const { m } = useMatchLive(matchNo, initial);
@@ -107,7 +136,7 @@ export function MatchHero({ matchNo, initial, iterations }: { matchNo: number; i
         </div>
       ) : (
         <div className="flex items-center justify-center gap-3 sm:gap-12">
-          <ScoreTeam m={m} side="home" locale={locale} t={t} />
+          <ScoreTeam m={m} side="home" locale={locale} t={t} rank={homeRank} />
           <div className="flex shrink-0 flex-col items-center gap-2.5 rounded-xl bg-background/40 px-4 py-3 ring-1 ring-white/5 ring-inset dark:bg-black/15">
             {state === "final" || state === "live" ? (
               <span className="font-mono text-4xl font-semibold tracking-[-0.03em] tabular-nums sm:text-6xl">
@@ -126,13 +155,26 @@ export function MatchHero({ matchNo, initial, iterations }: { matchNo: number; i
               <span className="text-muted-2 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase" suppressHydrationWarning><LocalTime utc={m.utc} mode="day" /></span>
             )}
           </div>
-          <ScoreTeam m={m} side="away" locale={locale} t={t} />
+          <ScoreTeam m={m} side="away" locale={locale} t={t} rank={awayRank} />
         </div>
       )}
-      {state === "defined" && m.probs && (
+      {state === "defined" && (m.advance || m.probs) && (
         <div className="mx-auto mt-7 max-w-xl rounded-xl bg-background/30 px-5 py-4 ring-1 ring-white/5 ring-inset dark:bg-black/10">
-          <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={homeName!} awayName={awayName!} />
-          {m.round !== "GROUP" && <p className="text-muted-2 mt-3 text-center text-xs">{t("match.regulationNote")}</p>}
+          {m.advance ? (
+            // Knockout: lead with who ADVANCES (no draw endpoint); regulation W/D/L is the secondary read.
+            <>
+              <div className="text-muted-2 mb-2 text-center font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.toAdvance")}</div>
+              <AdvanceBar home={m.advance.home} away={m.advance.away} homeName={homeName!} awayName={awayName!} t={t} />
+              {m.probs && (
+                <p className="text-muted-2 mt-3 text-center text-xs text-pretty">
+                  {t("match.inNinety", { home: homeName, homePct: forecastPct(m.probs.home), drawPct: forecastPct(m.probs.draw), away: awayName, awayPct: forecastPct(m.probs.away) })}
+                  {m.probs.draw > 0 && <> · {t("match.shootoutNote", { pct: forecastPct(m.probs.draw) })}</>}
+                </p>
+              )}
+            </>
+          ) : (
+            <WinProbBar home={m.probs!.home} draw={m.probs!.draw} away={m.probs!.away} homeName={homeName!} awayName={awayName!} />
+          )}
         </div>
       )}
       {state === "undefined" && (
@@ -263,9 +305,24 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
             <p className="text-live mb-3 text-xs font-medium">
               {t("match.liveScoreLine", { home: homeName, homeScore: m.homeScore, awayScore: m.awayScore, away: awayName, detail: m.liveDetail })}
             </p>
-            {liveProbs ? (
+            {liveProbs && liveProbs.advance && m.round !== "GROUP" ? (
+              // Knockout, live: lead with who ADVANCES right now (incl. ET + shootout); the regulation "now"
+              // and the pre-match advance follow as comparison.
               <>
-                {/* Now (live) and Pre-match share the exact same bar + 3-column layout so the percentages line
+                <div className="text-live mb-2 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.toAdvanceNow")}</div>
+                <AdvanceBar home={liveProbs.advance.home} away={liveProbs.advance.away} homeName={homeName!} awayName={awayName!} t={t} />
+                {m.advance && (
+                  <p className="text-muted-2 mt-3 text-xs">
+                    {t("match.preMatchAdvance", { home: homeName, homePct: forecastPct(m.advance.home), away: awayName, awayPct: forecastPct(m.advance.away) })}
+                  </p>
+                )}
+                <p className="text-muted-2 mt-1 text-xs text-pretty">
+                  {t("match.inNinety", { home: homeName, homePct: forecastPct(liveProbs.home), drawPct: forecastPct(liveProbs.draw), away: awayName, awayPct: forecastPct(liveProbs.away) })}
+                </p>
+              </>
+            ) : liveProbs ? (
+              <>
+                {/* Group, live: Now and Pre-match share the same bar + 3-column layout so the percentages line
                     up vertically — the move reads at a glance without the eye hunting between formats. */}
                 <div className="text-live mb-2 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.now")}</div>
                 <WinProbBar home={liveProbs.home} draw={liveProbs.draw} away={liveProbs.away} homeName={homeName!} awayName={awayName!} />
@@ -273,12 +330,10 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
                   <div className="text-muted-2 mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.preMatchLabel")}</div>
                   <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={homeName!} awayName={awayName!} secondary />
                 </div>
-                {liveProbs.advance && (
-                  <p className="text-muted-2 mt-4 text-xs">
-                    {t("match.liveAdvance", { home: homeName, homePct: forecastPct(liveProbs.advance.home), away: awayName, awayPct: forecastPct(liveProbs.advance.away) })}
-                  </p>
-                )}
               </>
+            ) : m.advance && m.round !== "GROUP" ? (
+              // Live but no clock yet (kickoff imminent) — show the pre-match advance for a knockout.
+              <AdvanceBar home={m.advance.home} away={m.advance.away} homeName={homeName!} awayName={awayName!} t={t} />
             ) : (
               <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={homeName!} awayName={awayName!} />
             )}
@@ -332,7 +387,7 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
 }
 
 // ── hero sides (ported from the server page; localized from codes via useT) ────────────────────────────
-function ScoreTeam({ m, side, locale, t }: { m: MatchInfo; side: "home" | "away"; locale: Locale; t: TFunction }) {
+function ScoreTeam({ m, side, locale, t, rank }: { m: MatchInfo; side: "home" | "away"; locale: Locale; t: TFunction; rank?: number }) {
   const resolved = side === "home" ? m.home : m.away;
   const name = nm(t, resolved);
   const score = side === "home" ? m.homeScore : m.awayScore;
@@ -350,10 +405,11 @@ function ScoreTeam({ m, side, locale, t }: { m: MatchInfo; side: "home" | "away"
   return (
     <Link
       href={localeHref(locale, `/team/${slugForCode(resolved)}`)}
-      className="group/team focus-visible:ring-primary/50 focus-visible:ring-offset-surface-raised flex min-w-0 flex-1 flex-col items-center gap-3 rounded-xl text-center transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="group/team focus-visible:ring-primary/50 focus-visible:ring-offset-surface-raised flex min-w-0 flex-1 flex-col items-center gap-2 rounded-xl text-center transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       <span className={lose ? "opacity-60 saturate-[0.85]" : ""}><Flag code={resolved} size={64} /></span>
       <div className={`decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl ${win ? "text-win" : lose ? "text-muted-foreground" : ""}`}>{name}</div>
+      {rank != null && <div className="text-muted-2 font-mono text-[10px] font-semibold tracking-[0.1em] uppercase">{t("match.eloRank", { rank })}</div>}
     </Link>
   );
 }
