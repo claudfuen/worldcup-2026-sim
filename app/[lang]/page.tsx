@@ -52,7 +52,7 @@ export default async function Page() {
       <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
           <header>
-            <MastheadVerdict teams={teams} iterations={data.iterations} />
+            <MastheadVerdict teams={teams} iterations={data.iterations} complete={data.complete} champion={data.champion} />
             <MoverStrip teams={teams} />
           </header>
           <LiveTodayRail matches={lMatches} hotReasons={hotReasons} />

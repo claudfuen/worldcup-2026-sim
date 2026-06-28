@@ -32,14 +32,16 @@ export async function GoldenBootRace({ entries, className = "" }: { entries: Awa
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{e.player}</span>
                   <span className="font-mono text-sm font-semibold tabular-nums">{e.goals}<span className="sr-only"> {t("awards.colGoals")}</span></span>
                   <span className="text-muted-2 text-[10px]" aria-hidden>{t("awards.goalsAbbr")}</span>
-                  <span className="text-contention w-9 text-right font-mono text-sm font-semibold tabular-nums">{forecastPct(e.winProb)}<span className="sr-only"> {t("awards.chance")}</span></span>
+                  <span className="text-contention w-9 text-right font-mono text-sm font-semibold tabular-nums">{e.clinched ? t("awards.won") : forecastPct(e.winProb)}<span className="sr-only"> {t("awards.chance")}</span></span>
                 </Link>
               </li>
             ))}
           </ol>
           {leader && (
             <p className="text-muted-2 mt-3 border-t border-border/50 pt-2.5 text-[11px] text-pretty">
-              {t("awards.overviewProjected", { value: leader.projected.toFixed(1), pct: forecastPct(leader.winProb) })} · {leader.player}
+              {leader.clinched
+                ? t("awards.overviewWon", { player: leader.player, goals: leader.goals })
+                : `${t("awards.overviewProjected", { value: leader.projected.toFixed(1), pct: forecastPct(leader.winProb) })} · ${leader.player}`}
             </p>
           )}
         </>

@@ -86,6 +86,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   // World ranking context: our Elo strength rank (of the 48-team field) + the stored official FIFA ranking.
   const eloRank = [...data.teams].sort((a, b) => (b.ratingExact ?? b.rating) - (a.ratingExact ?? a.rating)).findIndex((t) => t.code === team.code) + 1;
   const fifaRank = FIFA_RANK[team.code];
+  const isChampion = data.complete && data.champion === team.code;
   const groupView = groups.find((g) => g.group === team.group);
   const row = groupView?.teams.find((t) => t.code === team.code);
   const fixtures = overlaid
@@ -126,7 +127,13 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
             </div>
           </div>
         </div>
-        {pred && (
+        {pred && isChampion && (
+          <p className="text-foreground mt-3 inline-flex items-center gap-2 text-base font-medium text-pretty">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-contention shrink-0" aria-hidden><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" /></svg>
+            {t("team.ledeChampion", { team: lTeam.name })}
+          </p>
+        )}
+        {pred && !isChampion && (
           <p className="text-muted-foreground mt-3 text-sm text-pretty">
             {t("team.ledePrefix", { team: lTeam.name, status: statusWord })}
             {advanceOut ? (
@@ -165,11 +172,14 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
               const v = (pred as unknown as RoundVals)[key];
               const r32Clinched = key === "advance" && advanceClinched;
               const r32Out = key === "advance" && advanceOut;
+              // Tournament over: the champion's reached rounds are facts. ✓ the rounds they actually made.
+              const reached = isChampion || (data.complete && v >= 0.5);
+              const cellWon = data.complete && reached;
               return (
-                <div key={key} className="bg-card flex flex-col items-center gap-1 px-2 py-4" style={{ backgroundColor: heat(r32Clinched ? 1 : v) }}>
+                <div key={key} className="bg-card flex flex-col items-center gap-1 px-2 py-4" style={{ backgroundColor: heat(r32Clinched || cellWon ? 1 : v) }}>
                   <span className="text-muted-2 text-[10px] font-medium tracking-wide uppercase">{label}</span>
-                  <span className={`font-mono text-lg font-bold tabular-nums ${r32Clinched ? "text-win" : key === "title" ? "text-primary" : ""}`}>
-                    {r32Clinched ? <span className="inline-flex items-center justify-center leading-none" title={t("team.clinchedR32Title")}>✓</span> : r32Out ? t("team.outShort") : forecastPct(v)}
+                  <span className={`font-mono text-lg font-bold tabular-nums ${r32Clinched || cellWon ? "text-win" : key === "title" ? "text-primary" : ""}`}>
+                    {r32Clinched || cellWon ? <span className="inline-flex items-center justify-center leading-none">✓</span> : r32Out || (data.complete && v < 0.5) ? t("team.outShort") : forecastPct(v)}
                   </span>
                 </div>
               );

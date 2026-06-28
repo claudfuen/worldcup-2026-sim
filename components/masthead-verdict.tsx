@@ -9,12 +9,34 @@ import type { TeamPrediction } from "@/lib/predictions";
 // The masthead: the model's single pick to win it all, stated as a confident editorial CALL (never
 // definitive — it's a forecast). The hierarchy fix — the most-important insight is the largest thing on the
 // page. Guards the near-flat title race with a "too close to call" top-3 variant so it never overstates.
-export async function MastheadVerdict({ teams, iterations }: { teams: TeamPrediction[]; iterations: number }) {
+export async function MastheadVerdict({ teams, iterations, complete, champion }: { teams: TeamPrediction[]; iterations: number; complete?: boolean; champion?: string }) {
   const t = await getT();
   const locale = await getLocale();
   const intl = await getIntlLocale();
   const [c1, c2] = teams;
   if (!c1) return null;
+
+  // Tournament over: crown the actual champion (a settled fact, not a forecast — no probability).
+  const champ = complete && champion ? teams.find((tm) => tm.code === champion) : undefined;
+  if (champ) {
+    return (
+      <div>
+        <div className="text-contention font-mono text-xs font-semibold tracking-wide uppercase">{t("home.championEyebrow")}</div>
+        <h1 className="mt-2 flex items-center gap-3 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+          <TrophyIcon />
+          <span>
+            <Link href={localeHref(locale, `/team/${slugForCode(champ.code)}`)} className="decoration-contention/40 underline-offset-4 hover:underline">{champ.name}</Link>{" "}
+            <span className="text-muted-foreground font-normal">{t("home.areChampions")}</span>
+          </span>
+        </h1>
+        <div className="mt-3 flex items-center gap-2.5">
+          <Flag code={champ.code} size={22} />
+          <span className="text-muted-foreground text-sm">{t("home.championLine")}</span>
+        </div>
+      </div>
+    );
+  }
+
   const close = c2 != null && c1.title - c2.title < 0.02;
   const top = [teams[0], teams[1], teams[2]].filter((t): t is TeamPrediction => Boolean(t));
 
@@ -50,5 +72,15 @@ export async function MastheadVerdict({ teams, iterations }: { teams: TeamPredic
         {t("home.simsTagline", { count: iterations.toLocaleString(intl) })}
       </p>
     </div>
+  );
+}
+
+// Gold trophy for the champion crown.
+function TrophyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-contention shrink-0" aria-hidden>
+      <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+      <path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" />
+    </svg>
   );
 }

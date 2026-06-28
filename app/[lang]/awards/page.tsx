@@ -20,9 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
   // Title stays static (avoids SERP churn); description is the high-leverage dynamic swap.
   const data = await getPredictions().catch(() => null);
   const lead = data?.awards?.goldenBoot?.[0];
-  const description = lead
-    ? t("awards.metaDescLeader", { player: lead.player, goals: lead.goals, pct: forecastPct(lead.winProb) })
-    : t("awards.metaDesc");
+  const description = lead?.clinched
+    ? t("awards.metaDescWon", { player: lead.player, goals: lead.goals })
+    : lead
+      ? t("awards.metaDescLeader", { player: lead.player, goals: lead.goals, pct: forecastPct(lead.winProb) })
+      : t("awards.metaDesc");
   return {
     title: { absolute: title },
     description,
@@ -79,9 +81,9 @@ export default async function AwardsPage() {
       {itemListLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />}
       <header className="mb-6">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("awards.eyebrow")}</div>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{t("awards.heading")}</h1>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{data.complete ? t("awards.headingFinal") : t("awards.heading")}</h1>
         <p className="text-foreground mt-2 text-base text-pretty">{verdict}</p>
-        <p className="text-muted-2 mt-2 text-xs text-pretty">{t("awards.subhead")}</p>
+        <p className="text-muted-2 mt-2 text-xs text-pretty">{data.complete ? t("awards.subheadFinal") : t("awards.subhead")}</p>
       </header>
 
       <Section title={t("awards.goldenBoot")} desc={t("awards.goldenBootDesc")}>
@@ -93,7 +95,7 @@ export default async function AwardsPage() {
       </Section>
 
       <p className="text-muted-2 mt-6 text-xs text-pretty">
-        {t("awards.matchesNote", { n: matchesCounted, iters: "20k" })} {t("awards.footnote")}
+        {data.complete ? t("awards.matchesNoteFinal", { n: matchesCounted }) : t("awards.matchesNote", { n: matchesCounted, iters: "20k" })} {!data.complete && t("awards.footnote")}
       </p>
 
       <RelatedLinks

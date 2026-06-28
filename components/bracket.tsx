@@ -33,7 +33,7 @@ export function Bracket({
 }: {
   matches: MatchInfo[];
   myMatchNumbers?: number[];
-  champion?: { code: string; name: string; prob: number };
+  champion?: { code: string; name: string; prob: number; won?: boolean };
 }) {
   const t = useT();
   const byMatch = new Map(matches.map((m) => [m.match, m]));
@@ -94,17 +94,26 @@ export function Bracket({
 
 // The climax of the bracket: the model's projected champion, in its own terminus column to the right of
 // the FINAL, vertically centred on the final node.
-function ChampionCard({ champion }: { champion: { code: string; name: string; prob: number } }) {
+function ChampionCard({ champion }: { champion: { code: string; name: string; prob: number; won?: boolean } }) {
   const t = useT();
   const locale = useLocale();
+  // Once the tournament's over this is the actual winner — gold, "Champion", no probability.
+  const won = champion.won;
   return (
-    <div className="border-primary/40 bg-primary/[0.07] rounded-xl border p-3 text-center">
-      <div className="text-primary mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("bracket.projectedChampion")}</div>
+    <div className={`rounded-xl border p-3 text-center ${won ? "border-contention/45 bg-contention/[0.08]" : "border-primary/40 bg-primary/[0.07]"}`}>
+      <div className={`mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase ${won ? "text-contention" : "text-primary"}`}>{won ? t("bracket.champion") : t("bracket.projectedChampion")}</div>
       <Link href={localeHref(locale, `/team/${slugForCode(champion.code)}`)} className="flex items-center justify-center gap-2 hover:underline">
         <Flag code={champion.code} size={22} />
         <span className="font-semibold">{champion.name}</span>
       </Link>
-      <div className="text-primary mt-1 font-mono text-sm font-bold tabular-nums">{pct(Math.min(champion.prob, 0.99))}</div>
+      {won ? (
+        <div className="text-contention mt-1 inline-flex items-center justify-center gap-1 font-mono text-[11px] font-semibold tracking-wide uppercase">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12.5 10 17.5 19 7" /></svg>
+          {t("bracket.winner")}
+        </div>
+      ) : (
+        <div className="text-primary mt-1 font-mono text-sm font-bold tabular-nums">{pct(Math.min(champion.prob, 0.99))}</div>
+      )}
     </div>
   );
 }
