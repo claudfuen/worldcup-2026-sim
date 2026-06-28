@@ -18,7 +18,7 @@ export const MY_MATCHES: TicketedMatch[] = [
     slot: ["ESP", "KSA"], fixedTeams: ["ESP", "KSA"], venue: "Mercedes-Benz Stadium, Atlanta", note: "Hospitality" },
   { match: 86, round: "Round of 32", kind: "knockout", date: "Jul 3, 18:00", tickets: 1, slot: ["1J", "2H"] },
   { match: 92, round: "Round of 16", kind: "knockout", date: "Jul 5, 18:00", tickets: 3,
-    slot: ["W79", "W80"], venue: "Estadio Azteca, Mexico City" },
+    slot: ["W79", "W80"], venue: "Mexico City Stadium" },
   { match: 99, round: "Quarter-final", kind: "knockout", date: "Jul 11, 17:00", tickets: 1, slot: ["W91", "W92"] },
   { match: 100, round: "Quarter-final", kind: "knockout", date: "Jul 11, 20:00", tickets: 1, slot: ["W95", "W96"] },
 ];

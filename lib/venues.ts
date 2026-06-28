@@ -1,13 +1,13 @@
 // FIFA's official 2026 tournament venue names — host-city based, so they're browsable (you instantly
 // know WHERE a match is) rather than the commercial stadium name. Keyed by the stadium name stored in
-// lib/data/schedule.ts. Estadio Azteca is kept as-is (iconic + already city-clear). The host-city naming
-// is FIFA's official convention for the tournament (fifa.com host cities / stadiums).
+// lib/data/schedule.ts. The host-city naming is FIFA's official convention for the tournament
+// (fifa.com host cities / stadiums) — so even the iconic Azteca becomes "Mexico City Stadium".
 const FIFA_VENUE: Record<string, string> = {
   "AT&T Stadium": "Dallas Stadium",
   "BC Place Stadium": "Vancouver Stadium",
   "BMO Field": "Toronto Stadium",
   "Estadio Akron": "Guadalajara Stadium",
-  "Estadio Azteca": "Estadio Azteca",
+  "Estadio Azteca": "Mexico City Stadium",
   "Estadio BBVA": "Monterrey Stadium",
   "GEHA Field at Arrowhead Stadium": "Kansas City Stadium",
   "Gillette Stadium": "Boston Stadium",
