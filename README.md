@@ -22,6 +22,8 @@
 
 [**Live demo**](https://worldcup2026predictions.app) · [Bracket](https://worldcup2026predictions.app/bracket) · [Golden Boot](https://worldcup2026predictions.app/awards) · [Scorecard](https://worldcup2026predictions.app/scorecard) · [Methodology](https://worldcup2026predictions.app/methodology)
 
+<sub>Built by <a href="https://claudfuen.com">Claudio Fuentes</a> — co-founder of <a href="https://trycomp.ai">Comp AI</a>, two-time technical founder building production AI systems.</sub>
+
 </div>
 
 ---
@@ -171,6 +173,12 @@ Dev / QA scripts (`bun run scripts/<name>.ts`): `bench` (Monte Carlo throughput)
 ## Deployment
 
 Deploys on Vercel out of the box: connect the repo, set the env vars above, add a Cron job hitting `/api/cron/recompute`, and set the production domain (for the locale sitemap + hreflang). Any platform supporting Next.js 16 + a scheduled HTTP request works.
+
+## Author
+
+Built by **[Claudio Fuentes](https://claudfuen.com)** — co-founder of **[Comp AI](https://trycomp.ai)** (AI-powered compliance automation), and a two-time technical founder (previously CEO of Leap AI; led enterprise AI product at Pypestream). This is a solo nights-and-weekends project — an end-to-end study in applied probabilistic modeling, real-time data pipelines, and production full-stack engineering: a from-scratch Elo + Poisson/Dixon-Coles model, a deterministic 20k-iteration Monte Carlo, exhaustive clinch enumeration, live self-calibration, and a 13-locale Next.js front end, all in one codebase.
+
+[claudfuen.com](https://claudfuen.com) · [LinkedIn](https://www.linkedin.com/in/claudiofuen/) · [X](https://x.com/claud_fuen) · [GitHub @claudfuen](https://github.com/claudfuen)
 
 ## License
 
