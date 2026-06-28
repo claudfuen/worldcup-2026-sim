@@ -1,12 +1,35 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { getPredictions } from "@/lib/getPredictions";
+import { ISO2 } from "@/lib/flags";
 
-// Dynamic per-match social card: the matchup + the model's win probability (or the final score).
+// Dynamic per-match social card: the matchup (with big country flags) + the model's win probability
+// (or the final score).
 export const alt = "World Cup 2026 match prediction";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// A team's flag as an inlined data URI (Satori can't use the flag-icons CSS classes). Reads the bundled SVG;
+// falls back to the flag-icons CDN if the asset isn't in the serverless bundle. Returns null for TBD slots.
+async function flagDataUri(code?: string | null): Promise<string | null> {
+  const iso = code ? ISO2[code] : null;
+  if (!iso) return null;
+  let svg: string | null = null;
+  try {
+    svg = await readFile(join(process.cwd(), "node_modules/flag-icons/flags/4x3", `${iso}.svg`), "utf8");
+  } catch {
+    try {
+      const r = await fetch(`https://cdn.jsdelivr.net/npm/flag-icons@7/flags/4x3/${iso}.svg`);
+      if (r.ok) svg = await r.text();
+    } catch {
+      /* no flag — render the name only */
+    }
+  }
+  return svg ? `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}` : null;
+}
 
 const ROUND: Record<string, string> = {
   GROUP: "Group stage", R32: "Round of 32", R16: "Round of 16", QF: "Quarter-final", SF: "Semi-final", "3P": "Third-place play-off", FINAL: "Final",
@@ -36,6 +59,9 @@ export default async function Image({ params }: { params: Promise<{ match: strin
 
   const homeName = m?.homeName ?? slotLabel(m?.slotHome);
   const awayName = m?.awayName ?? slotLabel(m?.slotAway);
+  const [homeFlag, awayFlag] = await Promise.all([flagDataUri(m?.home), flagDataUri(m?.away)]);
+  const FLAG_W = 168;
+  const flagStyle = { width: FLAG_W, height: Math.round((FLAG_W * 3) / 4), borderRadius: 12, border: "1px solid rgba(255,255,255,0.18)", objectFit: "cover" as const };
   const round = m ? ROUND[m.round] : "World Cup 2026";
   const group = m?.group ? ` · Group ${m.group}` : "";
   const final = m?.status === "final";
@@ -59,9 +85,12 @@ export default async function Image({ params }: { params: Promise<{ match: strin
           {round.toUpperCase()}{group.toUpperCase()}
         </div>
 
-        {/* matchup */}
+        {/* matchup — big flag above each team name, flanking the score/vs */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1 }}>
-          <div style={{ display: "flex", flex: 1, justifyContent: "flex-end", fontSize: 64, fontWeight: 700, letterSpacing: -1, textAlign: "right" }}>{homeName}</div>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, alignItems: "flex-end", gap: 22 }}>
+            {homeFlag && <img src={homeFlag} style={flagStyle} />}
+            <div style={{ display: "flex", fontSize: 54, fontWeight: 700, letterSpacing: -1, textAlign: "right" }}>{homeName}</div>
+          </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 200 }}>
             {final ? (
               <div style={{ display: "flex", fontSize: 76, fontWeight: 700, letterSpacing: -1 }}>{m?.homeScore}–{m?.awayScore}</div>
@@ -70,7 +99,10 @@ export default async function Image({ params }: { params: Promise<{ match: strin
             )}
             <div style={{ display: "flex", fontSize: 22, color: MUTED, marginTop: 8 }}>{final ? "Full time" : "Match " + (m?.match ?? match)}</div>
           </div>
-          <div style={{ display: "flex", flex: 1, justifyContent: "flex-start", fontSize: 64, fontWeight: 700, letterSpacing: -1 }}>{awayName}</div>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, alignItems: "flex-start", gap: 22 }}>
+            {awayFlag && <img src={awayFlag} style={flagStyle} />}
+            <div style={{ display: "flex", fontSize: 54, fontWeight: 700, letterSpacing: -1 }}>{awayName}</div>
+          </div>
         </div>
 
         {/* win probability bar */}
