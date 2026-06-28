@@ -21,6 +21,8 @@ export async function BracketTeaser({ matches, teams, className = "" }: { matche
   const awayName = final.awayName ?? final.projAway?.[0]?.name ?? t("common.tbd");
   const r32 = matches.filter((m) => m.round === "R32");
   const setCount = r32.filter((m) => m.defined).length;
+  const played = final.status === "final"; // the final has been played → show the result, not the projection
+  const championName = played ? (final.winner === homeCode ? homeName : awayName) : null;
 
   return (
     <Link
@@ -28,28 +30,34 @@ export async function BracketTeaser({ matches, teams, className = "" }: { matche
       className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/5 hover:dark:inset-ring-primary/30 flex flex-col rounded-2xl border p-4 transition-colors ${className}`}
     >
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{t("home.projectedFinal")}</h2>
+        <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{played ? t("home.finalResult") : t("home.projectedFinal")}</h2>
         <span className="text-muted-2 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden>→</span>
       </div>
       <div className="flex flex-1 items-center gap-3">
-        <FinalSide code={homeCode} name={homeName} reach={reachOf.get(homeCode ?? "")} reachLabel={t("home.toFinal")} />
-        <span className="text-muted-2 shrink-0 text-xs font-medium">{t("common.vs")}</span>
-        <FinalSide code={awayCode} name={awayName} reach={reachOf.get(awayCode ?? "")} reachLabel={t("home.toFinal")} align="right" />
+        <FinalSide code={homeCode} name={homeName} reach={played ? undefined : reachOf.get(homeCode ?? "")} reachLabel={t("home.toFinal")} won={played && final.winner === homeCode} />
+        <span className="text-muted-2 shrink-0 text-sm font-semibold tabular-nums">{played ? <>{final.homeScore}<span className="text-muted-2">–</span>{final.awayScore}</> : t("common.vs")}</span>
+        <FinalSide code={awayCode} name={awayName} reach={played ? undefined : reachOf.get(awayCode ?? "")} reachLabel={t("home.toFinal")} align="right" won={played && final.winner === awayCode} />
       </div>
       <div className="border-border/50 mt-3 flex flex-col items-center gap-1 border-t pt-2.5 text-center">
-        <Countdown utc={final.utc} label={t("home.toTheFinal")} />
-        <div className="text-muted-2 text-[11px]">{t("home.r32Confirmed", { set: setCount, total: r32.length })}</div>
+        {played ? (
+          <div className="text-contention font-mono text-[11px] font-semibold tracking-wide uppercase">{t("home.championsLine", { team: championName })}</div>
+        ) : (
+          <>
+            <Countdown utc={final.utc} label={t("home.toTheFinal")} />
+            <div className="text-muted-2 text-[11px]">{t("home.r32Confirmed", { set: setCount, total: r32.length })}</div>
+          </>
+        )}
       </div>
     </Link>
   );
 }
 
-function FinalSide({ code, name, reach, reachLabel, align }: { code: string | null; name: string; reach?: number; reachLabel: string; align?: "right" }) {
+function FinalSide({ code, name, reach, reachLabel, align, won }: { code: string | null; name: string; reach?: number; reachLabel: string; align?: "right"; won?: boolean }) {
   return (
     <div className={`flex min-w-0 flex-1 items-center gap-2.5 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
       <Flag code={code} size={26} />
       <div className="min-w-0">
-        <div className="truncate text-sm font-semibold">{name}</div>
+        <div className={`truncate text-sm font-semibold ${won ? "text-win" : ""}`}>{name}</div>
         {reach != null && <div className="text-muted-2 font-mono text-[10px] tabular-nums">{forecastPct(reach)} {reachLabel}</div>}
       </div>
     </div>

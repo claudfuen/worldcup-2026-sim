@@ -5,6 +5,9 @@ import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { finalizeGroups, finalizeBracket, ratingsFromTeams } from "@/lib/liveProjection";
 import { Bracket } from "@/components/bracket";
 import { Flag } from "@/components/flag";
+import { LocalTime } from "@/components/local-time";
+import { fifaVenue } from "@/lib/venues";
+import type { MatchInfo } from "@/lib/predictions";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { ShareBar } from "@/components/share-bar";
 import { forecastPct } from "@/lib/format";
@@ -96,7 +99,7 @@ export default async function BracketPage() {
       />
       <div className="border-border bg-card mt-6 rounded-2xl border p-4">
         <h2 className="mb-2 text-base font-semibold tracking-tight">{t("rounds.THIRD")}</h2>
-        <ThirdPlace matches={matches} tbd={t("common.tbd")} vs={t("common.vs")} />
+        <ThirdPlace m={matches.find((x) => x.match === 103)} tbd={t("common.tbd")} vs={t("common.vs")} />
       </div>
       <RelatedLinks
         links={[
@@ -109,19 +112,26 @@ export default async function BracketPage() {
   );
 }
 
-function ThirdPlace({ matches, tbd, vs }: { matches: { match: number; projHome?: { code: string; name: string }[]; projAway?: { code: string; name: string }[] }[]; tbd: string; vs: string }) {
-  const m = matches.find((x) => x.match === 103);
+function ThirdPlace({ m, tbd, vs }: { m?: MatchInfo; tbd: string; vs: string }) {
   if (!m) return null;
-  const h = m.projHome?.[0];
-  const a = m.projAway?.[0];
+  const final = m.status === "final";
+  // Resolved participants if known, else the projected top candidate for each slot.
+  const h = m.home ? { code: m.home, name: m.homeName ?? m.home } : m.projHome?.[0];
+  const a = m.away ? { code: m.away, name: m.awayName ?? m.away } : m.projAway?.[0];
+  const hWon = final && m.winner === h?.code;
+  const aWon = final && m.winner === a?.code;
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       {h && <Flag code={h.code} size={16} />}
-      <span className="text-foreground/90">{h?.name ?? tbd}</span>
-      <span className="text-muted-foreground">{vs}</span>
+      <span className={hWon ? "text-win font-medium" : "text-foreground/90"}>{h?.name ?? tbd}</span>
+      {final ? (
+        <span className="text-foreground font-mono font-semibold tabular-nums">{m.homeScore}<span className="text-muted-2">–</span>{m.awayScore}</span>
+      ) : (
+        <span className="text-muted-foreground">{vs}</span>
+      )}
       {a && <Flag code={a.code} size={16} />}
-      <span className="text-foreground/90">{a?.name ?? tbd}</span>
-      <span className="text-muted-2">· Miami, Jul 18</span>
+      <span className={aWon ? "text-win font-medium" : "text-foreground/90"}>{a?.name ?? tbd}</span>
+      <span className="text-muted-2">· {fifaVenue(m.venue)}, {m.city} · <LocalTime utc={m.utc} mode="day" /></span>
     </div>
   );
 }

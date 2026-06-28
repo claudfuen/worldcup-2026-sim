@@ -31,8 +31,14 @@ export async function TournamentStage({
   const cur = firstUndone === -1 ? phases.length - 1 : firstUndone;
   const curPhase = phases[cur];
 
+  // Tournament over: a terminal "champions" line instead of a "what's next" that has no next.
+  const finalM = matches.find((m) => m.round === "FINAL");
+  const champion = finalM?.status === "final" && finalM.winner ? (finalM.winner === finalM.home ? finalM.homeName : finalM.awayName) : null;
+
   let context: React.ReactNode;
-  if (curPhase.key === "GROUP") {
+  if (champion) {
+    context = t("home.stageChampions", { team: champion });
+  } else if (curPhase.key === "GROUP") {
     const matchday = Math.min(3, Math.max(1, Math.ceil(matchesPlayed / 24))); // 24 group matches per matchday
     const firstR32 = matches.filter((m) => m.round === "R32").sort((a, b) => a.utc.localeCompare(b.utc))[0];
     context = (
