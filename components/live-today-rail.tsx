@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { useViewerZone } from "@/lib/useViewerZone";
-import { fmtTime, fmtDay, fmtDayKey, pct, forecastPct } from "@/lib/format";
+import { fmtTime, fmtTimeShort, fmtDay, fmtDayKey, pct, forecastPct } from "@/lib/format";
 import { HotBadge } from "@/components/hot-badge";
 import { useT, type TFunction } from "@/lib/i18n/provider";
 import { useLocale } from "@/lib/i18n/client";
@@ -14,7 +14,7 @@ import type { MatchInfo } from "@/lib/predictions";
 // with the model's PRE-MATCH favorite shown for context — never a fake live %), then a compact today/
 // last-night slate. Curated and capped, never the full schedule. Client-side so the day boundary follows
 // the viewer's timezone (no near-midnight hydration mismatch).
-export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { matches: MatchInfo[]; hotReasons?: Record<number, string>; className?: string }) {
+export function LiveTodayRail({ matches, hotReasons = {}, className = "", wide = false }: { matches: MatchInfo[]; hotReasons?: Record<number, string>; className?: string; wide?: boolean }) {
   const t = useT();
   const locale = useLocale();
   const { zone, ready } = useViewerZone();
@@ -32,31 +32,37 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
   const recentResults = matches
     .filter((m) => m.status === "final" && fmtDayKey(m.utc, zone) === yest)
     .sort((a, b) => b.utc.localeCompare(a.utc));
+  // Forward look — sparser knockout days leave room to see what's next. Prefer a clean "Tomorrow" slate
+  // (times only); on a rest day with nothing tomorrow, fall back to "Coming up": the next scheduled
+  // matches, each tagged with its day so you can see when to tune in.
+  const tomorrowKey = fmtDayKey(new Date(Date.parse(nowIso) + 86400000).toISOString(), zone);
+  const tomorrowMatches = matches
+    .filter((m) => m.status === "scheduled" && fmtDayKey(m.utc, zone) === tomorrowKey)
+    .sort((a, b) => a.utc.localeCompare(b.utc));
+  const laterMatches = matches
+    .filter((m) => m.status === "scheduled" && fmtDayKey(m.utc, zone) > tomorrowKey)
+    .sort((a, b) => a.utc.localeCompare(b.utc));
+  const upcomingIsTomorrow = tomorrowMatches.length > 0;
+  const upcoming = upcomingIsTomorrow ? tomorrowMatches : laterMatches;
 
-  // Nothing live, nothing today, nothing recent: collapse to a single "up next" line.
-  if (live.length === 0 && todayMatches.length === 0 && recentResults.length === 0) {
-    const next = matches.filter((m) => m.status === "scheduled").sort((a, b) => a.utc.localeCompare(b.utc))[0];
-    if (!next) return null;
-    return (
-      <section className={className} suppressHydrationWarning>
-        <h2 className="text-muted-foreground mb-2 font-mono text-xs font-semibold tracking-wide uppercase">{t("home.upNext")}</h2>
-        <div className="border-border bg-card overflow-hidden rounded-2xl border">
-          <SlateRow m={next} zone={zone} hotReason={hotReasons[next.match]} t={t} locale={locale} />
-        </div>
-      </section>
-    );
+  // Nothing live, today, upcoming, or recent (e.g. the tournament is over): render nothing.
+  if (live.length === 0 && todayMatches.length === 0 && upcoming.length === 0 && recentResults.length === 0) {
+    return null;
   }
 
-  // Caps keep the rail curated and roughly balance the homepage's right-hand snapshot column.
+  // Caps keep the rail curated — a glimpse, never the full schedule (which is one tap away).
   const TODAY_CAP = 10;
+  const UPCOMING_CAP = 8;
   const RECENT_CAP = 6;
 
   return (
-    <section className={className} suppressHydrationWarning>
+    // `wide` flows the feed's sections into balanced internal columns so a full-width primary feed never
+    // shows airy half-empty rows (and keeps each section intact with break-inside-avoid).
+    <section className={`${className} ${wide ? "md:columns-2 md:gap-x-6 lg:gap-x-8" : ""}`} suppressHydrationWarning>
       {live.length > 0 && (
-        <div className="mb-5">
-          <h2 className="text-live mb-2 flex items-center gap-2 font-mono text-xs font-semibold tracking-wide uppercase">
-            <span className="bg-live size-1.5 animate-pulse rounded-full" />{t("common.liveNow")}
+        <div className="mb-5 break-inside-avoid">
+          <h2 className="text-live mb-2 flex items-center gap-2 font-mono text-[13px] font-semibold tracking-wide uppercase">
+            <span className="bg-live size-2 animate-pulse rounded-full" />{t("common.liveNow")}
           </h2>
           <div className="border-live/45 bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
             {live.slice(0, 3).map((m) => <LiveRow key={m.match} m={m} t={t} locale={locale} />)}
@@ -78,6 +84,20 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
           locale={locale}
         />
       )}
+      {upcoming.length > 0 && (
+        <RailSection
+          heading={upcomingIsTomorrow ? t("home.tomorrow") : t("home.comingUp")}
+          showFullSchedule={live.length === 0 && todayMatches.length === 0}
+          matches={upcoming}
+          cap={UPCOMING_CAP}
+          zone={zone}
+          hotReasons={hotReasons}
+          t={t}
+          locale={locale}
+          showDate={!upcomingIsTomorrow}
+          kickoff={!upcomingIsTomorrow}
+        />
+      )}
       {recentResults.length > 0 && (
         <RailSection
           heading={t("home.recentResults")}
@@ -96,7 +116,7 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
 
 // One labelled slate (heading + card of rows + overflow link). Used for both "Today" and "Recent results".
 function RailSection({
-  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false, showDate = false,
+  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false, showDate = false, kickoff = false,
 }: {
   heading: string;
   matches: MatchInfo[];
@@ -107,18 +127,19 @@ function RailSection({
   locale: Locale;
   showFullSchedule?: boolean;
   showDate?: boolean;
+  kickoff?: boolean;
 }) {
   const shown = matches.slice(0, cap);
   return (
-    <div className="mb-5 last:mb-0">
+    <div className="mb-5 break-inside-avoid last:mb-0">
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{heading}</h2>
+        <h2 className="text-foreground/85 font-mono text-[13px] font-semibold tracking-wide uppercase">{heading}</h2>
         {showFullSchedule && (
           <Link href={localeHref(locale, "/schedule")} className="text-primary text-xs hover:underline">{t("home.fullSchedule")}</Link>
         )}
       </div>
       <div className="border-border bg-card divide-border/50 divide-y overflow-hidden rounded-2xl border">
-        {shown.map((m) => <SlateRow key={m.match} m={m} zone={zone} hotReason={hotReasons[m.match]} t={t} locale={locale} showDate={showDate} />)}
+        {shown.map((m) => <SlateRow key={m.match} m={m} zone={zone} hotReason={hotReasons[m.match]} t={t} locale={locale} showDate={showDate} kickoff={kickoff} />)}
       </div>
       {matches.length > cap && (
         <Link href={localeHref(locale, "/schedule")} className="text-primary mt-2 inline-block text-xs hover:underline">{t("home.moreCount", { n: matches.length - cap })}</Link>
@@ -168,7 +189,7 @@ function LiveOdds({ m, t }: { m: MatchInfo; t: TFunction }) {
   );
 }
 
-function SlateRow({ m, zone, hotReason, t, locale, showDate = false }: { m: MatchInfo; zone?: import("@/lib/format").Zone; hotReason?: string; t: TFunction; locale: Locale; showDate?: boolean }) {
+function SlateRow({ m, zone, hotReason, t, locale, showDate = false, kickoff = false }: { m: MatchInfo; zone?: import("@/lib/format").Zone; hotReason?: string; t: TFunction; locale: Locale; showDate?: boolean; kickoff?: boolean }) {
   const final = m.status === "final";
   const homeCode = m.home ?? m.projHome?.[0]?.code ?? null;
   const awayCode = m.away ?? m.projAway?.[0]?.code ?? null;
@@ -190,6 +211,8 @@ function SlateRow({ m, zone, hotReason, t, locale, showDate = false }: { m: Matc
       <span className="shrink-0 text-right text-[11px]">
         {final ? (
           <span className="font-mono"><span className="text-foreground font-medium tabular-nums">{m.homeScore}–{m.awayScore}</span> <span className="text-win">{t("home.ft")}</span></span>
+        ) : kickoff ? (
+          <span className="text-foreground/80 font-mono tabular-nums" suppressHydrationWarning>{fmtTimeShort(m.utc, zone)}</span>
         ) : m.favorite ? (
           <span className="text-muted-2"><span className="text-foreground/80">{m.favorite.name}</span> {pct(m.favorite.winProb)}</span>
         ) : (
