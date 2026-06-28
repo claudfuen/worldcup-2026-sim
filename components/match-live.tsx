@@ -265,24 +265,19 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
             </p>
             {liveProbs ? (
               <>
+                {/* Now (live) and Pre-match share the exact same bar + 3-column layout so the percentages line
+                    up vertically — the move reads at a glance without the eye hunting between formats. */}
                 <div className="text-live mb-2 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.now")}</div>
                 <WinProbBar home={liveProbs.home} draw={liveProbs.draw} away={liveProbs.away} homeName={homeName!} awayName={awayName!} />
+                <div className="border-border/50 mt-4 border-t pt-3">
+                  <div className="text-muted-2 mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.preMatchLabel")}</div>
+                  <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={homeName!} awayName={awayName!} secondary />
+                </div>
                 {liveProbs.advance && (
-                  <p className="text-muted-2 mt-3 text-xs">
+                  <p className="text-muted-2 mt-4 text-xs">
                     {t("match.liveAdvance", { home: homeName, homePct: forecastPct(liveProbs.advance.home), away: awayName, awayPct: forecastPct(liveProbs.advance.away) })}
                   </p>
                 )}
-                <div className="border-border/50 mt-4 flex items-center gap-3 border-t pt-3">
-                  <span className="text-muted-2 w-20 shrink-0 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.preMatchLabel")}</span>
-                  <div className="bg-muted/40 flex h-1.5 flex-1 overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
-                    <div className="bg-primary/55" style={{ width: `${m.probs.home * 100}%` }} />
-                    <div className="bg-muted-foreground/30" style={{ width: `${m.probs.draw * 100}%` }} />
-                    <div className="bg-data-cool/45" style={{ width: `${m.probs.away * 100}%` }} />
-                  </div>
-                  <span className="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums">
-                    {forecastPct(m.probs.home)} · {forecastPct(m.probs.draw)} · {forecastPct(m.probs.away)}
-                  </span>
-                </div>
               </>
             ) : (
               <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={homeName!} awayName={awayName!} />
