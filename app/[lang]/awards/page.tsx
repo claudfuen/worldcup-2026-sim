@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getPredictions } from "@/lib/getPredictions";
 import { AwardsBoard } from "@/components/awards-board";
 import { RelatedLinks } from "@/components/related-links";
+import { forecastPct } from "@/lib/format";
+import { slugForCode } from "@/lib/slug";
 import { getT, getLocale } from "@/lib/i18n/server";
 import { buildAlternates } from "@/lib/i18n/links";
 import { localeHref } from "@/lib/i18n/config";
@@ -14,7 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   const locale = await getLocale();
   const title = t("awards.metaTitle");
-  const description = t("awards.metaDesc");
+  // Name the live leader in the SERP snippet — that's what wins the click on "world cup 2026 top scorer".
+  // Title stays static (avoids SERP churn); description is the high-leverage dynamic swap.
+  const data = await getPredictions().catch(() => null);
+  const lead = data?.awards?.goldenBoot?.[0];
+  const description = lead
+    ? t("awards.metaDescLeader", { player: lead.player, goals: lead.goals, pct: forecastPct(lead.winProb) })
+    : t("awards.metaDesc");
   return {
     title: { absolute: title },
     description,
@@ -36,10 +44,34 @@ export default async function AwardsPage() {
     ? t("awards.verdictNoData")
     : leadCount > 1
       ? t("awards.verdictTied", { player: leader.player, n: leadCount - 1, goals: leader.goals })
-      : t("awards.verdictLeader", { player: leader.player, goals: leader.goals, pct: pctText(leader.winProb) });
+      : t("awards.verdictLeader", { player: leader.player, goals: leader.goals, pct: forecastPct(leader.winProb) });
+
+  // ItemList structured data for the Golden Boot ranking — this is a head-term page ("golden boot odds")
+  // and previously shipped no structured data. Built server-side; absolute origin to match the other pages.
+  const ORIGIN = "https://worldcup2026predictions.app";
+  const itemListLd = goldenBoot.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: t("awards.metaTitle"),
+        itemListOrder: "https://schema.org/ItemListOrderDescending",
+        numberOfItems: Math.min(10, goldenBoot.length),
+        itemListElement: goldenBoot.slice(0, 10).map((e, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          item: {
+            "@type": "Person",
+            name: e.player,
+            url: `${ORIGIN}${localeHref(locale, `/team/${slugForCode(e.teamCode)}`)}`,
+            affiliation: { "@type": "SportsTeam", name: t(`teams.${e.teamCode}`) },
+          },
+        })),
+      }
+    : null;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      {itemListLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />}
       <header className="mb-6">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("awards.eyebrow")}</div>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{t("awards.heading")}</h1>
@@ -47,13 +79,13 @@ export default async function AwardsPage() {
         <p className="text-muted-2 mt-2 text-xs text-pretty">{t("awards.subhead")}</p>
       </header>
 
-      <Section title={t("awards.goldenBoot")} desc={t("awards.goldenBootDesc")} columns={[t("awards.proj"), t("awards.colChance")]}>
-        <AwardsBoard entries={goldenBoot} metric="goals" />
+      <Section title={t("awards.goldenBoot")} desc={t("awards.goldenBootDesc")}>
+        <AwardsBoard entries={goldenBoot} metric="goals" accent="gold" />
       </Section>
 
       {assists.length > 0 && (
-        <Section title={t("awards.playmaker")} desc={t("awards.playmakerDesc")} columns={[t("awards.proj"), t("awards.colChance")]} className="mt-10">
-          <AwardsBoard entries={assists} metric="assists" />
+        <Section title={t("awards.playmaker")} desc={t("awards.playmakerDesc")} className="mt-10">
+          <AwardsBoard entries={assists} metric="assists" accent="cool" />
         </Section>
       )}
 
@@ -72,24 +104,12 @@ export default async function AwardsPage() {
   );
 }
 
-function Section({ title, desc, columns, className = "", children }: { title: string; desc: string; columns: string[]; className?: string; children: React.ReactNode }) {
+function Section({ title, desc, className = "", children }: { title: string; desc: string; className?: string; children: React.ReactNode }) {
   return (
     <section className={className}>
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
       <p className="text-muted-2 mt-0.5 mb-3 text-xs text-pretty">{desc}</p>
-      {/* column hints, right-aligned to the data cluster (desktop only — mobile rows are self-evident) */}
-      <div className="text-muted-2 mb-1 hidden items-center justify-end gap-1.5 px-1.5 font-mono text-[10px] tracking-wide uppercase sm:flex">
-        <span className="w-14 text-right">{columns[0]}</span>
-        <span className="w-[4.5rem] text-right">{columns[1]}</span>
-      </div>
-      <div className="border-border bg-card rounded-2xl border p-2 dark:inset-ring dark:inset-ring-white/5">{children}</div>
+      {children}
     </section>
   );
-}
-
-// Golden Boot win chance, capped at 99% like the rest of the site (a forecast is never a certainty).
-function pctText(p: number): string {
-  if (p >= 0.995) return "99%";
-  if (p > 0 && p < 0.01) return "<1%";
-  return `${Math.round(p * 100)}%`;
 }

@@ -45,7 +45,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      (per-slot Annex C invariance, excluding eliminated groups) — not only once the whole group stage ends.
 // v13: payload gained `awards` — Golden Boot + assists race (live tallies aggregated from match timelines,
 //      plus a forecast of the final finish: projected tally + P(win) via a seeded Monte Carlo).
-export const PRED_KEY = "predictions:v13";
+// v14: award entries gained `matchesLeft` (expected remaining matches a player's team plays) — the forecast's
+//      upside lever, surfaced in the UI.
+export const PRED_KEY = "predictions:v14";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

@@ -23,18 +23,20 @@ export async function GoldenBootRace({ entries, className = "" }: { entries: Awa
         <p className="text-muted-2 py-2 text-sm">{t("awards.overviewEmpty")}</p>
       ) : (
         <>
-          <div className="divide-border/50 -mx-1.5 divide-y">
+          <ol className="divide-border/50 -mx-1.5 list-none divide-y">
             {top.map((e, i) => (
-              <Link key={`${e.player}-${e.teamCode}`} href={localeHref(locale, `/team/${slugForCode(e.teamCode)}`)} className="hover:bg-muted/20 flex items-center gap-2.5 rounded-md px-1.5 py-2 transition-colors">
-                <span className="text-muted-2 w-3 text-right font-mono text-[11px] tabular-nums">{i + 1}</span>
-                <Flag code={e.teamCode} size={18} />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{e.player}</span>
-                <span className="font-mono text-sm font-semibold tabular-nums">{e.goals}</span>
-                <span className="text-muted-2 text-[10px]">{t("awards.goalsAbbr")}</span>
-                <span className="w-9 text-right font-mono text-sm font-semibold tabular-nums">{forecastPct(e.winProb)}</span>
-              </Link>
+              <li key={`${e.player}-${e.teamCode}`}>
+                <Link href={localeHref(locale, `/team/${slugForCode(e.teamCode)}`)} className="hover:bg-muted/20 flex items-center gap-2.5 rounded-md px-1.5 py-2 transition-colors">
+                  <span className="text-muted-2 w-3 text-right font-mono text-[11px] tabular-nums">{i + 1}</span>
+                  <Flag code={e.teamCode} size={18} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{e.player}</span>
+                  <span className="font-mono text-sm font-semibold tabular-nums">{e.goals}<span className="sr-only"> {t("awards.colGoals")}</span></span>
+                  <span className="text-muted-2 text-[10px]" aria-hidden>{t("awards.goalsAbbr")}</span>
+                  <span className="text-contention w-9 text-right font-mono text-sm font-semibold tabular-nums">{forecastPct(e.winProb)}<span className="sr-only"> {t("awards.chance")}</span></span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ol>
           {leader && (
             <p className="text-muted-2 mt-3 border-t border-border/50 pt-2.5 text-[11px] text-pretty">
               {t("awards.overviewProjected", { value: leader.projected.toFixed(1), pct: forecastPct(leader.winProb) })} · {leader.player}

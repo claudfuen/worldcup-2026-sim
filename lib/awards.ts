@@ -16,6 +16,8 @@ export interface AwardEntry {
   assists: number;
   penalties: number; // penalty goals (subset of goals) — shown so a pen-heavy tally is transparent
   matches: number; // team matches the tally was accrued over (the rate denominator)
+  matchesLeft: number; // EXPECTED remaining matches the team plays (group + probability-weighted KO depth) —
+  // the upside lever: a player on a deep-run team has more games left to add to their tally
   projected: number; // forecast FINAL value (mean), incl. goals still to come
   winProb: number; // P(finishes the tournament top of this race), incl. ties split
 }
@@ -174,6 +176,7 @@ function buildBoard(
         assists: t.assists,
         penalties: t.penalties,
         matches: played.get(c.teamCode) ?? 0,
+        matchesLeft: c.expRemaining,
         projected: c.value + c.rate * c.expRemaining,
         winProb: winProbs.get(i) ?? 0,
       };
