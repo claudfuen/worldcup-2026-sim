@@ -36,7 +36,7 @@ export async function AwardsBoard({ entries, metric, accent, limit = 20 }: { ent
   const t = await getT();
   const locale = await getLocale();
   const rows = entries.slice(0, limit);
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return <p className="text-muted-2 border-border bg-card rounded-2xl border px-4 py-6 text-center text-sm dark:inset-ring dark:inset-ring-white/5">{t("awards.boardEmpty")}</p>;
   const max = Math.max(...rows.map((e) => e.projected), 1);
   const [leader, ...rest] = rows;
   return (

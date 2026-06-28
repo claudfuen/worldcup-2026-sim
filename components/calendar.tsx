@@ -82,7 +82,13 @@ export function Calendar({ matches }: { matches: MatchInfo[] }) {
     if (weeks.length > 12) break; // safety
   }
   const hasPast = mounted && weeks.some((wk) => wk.last < todayKey!);
-  const visibleWeeks = mounted && !showPast ? weeks.filter((wk) => wk.last >= todayKey!) : weeks;
+  const futureWeeks = mounted && !showPast ? weeks.filter((wk) => wk.last >= todayKey!) : weeks;
+  // Once every week is in the past (tournament over), "future only" would render a blank calendar — fall
+  // back to the full set so the page stays the complete archive.
+  const visibleWeeks = futureWeeks.length > 0 ? futureWeeks : weeks;
+  // Same fallback for the mobile agenda's day keys.
+  const futureKeys = mounted && !showPast ? allKeys.filter((k) => k >= todayKey!) : allKeys;
+  const visibleKeys = futureKeys.length > 0 ? futureKeys : allKeys;
   const present = new Set([...matches].map((m) => phaseKeyOf(m.round)));
 
   // Consecutive same-phase day runs within a week → one all-day bar each (Google-Calendar style).
@@ -173,7 +179,7 @@ export function Calendar({ matches }: { matches: MatchInfo[] }) {
 
       {/* Mobile: agenda grouped by day, present-focused, each header carrying its phase */}
       <div className="space-y-6 md:hidden">
-        {(mounted && !showPast ? allKeys.filter((k) => k >= todayKey!) : allKeys).map((key) => {
+        {visibleKeys.map((key) => {
           const items = byDay.get(key)!;
           const isToday = key === todayKey;
           const phase = phaseKeyOf(items[0].round);

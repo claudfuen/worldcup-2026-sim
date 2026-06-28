@@ -12,13 +12,15 @@ type T = ReturnType<typeof useT>;
 // sides, proper icons make each type read at a glance. Substitutions are hidden by default (they add a lot of
 // rows) behind a top-right toggle, keeping the default view focused on goals + cards. Live + completed.
 export function MatchTimeline({
-  events, homeCode, awayCode, homeName, awayName,
+  events, homeCode, awayCode, homeName, awayName, final = false, scored = false,
 }: {
   events: MatchEvent[];
   homeCode: string;
   awayCode: string;
   homeName: string;
   awayName: string;
+  final?: boolean; // match is over
+  scored?: boolean; // at least one goal was scored — distinguishes "0-0, nothing happened" from "feed has no detail"
 }) {
   const t = useT();
   const [showSubs, setShowSubs] = useState(false);
@@ -65,7 +67,7 @@ export function MatchTimeline({
         {shown.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <GoalIcon label="" className="text-muted-foreground/40" size={26} />
-            <p className="text-muted-2 text-sm text-pretty">{t("match.noEventsYet")}</p>
+            <p className="text-muted-2 text-sm text-pretty">{final && scored ? t("match.detailUnavailable") : t("match.noEventsYet")}</p>
             {hasSubs && !showSubs && <p className="text-muted-2 text-xs">{t("match.onlySubs")}</p>}
           </div>
         ) : (

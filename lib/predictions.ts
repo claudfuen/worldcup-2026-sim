@@ -108,6 +108,8 @@ export interface PredictionsPayload {
   matches: MatchInfo[];
   thirdPlaceRace: ThirdPlaceEntry[];
   awards: Awards; // Golden Boot + assists race (current standings + forecast finish)
+  complete: boolean; // every match played — the tournament is over (the signal end-state UI keys off)
+  champion?: string; // code of the team that won the final, once it's been played
 }
 
 // Start-of-day odds snapshot, for "moved since yesterday" deltas.
@@ -427,6 +429,10 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
     () => ({ goldenBoot: [], assists: [], matchesCounted: 0 }) as Awards,
   );
 
+  // Tournament-over signal + the realized champion (the final's winner) — drives every end-state in the UI.
+  const complete = matches.length > 0 && matches.every((mi) => mi.status === "final");
+  const champion = matches.find((mi) => mi.round === "FINAL")?.winner;
+
   return {
     updatedAt: new Date().toISOString(),
     iterations,
@@ -438,5 +444,7 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
     matches,
     thirdPlaceRace,
     awards,
+    complete,
+    champion,
   };
 }

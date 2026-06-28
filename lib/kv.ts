@@ -54,7 +54,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      W/D/L / xG / scorelines (previously null because the slot resolved after the forecast pass).
 // v17: knockout matches gained `advance` ({home,away}) — P(each side progresses incl. extra time + shootout),
 //      so the KO match page leads with "to advance" instead of a regulation draw.
-export const PRED_KEY = "predictions:v17";
+// v18: payload gained `complete` (all matches played) + `champion` (final's winner) — the tournament-over
+//      signal the UI keys off for champion-crown / archive states.
+export const PRED_KEY = "predictions:v18";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";

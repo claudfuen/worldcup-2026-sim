@@ -32,7 +32,9 @@ function matchRefreshMs(m?: MatchInfo): number {
   if (m.status === "live") return 12_000;
   if (m.status === "final") return 0;
   const ms = Date.parse(m.utc) - Date.now(); // client-only (SWR timer callback), so not a hydration concern
-  return ms > 0 && ms < 90 * 60_000 ? 60_000 : 0;
+  // Poll from 90 min before kickoff to 30 min after, so a scheduled match auto-flips to live around kickoff
+  // (the most-trafficked moment) without a manual refresh; otherwise don't poll a far-future/idle match.
+  return ms < 90 * 60_000 && ms > -30 * 60_000 ? 60_000 : 0;
 }
 
 // ── shared poll ──────────────────────────────────────────────────────────────────────────────────────
@@ -267,7 +269,7 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
 
   const matchFacts = m.home && m.away && (
     <>
-      <MatchTimeline events={summary.events} homeCode={m.home} awayCode={m.away} homeName={homeName!} awayName={awayName!} />
+      <MatchTimeline events={summary.events} homeCode={m.home} awayCode={m.away} homeName={homeName!} awayName={awayName!} final={m.status === "final"} scored={(m.homeScore ?? 0) + (m.awayScore ?? 0) > 0} />
       <MatchStats stats={summary.stats} />
     </>
   );

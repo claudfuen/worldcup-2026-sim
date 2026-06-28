@@ -88,11 +88,9 @@ export default async function AwardsPage() {
         <AwardsBoard entries={goldenBoot} metric="goals" accent="gold" />
       </Section>
 
-      {assists.length > 0 && (
-        <Section title={t("awards.playmaker")} desc={t("awards.playmakerDesc")} className="mt-10">
-          <AwardsBoard entries={assists} metric="assists" accent="cool" />
-        </Section>
-      )}
+      <Section title={t("awards.playmaker")} desc={t("awards.playmakerDesc")} className="mt-10">
+        <AwardsBoard entries={assists} metric="assists" accent="cool" />
+      </Section>
 
       <p className="text-muted-2 mt-6 text-xs text-pretty">
         {t("awards.matchesNote", { n: matchesCounted, iters: "20k" })} {t("awards.footnote")}

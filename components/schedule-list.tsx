@@ -42,13 +42,19 @@ export function ScheduleList({ matches, hotReasons = {} }: { matches: MatchInfo[
   // (you can still see yesterday's scores when you check in the next morning).
   const yesterday = nowIso ? fmtDayKey(new Date(Date.parse(nowIso) - 86400000).toISOString(), zone) : null;
 
+  // "Upcoming" is the default, but once nothing is upcoming (a rest day at the very end, or the whole
+  // tournament is over) that filter would show an empty "no matches" on a page full of results — so fall
+  // back to All dates, turning the page into the archive of record.
+  const hasUpcoming = today == null || matches.some((m) => fmtDayKey(m.utc, zone) >= (yesterday ?? today));
+  const effectiveTime = time === "upcoming" && !hasUpcoming ? "all" : time;
+
   const shown = matches.filter((m) => {
     if (filter === "GROUP" && m.round !== "GROUP") return false;
     if (filter === "KO" && m.round === "GROUP") return false;
     if (today != null) {
       const day = fmtDayKey(m.utc, zone);
-      if (time === "upcoming" && yesterday != null && day < yesterday) return false;
-      if (time === "past" && day >= today) return false;
+      if (effectiveTime === "upcoming" && yesterday != null && day < yesterday) return false;
+      if (effectiveTime === "past" && day >= today) return false;
     }
     return true;
   });
