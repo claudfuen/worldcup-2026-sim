@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { TEAMS, GROUPS } from "../lib/data/teams";
 import { KNOCKOUT } from "../lib/data/bracket";
 import { THIRD_PLACE_TABLE } from "../lib/data/thirdPlaceTable";
+import { FIFA_RANK } from "../lib/data/fifaRankings";
 
 describe("teams data integrity", () => {
   it("has 48 teams across 12 groups of 4", () => {
@@ -18,6 +19,15 @@ describe("teams data integrity", () => {
     expect(grp("Mexico")).toBe("A");
     expect(grp("Canada")).toBe("B");
     expect(grp("United States")).toBe("D");
+  });
+  it("has a FIFA ranking for every team (1..211, unique)", () => {
+    for (const t of TEAMS) {
+      const r = FIFA_RANK[t.code];
+      expect(r, `${t.code} missing FIFA rank`).toBeGreaterThanOrEqual(1);
+      expect(r).toBeLessThanOrEqual(211);
+    }
+    const ranks = TEAMS.map((t) => FIFA_RANK[t.code]);
+    expect(new Set(ranks).size).toBe(48); // no duplicate positions
   });
 });
 

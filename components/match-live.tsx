@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { LocalTime } from "@/components/local-time";
@@ -112,13 +113,17 @@ function AdvanceBar({ home, away, homeName, awayName, t }: { home: number; away:
 // ── Hero ─────────────────────────────────────────────────────────────────────────────────────────────
 // The matchup IS the header. Score/clock/winner-tint and the whole state layout re-render from the poll, so
 // kickoff (defined→live) and full-time (live→final) flip in place — no router.refresh.
-export function MatchHero({ matchNo, initial, iterations, homeRank, awayRank }: { matchNo: number; initial: MatchLivePayload; iterations: number; homeRank?: number; awayRank?: number }) {
+export function MatchHero({ matchNo, initial, iterations, homeRank, awayRank, homeFifa, awayFifa }: { matchNo: number; initial: MatchLivePayload; iterations: number; homeRank?: number; awayRank?: number; homeFifa?: number; awayFifa?: number }) {
   const t = useT();
   const locale = useLocale();
   const { m } = useMatchLive(matchNo, initial);
   const state = stateOf(m);
   const homeName = nm(t, m.home);
   const awayName = nm(t, m.away);
+  // Rank chip under each team: defaults to our Elo rank; tap toggles to the FIFA ranking. Shared across both
+  // sides so a tap flips them together (compare in the same system).
+  const [rankMode, setRankMode] = useState<"elo" | "fifa">("elo");
+  const toggleRank = () => setRankMode((r) => (r === "elo" ? "fifa" : "elo"));
   return (
     <section className="hero-sheen border-border-strong relative mt-5 overflow-hidden rounded-3xl border bg-surface-raised px-5 py-7 sm:px-10 sm:py-9 dark:inset-ring dark:inset-ring-white/5">
       <div className="mb-6 flex items-center justify-between gap-3">
@@ -136,7 +141,7 @@ export function MatchHero({ matchNo, initial, iterations, homeRank, awayRank }: 
         </div>
       ) : (
         <div className="flex items-center justify-center gap-3 sm:gap-12">
-          <ScoreTeam m={m} side="home" locale={locale} t={t} rank={homeRank} />
+          <ScoreTeam m={m} side="home" locale={locale} t={t} eloRank={homeRank} fifaRank={homeFifa} rankMode={rankMode} onToggleRank={toggleRank} />
           <div className="flex shrink-0 flex-col items-center gap-2.5 rounded-xl bg-background/40 px-4 py-3 ring-1 ring-white/5 ring-inset dark:bg-black/15">
             {state === "final" || state === "live" ? (
               <span className="font-mono text-4xl font-semibold tracking-[-0.03em] tabular-nums sm:text-6xl">
@@ -155,7 +160,7 @@ export function MatchHero({ matchNo, initial, iterations, homeRank, awayRank }: 
               <span className="text-muted-2 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase" suppressHydrationWarning><LocalTime utc={m.utc} mode="day" /></span>
             )}
           </div>
-          <ScoreTeam m={m} side="away" locale={locale} t={t} rank={awayRank} />
+          <ScoreTeam m={m} side="away" locale={locale} t={t} eloRank={awayRank} fifaRank={awayFifa} rankMode={rankMode} onToggleRank={toggleRank} />
         </div>
       )}
       {state === "defined" && (m.advance || m.probs) && (
@@ -387,7 +392,7 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
 }
 
 // ── hero sides (ported from the server page; localized from codes via useT) ────────────────────────────
-function ScoreTeam({ m, side, locale, t, rank }: { m: MatchInfo; side: "home" | "away"; locale: Locale; t: TFunction; rank?: number }) {
+function ScoreTeam({ m, side, locale, t, eloRank, fifaRank, rankMode, onToggleRank }: { m: MatchInfo; side: "home" | "away"; locale: Locale; t: TFunction; eloRank?: number; fifaRank?: number; rankMode: "elo" | "fifa"; onToggleRank: () => void }) {
   const resolved = side === "home" ? m.home : m.away;
   const name = nm(t, resolved);
   const score = side === "home" ? m.homeScore : m.awayScore;
@@ -402,15 +407,29 @@ function ScoreTeam({ m, side, locale, t, rank }: { m: MatchInfo; side: "home" | 
       </div>
     );
   }
+  // The chip shows the selected ranking (defaults to Elo); falls back to whichever exists.
+  const useFifa = rankMode === "fifa" && fifaRank != null;
+  const chip = useFifa ? t("match.fifaRank", { rank: fifaRank }) : eloRank != null ? t("match.eloRank", { rank: eloRank }) : null;
   return (
-    <Link
-      href={localeHref(locale, `/team/${slugForCode(resolved)}`)}
-      className="group/team focus-visible:ring-primary/50 focus-visible:ring-offset-surface-raised flex min-w-0 flex-1 flex-col items-center gap-2 rounded-xl text-center transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-    >
-      <span className={lose ? "opacity-60 saturate-[0.85]" : ""}><Flag code={resolved} size={64} /></span>
-      <div className={`decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl ${win ? "text-win" : lose ? "text-muted-foreground" : ""}`}>{name}</div>
-      {rank != null && <div className="text-muted-2 font-mono text-[10px] font-semibold tracking-[0.1em] uppercase">{t("match.eloRank", { rank })}</div>}
-    </Link>
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
+      <Link
+        href={localeHref(locale, `/team/${slugForCode(resolved)}`)}
+        className="group/team focus-visible:ring-primary/50 focus-visible:ring-offset-surface-raised flex min-w-0 flex-col items-center gap-3 rounded-xl text-center transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      >
+        <span className={lose ? "opacity-60 saturate-[0.85]" : ""}><Flag code={resolved} size={64} /></span>
+        <div className={`decoration-primary/40 group-hover/team:text-primary font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance underline-offset-4 group-hover/team:underline sm:text-2xl ${win ? "text-win" : lose ? "text-muted-foreground" : ""}`}>{name}</div>
+      </Link>
+      {chip && (eloRank != null || fifaRank != null) && (
+        <button
+          type="button"
+          onClick={onToggleRank}
+          title={t("match.rankToggleHint")}
+          className="text-muted-2 hover:text-foreground decoration-muted-foreground/40 -m-1 cursor-pointer p-1 font-mono text-[10px] font-semibold tracking-[0.1em] uppercase underline decoration-dotted underline-offset-2 transition-colors"
+        >
+          {chip}
+        </button>
+      )}
+    </div>
   );
 }
 

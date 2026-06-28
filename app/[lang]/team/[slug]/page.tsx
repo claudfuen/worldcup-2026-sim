@@ -4,6 +4,7 @@ import { getPredictions } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
 import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { TEAMS } from "@/lib/data/teams";
+import { FIFA_RANK } from "@/lib/data/fifaRankings";
 import { teamSlug, slugForCode, teamFromSlug } from "@/lib/slug";
 import { localizeTeam, localizeTeams, localizeMatches, localizeGroups } from "@/lib/i18n/localize-payload";
 import { Flag } from "@/components/flag";
@@ -82,6 +83,9 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   // fall back to the team catalog (localizeTeam-equivalent) so the headline is always in-language.
   const lTeam = pred ? localizeTeam(pred, t) : { ...team, name: t(`teams.${team.code}`) };
   const rank = teams.findIndex((t) => t.code === team.code) + 1;
+  // World ranking context: our Elo strength rank (of the 48-team field) + the stored official FIFA ranking.
+  const eloRank = [...data.teams].sort((a, b) => (b.ratingExact ?? b.rating) - (a.ratingExact ?? a.rating)).findIndex((t) => t.code === team.code) + 1;
+  const fifaRank = FIFA_RANK[team.code];
   const groupView = groups.find((g) => g.group === team.group);
   const row = groupView?.teams.find((t) => t.code === team.code);
   const fixtures = overlaid
@@ -114,7 +118,13 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("team.eyebrow")} · <Link href={localeHref(locale, `/group/${team.group.toLowerCase()}`)} className="hover:underline">{t("team.groupCrumb", { group: team.group })}</Link></div>
         <div className="mt-1.5 flex items-start gap-3">
           <span className="shrink-0"><Flag code={team.code} size={40} /></span>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("team.heading", { team: lTeam.name })}</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("team.heading", { team: lTeam.name })}</h1>
+            <div className="text-muted-2 mt-1 font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">
+              {t("match.eloRank", { rank: eloRank })}
+              {fifaRank != null && <> · {t("match.fifaRank", { rank: fifaRank })}</>}
+            </div>
+          </div>
         </div>
         {pred && (
           <p className="text-muted-foreground mt-3 text-sm text-pretty">

@@ -370,6 +370,8 @@
     "shootoutNote": "~{pct} still level after 90 → extra time, then a penalty shootout",
     "preMatchAdvance": "Pre-match: {home} {homePct} · {away} {awayPct}",
     "eloRank": "Elo #{rank}",
+    "fifaRank": "FIFA #{rank}",
+    "rankToggleHint": "Tap to switch between our Elo rank and the FIFA ranking",
     "liveScoreLine": "Live: {home} {homeScore}–{awayScore} {away} · {detail}",
     "forecastUpdatesNote": "The full tournament forecast updates once the match is final.",
     "groupIfEndsLikeThis": "Group {group} if it ends like this",
