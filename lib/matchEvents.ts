@@ -34,9 +34,16 @@ export interface MatchStats {
   home: TeamStats;
   away: TeamStats;
 }
+export interface ShootoutKick {
+  player: string;
+  scored: boolean;
+  order: number; // ESPN shotNumber (1-based, per team)
+}
 export interface MatchSummary {
   events: MatchEvent[];
   stats: MatchStats | null;
+  // Penalty shootout takers per side (oriented home/away), in order — only present for a tie settled on pens.
+  shootout?: { home: ShootoutKick[]; away: ShootoutKick[] } | null;
 }
 
 // "62'" -> 62, "45'+2'" -> 45.02 (stoppage sorts after the minute, before the next).
@@ -59,6 +66,27 @@ interface EspnKeyEvent {
 interface EspnBoxTeam {
   team?: { displayName?: string };
   statistics?: { name?: string; displayValue?: string }[];
+}
+
+interface EspnShootoutTeam {
+  team?: string; // ESPN display name (a string here, not an object)
+  shots?: { player?: string; shotNumber?: number; didScore?: boolean }[];
+}
+
+// Parse ESPN's `shootout` (one entry per team, each with ordered `shots`) into per-side taker lists,
+// oriented to the bracket's home/away. Returns null when there was no shootout.
+function parseShootout(so: EspnShootoutTeam[] | undefined, homeCode: string, awayCode: string): { home: ShootoutKick[]; away: ShootoutKick[] } | null {
+  if (!so?.length) return null;
+  const side = (code: string): ShootoutKick[] => {
+    const t = so.find((s) => espnCode(s.team) === code);
+    return (t?.shots ?? [])
+      .map((sh) => ({ player: sh.player ?? "", scored: !!sh.didScore, order: sh.shotNumber ?? 0 }))
+      .sort((a, b) => a.order - b.order);
+  };
+  const home = side(homeCode);
+  const away = side(awayCode);
+  if (!home.length && !away.length) return null;
+  return { home, away };
 }
 
 // Pull the headline match stats for both sides from the boxscore, oriented to the bracket's home/away.
@@ -156,8 +184,13 @@ export async function fetchEventSummary(eventId: string, homeCode: string, awayC
   const sum = (await (await fetch(`${SUMMARY}?event=${eventId}`, { cache: "no-store" })).json()) as {
     keyEvents?: EspnKeyEvent[];
     boxscore?: { teams?: EspnBoxTeam[] };
+    shootout?: EspnShootoutTeam[];
   };
-  return { events: parseKeyEvents(sum.keyEvents), stats: parseBoxscore(sum.boxscore?.teams, homeCode, awayCode) };
+  return {
+    events: parseKeyEvents(sum.keyEvents),
+    stats: parseBoxscore(sum.boxscore?.teams, homeCode, awayCode),
+    shootout: parseShootout(sum.shootout, homeCode, awayCode),
+  };
 }
 
 // Cached per-match summary (timeline + stats). Live matches refresh every ~15s; finished matches are

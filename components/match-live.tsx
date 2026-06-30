@@ -13,6 +13,7 @@ import { slugForCode } from "@/lib/slug";
 import { pct, forecastPct } from "@/lib/format";
 import { fifaVenue } from "@/lib/venues";
 import { decidedOnPens, pensScore } from "@/lib/penalties";
+import { PenaltyShootout } from "@/components/penalty-shootout";
 import { TicketLink } from "@/components/ticket-link";
 import { hasTickets, TICKET_PROVIDER } from "@/lib/tickets";
 import type { MatchInfo } from "@/lib/predictions";
@@ -298,8 +299,21 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
         <p className="text-muted-foreground mt-8 max-w-3xl text-sm text-pretty">{proseText}</p>
       )}
 
-      {/* Completed match: the goals/cards + stats lead, then the model's retrospective pre-match read. */}
+      {/* Completed match: the goals/cards + stats lead, then the shootout (if any), then the model's read. */}
       {state === "final" && matchFacts}
+      {state === "final" && onPens && summary.shootout && (
+        <PenaltyShootout
+          homeCode={m.home}
+          awayCode={m.away}
+          homeName={homeName!}
+          awayName={awayName!}
+          home={summary.shootout.home}
+          away={summary.shootout.away}
+          homePens={m.homePens}
+          awayPens={m.awayPens}
+          winner={m.winner}
+        />
+      )}
       {state === "final" && (
         <section className="mt-8">
           <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">{t("match.preMatchRead")}</h2>
