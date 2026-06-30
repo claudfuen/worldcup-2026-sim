@@ -58,7 +58,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      signal the UI keys off for champion-crown / archive states.
 // v19: knockout matches gained `homePens`/`awayPens` — the penalty shootout tally (from ESPN's shootoutScore)
 //      for a tie settled on penalties, so the result shows "1–1 (4–3 pens)" instead of a bare draw everywhere.
-export const PRED_KEY = "predictions:v19";
+// v20: awards gained `players` — the full-squad universe (lineups ∪ scorers, incl. goalkeepers) that backs
+//      player pages, search and the sitemap, each with position + appearances + tallies.
+export const PRED_KEY = "predictions:v20";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";
@@ -76,4 +78,5 @@ export const LIVE_FEED_KEY = "live:scoreboard:v1";
 // live matches, hours for finished ones — set by the caller; this is just the key prefix.
 // v2: timeline gained substitutions.
 // v3: summary gained `shootout` (penalty-shootout takers) — bump so finished-match caches (6h TTL) refetch.
-export const MATCH_EVENTS_KEY = "match:summary:v3";
+// v4: summary gained `lineups` (matchday squads incl. goalkeepers) for full-squad player coverage.
+export const MATCH_EVENTS_KEY = "match:summary:v4";

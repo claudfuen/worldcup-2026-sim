@@ -39,11 +39,28 @@ export interface ShootoutKick {
   scored: boolean;
   order: number; // ESPN shotNumber (1-based, per team)
 }
+export interface LineupPlayer {
+  player: string;
+  position: string; // normalized: GK / DF / MF / FW (empty if unknown)
+  starter: boolean;
+}
 export interface MatchSummary {
   events: MatchEvent[];
   stats: MatchStats | null;
   // Penalty shootout takers per side (oriented home/away), in order — only present for a tie settled on pens.
   shootout?: { home: ShootoutKick[]; away: ShootoutKick[] } | null;
+  // Matchday squads per side (oriented home/away) — the source for full-squad player coverage incl. keepers.
+  lineups?: { home: LineupPlayer[]; away: LineupPlayer[] } | null;
+}
+
+// ESPN position abbreviations → a simple GK/DF/MF/FW group.
+export function positionGroup(abbr?: string): string {
+  if (!abbr) return "";
+  const a = abbr.toUpperCase();
+  if (a === "G" || a.startsWith("GK")) return "GK";
+  if (/^(D|CD|FB|LB|RB|LWB|RWB|SW)/.test(a)) return "DF";
+  if (/^(M|CM|DM|AM|LM|RM)/.test(a)) return "MF";
+  return "FW";
 }
 
 // "62'" -> 62, "45'+2'" -> 45.02 (stoppage sorts after the minute, before the next).
@@ -71,6 +88,26 @@ interface EspnBoxTeam {
 interface EspnShootoutTeam {
   team?: string; // ESPN display name (a string here, not an object)
   shots?: { player?: string; shotNumber?: number; didScore?: boolean }[];
+}
+
+interface EspnRosterTeam {
+  team?: { displayName?: string };
+  roster?: { athlete?: { displayName?: string }; position?: { abbreviation?: string }; starter?: boolean }[];
+}
+
+// Parse ESPN's `rosters` (matchday squads, incl. goalkeepers) into per-side lineups, oriented home/away.
+function parseLineups(rosters: EspnRosterTeam[] | undefined, homeCode: string, awayCode: string): { home: LineupPlayer[]; away: LineupPlayer[] } | null {
+  if (!rosters?.length) return null;
+  const side = (code: string): LineupPlayer[] => {
+    const t = rosters.find((r) => espnCode(r.team?.displayName) === code);
+    return (t?.roster ?? [])
+      .map((p) => ({ player: p.athlete?.displayName ?? "", position: positionGroup(p.position?.abbreviation), starter: !!p.starter }))
+      .filter((p) => p.player);
+  };
+  const home = side(homeCode);
+  const away = side(awayCode);
+  if (!home.length && !away.length) return null;
+  return { home, away };
 }
 
 // Parse ESPN's `shootout` (one entry per team, each with ordered `shots`) into per-side taker lists,
@@ -185,11 +222,13 @@ export async function fetchEventSummary(eventId: string, homeCode: string, awayC
     keyEvents?: EspnKeyEvent[];
     boxscore?: { teams?: EspnBoxTeam[] };
     shootout?: EspnShootoutTeam[];
+    rosters?: EspnRosterTeam[];
   };
   return {
     events: parseKeyEvents(sum.keyEvents),
     stats: parseBoxscore(sum.boxscore?.teams, homeCode, awayCode),
     shootout: parseShootout(sum.shootout, homeCode, awayCode),
+    lineups: parseLineups(sum.rosters, homeCode, awayCode),
   };
 }
 

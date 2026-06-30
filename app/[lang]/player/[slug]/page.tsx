@@ -57,9 +57,12 @@ export default async function PlayerPage({ params }: { params: Promise<{ slug: s
   const code = view.teamCode;
   const teamName = t(`teams.${code}`);
   const gb = view.goldenBoot;
-  const goals = gb?.goals ?? view.assists?.goals ?? 0;
-  const assists = view.assists?.assists ?? gb?.assists ?? 0;
-  const penalties = gb?.penalties ?? view.assists?.penalties ?? 0;
+  const info = view.info;
+  const goals = info?.goals ?? gb?.goals ?? view.assists?.goals ?? 0;
+  const assists = info?.assists ?? view.assists?.assists ?? gb?.assists ?? 0;
+  const penalties = info?.penalties ?? gb?.penalties ?? 0;
+  const appearances = info?.appearances ?? 0;
+  const positionLabel = info?.position ? t(`player.pos${info.position}`) : "";
 
   // Goal/assist log — scan this player's team matches (cached summaries) for their events.
   const matches = overlayLive(data.matches, live).filter(
@@ -85,11 +88,13 @@ export default async function PlayerPage({ params }: { params: Promise<{ slug: s
     { label: t("player.statGoals"), value: String(goals) },
     { label: t("player.statAssists"), value: String(assists) },
     { label: t("player.statPenalties"), value: String(penalties) },
+    { label: t("player.statApps"), value: String(appearances) },
   ];
-  if (gb && !gb.eliminated) {
+  if (gb && !gb.eliminated && goals > 0) {
     stats.push({ label: t("player.statProjected"), value: gb.projected.toFixed(1) });
     stats.push({ label: t("player.statGoldenBoot"), value: forecastPct(gb.winProb), accent: true });
   }
+  const gridCols = stats.length > 4 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-2 sm:grid-cols-4";
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -105,7 +110,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ slug: s
           <span className="shrink-0"><Flag code={code} size={40} /></span>
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{view.player}</h1>
-            <Link href={localeHref(locale, `/team/${slugForCode(code)}`)} className="text-muted-foreground hover:text-foreground mt-0.5 inline-block text-sm hover:underline">{teamName}</Link>
+            <div className="text-muted-foreground mt-0.5 text-sm">
+              <Link href={localeHref(locale, `/team/${slugForCode(code)}`)} className="hover:text-foreground hover:underline">{teamName}</Link>
+              {positionLabel && <span className="text-muted-2"> · {positionLabel}</span>}
+            </div>
           </div>
         </div>
         {view.gbRank != null && goals > 0 ? (
@@ -117,13 +125,17 @@ export default async function PlayerPage({ params }: { params: Promise<{ slug: s
           <p className="text-muted-foreground mt-3 text-sm text-pretty">
             {t("player.ledeAssist", { rank: ordinal(view.asRank, intl), assists, team: teamName })}
           </p>
+        ) : appearances > 0 ? (
+          <p className="text-muted-foreground mt-3 text-sm text-pretty">
+            {t("player.ledeApps", { count: appearances, team: teamName })}
+          </p>
         ) : null}
         <div className="mt-4">
           <ShareBar text={t("player.share", { player: view.player, goals, assists })} path={`/player/${slug}`} />
         </div>
       </header>
 
-      <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border bg-card sm:grid-cols-5 dark:inset-ring dark:inset-ring-white/5">
+      <dl className={`grid ${gridCols} gap-px overflow-hidden rounded-2xl border border-border bg-card dark:inset-ring dark:inset-ring-white/5`}>
         {stats.map((s) => (
           <div key={s.label} className="bg-card flex flex-col items-center gap-1 px-2 py-4">
             <dt className="text-muted-2 text-center text-[10px] font-medium tracking-wide uppercase">{s.label}</dt>

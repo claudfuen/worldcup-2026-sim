@@ -32,7 +32,8 @@ export async function GET() {
       ph: (m.projHome ?? []).slice(0, 3).map((c) => c.code),
       pa: (m.projAway ?? []).slice(0, 3).map((c) => c.code),
     }));
-    const players = playerUniverse(data.awards).map((p) => ({ name: p.player, team: p.teamCode, slug: p.slug }));
+    const posByKey = new Map((data.awards.players ?? []).map((p) => [`${p.name}|${p.teamCode}`, p.position]));
+    const players = playerUniverse(data.awards).map((p) => ({ name: p.player, team: p.teamCode, slug: p.slug, pos: posByKey.get(`${p.player}|${p.teamCode}`) ?? "" }));
     // "Most-likely-searched" entities for the empty state: title favorites + the top scorers.
     const suggest = {
       teams: data.teams.slice(0, 6).map((tm) => tm.code),

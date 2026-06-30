@@ -432,7 +432,7 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
   // team's expected remaining matches. Best-effort: a feed hiccup leaves the awards empty, never breaks the
   // rest of the payload.
   const awards = await computeAwards(matches, sim.teams, getMatchSummary).catch(
-    () => ({ goldenBoot: [], assists: [], matchesCounted: 0 }) as Awards,
+    () => ({ goldenBoot: [], assists: [], players: [], matchesCounted: 0 }) as Awards,
   );
 
   // Tournament-over signal + the realized champion (the final's winner) — drives every end-state in the UI.

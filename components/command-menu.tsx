@@ -20,7 +20,7 @@ export const OPEN_COMMAND_EVENT = "wc:open-command";
 // Compact records from /api/search-index (codes only; names localized client-side).
 interface RawMatch { n: number; round: string; utc: string; city: string; venue: string; group: string | null; status: string; h: string | null; a: string | null; ph: string[]; pa: string[]; }
 interface Suggest { teams: string[]; players: string[] }
-interface RawPlayer { name: string; team: string; slug: string; }
+interface RawPlayer { name: string; team: string; slug: string; pos?: string; }
 
 type ItemType = "page" | "team" | "player" | "group" | "venue" | "match";
 interface Item {
@@ -156,10 +156,11 @@ export function CommandMenu() {
     }
     for (const p of playerData) {
       const team = t(`teams.${p.team}`);
+      const posLabel = p.pos ? t(`player.pos${p.pos}`) : "";
       out.push({
-        id: `player:${p.slug}`, type: "player", label: p.name, sub: team,
+        id: `player:${p.slug}`, type: "player", label: p.name, sub: posLabel ? `${team} · ${posLabel}` : team,
         href: `/player/${p.slug}`, code: p.team,
-        keywords: `${p.name} ${team} ${p.team}`.toLowerCase(),
+        keywords: `${p.name} ${team} ${p.team} ${posLabel} ${POS_KW[p.pos ?? ""] ?? ""}`.toLowerCase(),
       });
     }
     const fmtShort = new Intl.DateTimeFormat(localeConfig(locale).intl, { month: "short", day: "numeric" });
@@ -382,6 +383,8 @@ export function CommandMenu() {
 const TYPE_RANK: Record<ItemType, number> = { page: 0, team: 1, player: 2, group: 3, venue: 4, match: 5 };
 // Matchup connectors ignored in queries like "Mexico v England" / "spain vs argentina".
 const CONNECTORS = new Set(["v", "vs", "versus", "x"]);
+// Position search aliases — so "goalkeeper", "striker", etc. find players by role.
+const POS_KW: Record<string, string> = { GK: "goalkeeper keeper", DF: "defender back", MF: "midfielder", FW: "forward striker attacker winger" };
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return <kbd className="border-border bg-muted/40 mr-0.5 inline-block rounded border px-1 font-mono text-[10px]">{children}</kbd>;
