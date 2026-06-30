@@ -61,7 +61,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 // v20: awards gained `players` — the full-squad universe (lineups ∪ scorers, incl. goalkeepers) that backs
 //      player pages, search and the sitemap, each with position + appearances + tallies.
 // v21: fix position classification (by descriptive name; substitutes/unknown no longer mislabeled "FW").
-export const PRED_KEY = "predictions:v21";
+// v22: "Sweeper" now classifies as DF (was unset); player universe widened to everyone named in a timeline
+//      (scorers, assisters, carded, subbed) so every timeline name links to a real page.
+export const PRED_KEY = "predictions:v22";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";
@@ -82,4 +84,5 @@ export const LIVE_FEED_KEY = "live:scoreboard:v1";
 // v4: summary gained `lineups` (matchday squads incl. goalkeepers) for full-squad player coverage.
 // v5: positions classified by descriptive name (subs/unknown no longer mislabeled "FW"); lineups gained
 //     subbedIn/subbedOut for per-match player logs (started / came on / unused, minutes, cards).
-export const MATCH_EVENTS_KEY = "match:summary:v5";
+// v6: "Sweeper" now classifies as DF (was unset) — bump so cached summaries refetch with the fix.
+export const MATCH_EVENTS_KEY = "match:summary:v6";

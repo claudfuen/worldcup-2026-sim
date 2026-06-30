@@ -61,8 +61,8 @@ export interface MatchSummary {
 export function positionGroup(name?: string): string {
   if (!name) return "";
   const s = name.toLowerCase();
-  if (s.includes("keeper")) return "GK";
-  if (s.includes("defender") || s.includes("back") || s.includes("centre back") || s.includes("center back")) return "DF";
+  if (s.includes("keeper")) return "GK"; // "Goalkeeper", "Sweeper Keeper" — note "sweeper" alone is NOT a keeper
+  if (s.includes("defender") || s.includes("back") || s.includes("sweeper")) return "DF"; // incl. wing-back, centre-back, sweeper
   if (s.includes("midfield")) return "MF";
   if (s.includes("forward") || s.includes("striker") || s.includes("winger") || s.includes("wing")) return "FW";
   return ""; // "Substitute" / unknown — leave unset rather than mislabel
