@@ -27,41 +27,67 @@ export async function BracketTeaser({ matches, teams, className = "" }: { matche
   const onPens = decidedOnPens(final);
   const ps = pensScore(final);
 
+  const homeReach = played ? undefined : reachOf.get(homeCode ?? "");
+  const awayReach = played ? undefined : reachOf.get(awayCode ?? "");
+  const scoreLine = played ? (
+    <>
+      {final.homeScore}<span className="text-muted-2">–</span>{final.awayScore}
+      {onPens && ps && <span className="text-muted-2 ms-1 text-[10px] font-normal">({t("common.penScore", { home: ps.home, away: ps.away })})</span>}
+    </>
+  ) : (
+    t("common.vs")
+  );
+
   return (
     <Link
       href={localeHref(locale, "/bracket")}
-      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/5 hover:dark:inset-ring-primary/30 flex flex-col rounded-2xl border p-4 transition-colors ${className}`}
+      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/5 hover:dark:inset-ring-primary/30 flex h-full flex-col rounded-2xl border p-4 transition-colors ${className}`}
     >
-      <div className="mb-3 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{played ? t("home.finalResult") : t("home.projectedFinal")}</h2>
         <span className="text-muted-2 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden>→</span>
       </div>
-      <div className="flex flex-1 items-center gap-3">
-        <FinalSide code={homeCode} name={homeName} reach={played ? undefined : reachOf.get(homeCode ?? "")} reachLabel={t("home.toFinal")} won={played && final.winner === homeCode} />
-        <span className="text-muted-2 shrink-0 text-sm font-semibold tabular-nums">{played ? <>{final.homeScore}<span className="text-muted-2">–</span>{final.awayScore}{onPens && ps && <span className="text-muted-2 ms-1 text-[11px] font-normal">({t("common.penScore", { home: ps.home, away: ps.away })})</span>}</> : t("common.vs")}</span>
-        <FinalSide code={awayCode} name={awayName} reach={played ? undefined : reachOf.get(awayCode ?? "")} reachLabel={t("home.toFinal")} align="right" won={played && final.winner === awayCode} />
+
+      {/* finalists stacked vertically, spread to fill the card height */}
+      <div className="flex flex-1 flex-col justify-center gap-2 py-4">
+        <FinalRow code={homeCode} name={homeName} reach={homeReach} reachLabel={t("home.toFinal")} won={played && final.winner === homeCode} />
+        <div className="flex items-center gap-3 ps-[3.25rem]">
+          <span className="text-muted-2 font-mono text-[11px] font-semibold tabular-nums">{scoreLine}</span>
+          <span className="border-border/60 flex-1 border-t" aria-hidden />
+        </div>
+        <FinalRow code={awayCode} name={awayName} reach={awayReach} reachLabel={t("home.toFinal")} won={played && final.winner === awayCode} />
       </div>
-      <div className="border-border/50 mt-3 flex flex-col items-center gap-1 border-t pt-2.5 text-center">
+
+      <div className="border-border/50 mt-auto border-t pt-3">
         {played ? (
           <div className="text-contention font-mono text-[11px] font-semibold tracking-wide uppercase">{t("home.championsLine", { team: championName })}</div>
         ) : (
-          <>
+          <div className="flex flex-col gap-1">
             <Countdown utc={final.utc} label={t("home.toTheFinal")} />
             <div className="text-muted-2 text-[11px]">{t("home.r32Confirmed", { set: setCount, total: r32.length })}</div>
-          </>
+          </div>
         )}
       </div>
     </Link>
   );
 }
 
-function FinalSide({ code, name, reach, reachLabel, align, won }: { code: string | null; name: string; reach?: number; reachLabel: string; align?: "right"; won?: boolean }) {
+// One finalist, full-width: a large crest, the team name, and a reach-the-final bar + %. Stacked vertically
+// in the card so the projected pairing reads top-to-bottom and fills the height.
+function FinalRow({ code, name, reach, reachLabel, won }: { code: string | null; name: string; reach?: number; reachLabel: string; won?: boolean }) {
   return (
-    <div className={`flex min-w-0 flex-1 items-center gap-2.5 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
-      <Flag code={code} size={26} />
-      <div className="min-w-0">
-        <div className={`truncate text-sm font-semibold ${won ? "text-win" : ""}`}>{name}</div>
-        {reach != null && <div className="text-muted-2 font-mono text-[10px] tabular-nums">{forecastPct(reach)} {reachLabel}</div>}
+    <div className="flex items-center gap-3">
+      <Flag code={code} size={40} />
+      <div className="min-w-0 flex-1">
+        <div className={`truncate text-lg font-semibold tracking-tight ${won ? "text-win" : ""}`}>{name}</div>
+        {reach != null && (
+          <div className="mt-1 flex items-center gap-2">
+            <span className="bg-muted/60 relative h-1.5 w-full max-w-[7rem] overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5" aria-hidden>
+              <span className="bg-primary/70 absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.max(4, Math.min(reach, 0.99) * 100)}%` }} />
+            </span>
+            <span className="text-muted-2 font-mono text-[10px] tabular-nums">{forecastPct(reach)} {reachLabel}</span>
+          </div>
+        )}
       </div>
     </div>
   );
