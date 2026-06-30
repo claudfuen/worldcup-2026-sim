@@ -4,19 +4,31 @@ import { localeHref, type Locale } from "@/lib/i18n/config";
 
 // A schematic geographic overview of the 16 host venues — dots placed by latitude/longitude across the
 // three host nations, sized by how many matches each holds, each a link to that venue. Pure HTML (absolutely
-// positioned over a faint grid) so it hydrates cleanly and navigates client-side. Not a precise map — the
-// point is the shape of the tournament's footprint and a second way in.
+// positioned over a faint grid) so it hydrates cleanly and navigates client-side.
+//
+// Equirectangular projection with a UNIFORM scale (longitude corrected by cos(mean latitude)) so the
+// constellation keeps its true geographic shape instead of being stretched to fill the box — then centered.
 
-const PAD = 9; // % inset so edge dots + labels stay inside the frame
+const AR = 16 / 10; // container aspect (width / height), must match the style below
+const PADF = 0.08; // fractional inset so edge dots + labels stay in frame
 
 const lats = VENUES.map((v) => v.lat);
 const lngs = VENUES.map((v) => v.lng);
 const minLat = Math.min(...lats), maxLat = Math.max(...lats);
 const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-const pos = (v: Venue) => ({
-  left: PAD + ((v.lng - minLng) / (maxLng - minLng)) * (100 - 2 * PAD),
-  top: PAD + ((maxLat - v.lat) / (maxLat - minLat)) * (100 - 2 * PAD),
-});
+const KX = Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180); // longitude foreshortening at mean latitude
+const GX = (maxLng - minLng) * KX; // geographic extent (scaled degrees)
+const GY = maxLat - minLat;
+// One scale for both axes (units = container height); whichever axis is tighter sets it. Work in height
+// units, where the container is AR units wide, so left% divides by AR.
+const S = Math.min((AR * (1 - 2 * PADF)) / GX, (1 - 2 * PADF) / GY);
+const OFF_X = (AR - GX * S) / 2;
+const OFF_Y = (1 - GY * S) / 2;
+const pos = (v: Venue) => {
+  const ux = OFF_X + (v.lng - minLng) * KX * S;
+  const uy = OFF_Y + (maxLat - v.lat) * S;
+  return { left: (ux / AR) * 100, top: uy * 100 };
+};
 
 const FILL: Record<Venue["country"], string> = {
   USA: "var(--win)", Mexico: "var(--contention)", Canada: "var(--data-cool)",
