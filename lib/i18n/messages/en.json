@@ -43,6 +43,15 @@
     "hintOpen": "open",
     "hintClose": "close"
   },
+  "spotlight": {
+    "live": "Live now",
+    "next": "Next up",
+    "latest": "Latest"
+  },
+  "playersToWatch": {
+    "title": "Players to watch",
+    "goals": "{n} {n, plural, one {goal} other {goals}}"
+  },
   "venues": {
     "metaTitle": "World Cup 2026 Stadiums — All 16 Host Venues, Matches & Results",
     "metaDesc": "Every 2026 World Cup venue across the USA, Mexico and Canada — host cities, capacities, and the full match list and results at each stadium.",

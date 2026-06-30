@@ -11,6 +11,8 @@ import { BracketTeaser } from "@/components/bracket-teaser";
 import { GroupsPreview } from "@/components/groups-preview";
 import { TitleOdds } from "@/components/title-odds";
 import { GoldenBootRace } from "@/components/golden-boot-race";
+import { StadiumSpotlight } from "@/components/stadium-spotlight";
+import { PlayersToWatch } from "@/components/players-to-watch";
 import { LaunchRail } from "@/components/launch-rail";
 import { computeWatchability } from "@/lib/watchability";
 import { getT } from "@/lib/i18n/server";
@@ -67,12 +69,18 @@ export default async function Page() {
           heading, title race, golden boot), visibly smaller so they read as secondary. */}
       <LiveTodayRail matches={lMatches} hotReasons={hotReasons} wide className="mt-8" />
 
+      {/* Where it's being played — the next/live venue, over a real photo of the stadium */}
+      <StadiumSpotlight matches={lMatches} className="mt-8" />
+
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <BracketTeaser matches={lMatches} teams={teams} />
         {!groupStageOver && <GroupsPreview groups={lGroups} />}
         <TitleOdds teams={teams} />
         <GoldenBootRace entries={data.awards.goldenBoot} />
       </div>
+
+      {/* The faces of the tournament — top scorers as a headshot rail */}
+      <PlayersToWatch entries={data.awards.goldenBoot} className="mt-8" />
 
       {/* What to watch next — the curated plan */}
       <MatchesToWatch matches={lMatches} teams={teams} groups={lGroups} className="mt-8" />
