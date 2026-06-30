@@ -298,7 +298,7 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
 // ── Body ─────────────────────────────────────────────────────────────────────────────────────────────
 // The state-dependent tail: defined → prose + likely scorelines; live → live win-prob then goals/cards/stats
 // then the provisional table; final → goals/cards/stats then the model's retrospective read. All from the poll.
-export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; initial: MatchLivePayload; proseText: string | null }) {
+export function MatchBody({ matchNo, initial, proseText, playerImages }: { matchNo: number; initial: MatchLivePayload; proseText: string | null; playerImages?: Record<string, string> }) {
   const t = useT();
   const { m, summary, liveProbs, proj } = useMatchLive(matchNo, initial);
   const state = stateOf(m);
@@ -311,7 +311,7 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
 
   const matchFacts = m.home && m.away && (
     <>
-      <MatchTimeline events={summary.events} homeCode={m.home} awayCode={m.away} homeName={homeName!} awayName={awayName!} final={m.status === "final"} scored={(m.homeScore ?? 0) + (m.awayScore ?? 0) > 0} />
+      <MatchTimeline events={summary.events} homeCode={m.home} awayCode={m.away} homeName={homeName!} awayName={awayName!} final={m.status === "final"} scored={(m.homeScore ?? 0) + (m.awayScore ?? 0) > 0} playerImages={playerImages} />
       <MatchStats stats={summary.stats} />
     </>
   );

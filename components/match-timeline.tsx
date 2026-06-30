@@ -43,7 +43,7 @@ function LinkedLine({ template, name, code, locale }: { template: string; name: 
 // sides, proper icons make each type read at a glance. Substitutions are hidden by default (they add a lot of
 // rows) behind a top-right toggle, keeping the default view focused on goals + cards. Live + completed.
 export function MatchTimeline({
-  events, homeCode, awayCode, homeName, awayName, final = false, scored = false,
+  events, homeCode, awayCode, homeName, awayName, final = false, scored = false, playerImages,
 }: {
   events: MatchEvent[];
   homeCode: string;
@@ -52,6 +52,7 @@ export function MatchTimeline({
   awayName: string;
   final?: boolean; // match is over
   scored?: boolean; // at least one goal was scored — distinguishes "0-0, nothing happened" from "feed has no detail"
+  playerImages?: Record<string, string>; // "teamCode|name" -> headshot URL (server-resolved, optional)
 }) {
   const t = useT();
   const locale = useLocale();
@@ -107,7 +108,7 @@ export function MatchTimeline({
             <div className="bg-border/70 absolute inset-y-0 left-1/2 w-px -translate-x-1/2" aria-hidden />
             {shown.map(({ e, score, onHome }, i) => (
             <li key={i} className="grid grid-cols-[1fr_3rem_1fr] items-center gap-2 py-2 sm:grid-cols-[1fr_3.5rem_1fr] sm:gap-3">
-              <div className="flex justify-end">{onHome && <Event e={e} side="home" t={t} locale={locale} />}</div>
+              <div className="flex justify-end">{onHome && <Event e={e} side="home" t={t} locale={locale} playerImages={playerImages} />}</div>
               <div className="bg-card relative z-10 flex flex-col items-center gap-1 py-0.5">
                 <span className="text-muted-2 font-mono text-[10px] tabular-nums whitespace-nowrap">{e.minute}</span>
                 {score ? (
@@ -116,7 +117,7 @@ export function MatchTimeline({
                   <span className="bg-border size-1.5 rounded-full" aria-hidden />
                 )}
               </div>
-              <div className="flex justify-start">{!onHome && <Event e={e} side="away" t={t} locale={locale} />}</div>
+              <div className="flex justify-start">{!onHome && <Event e={e} side="away" t={t} locale={locale} playerImages={playerImages} />}</div>
             </li>
             ))}
           </ol>
@@ -126,8 +127,9 @@ export function MatchTimeline({
   );
 }
 
-function Event({ e, side, t, locale }: { e: MatchEvent; side: "home" | "away"; t: T; locale: Locale }) {
+function Event({ e, side, t, locale, playerImages }: { e: MatchEvent; side: "home" | "away"; t: T; locale: Locale; playerImages?: Record<string, string> }) {
   const home = side === "home";
+  const avatar = e.teamCode ? playerImages?.[`${e.teamCode}|${e.player}`] : undefined;
   const tag = e.goalType === "penalty" ? t("match.penaltyTag") : e.goalType === "own" ? t("match.ownGoalTag") : null;
   const icon =
     e.kind === "goal" ? (
@@ -143,6 +145,10 @@ function Event({ e, side, t, locale }: { e: MatchEvent; side: "home" | "away"; t
     );
   return (
     <div className={`flex min-w-0 items-start gap-2 ${home ? "flex-row" : "flex-row-reverse"}`}>
+      {avatar ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={avatar} alt="" loading="lazy" decoding="async" className="border-border bg-muted mt-0.5 size-7 shrink-0 rounded-full border object-cover object-top" />
+      ) : null}
       <div className={`min-w-0 ${home ? "text-right" : "text-left"}`}>
         <div className="truncate text-sm">
           <PlayerName name={e.player} code={e.teamCode} locale={locale} className={e.kind === "goal" ? "font-semibold" : "text-foreground/90"} />

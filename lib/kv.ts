@@ -96,4 +96,6 @@ export const SQUAD_POS_KEY = "squad:positions:v1";
 
 // Per-player headshot URL (or null) resolved from TheSportsDB, keyed by player slug. Long TTL — photos are
 // stable; misses re-check sooner (a player's photo may get added). Suffixed with the slug by the caller.
-export const PLAYER_IMG_KEY = "player:img:v1";
+// v2: only genuine no-matches are cached as null now (transient 429/5xx no longer poison the cache) — bump to
+//     drop any false misses written under v1.
+export const PLAYER_IMG_KEY = "player:img:v2";

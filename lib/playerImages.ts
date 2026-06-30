@@ -20,12 +20,27 @@ interface TSDBPlayer {
   strThumb?: string; // fallback
 }
 
-async function fetchPlayerImage(name: string, teamCode: string): Promise<string | null> {
+// Returns a URL, `null` for a genuine no-match (safe to cache), or `undefined` for a TRANSIENT failure —
+// rate-limiting (429), a 5xx, or a network/parse error. Transient results must NOT be cached, or a temporary
+// rate-limit would poison the cache with a false "no photo" for days. The free key (`"3"`) rate-limits under
+// bursty load, so this matters; a real THESPORTSDB_KEY largely avoids it.
+async function fetchPlayerImage(name: string, teamCode: string): Promise<string | null | undefined> {
   const country = TEAM_BY_CODE[teamCode]?.name;
   if (!country) return null;
-  const r = await fetch(`${API}/${KEY}/searchplayers.php?p=${encodeURIComponent(name)}`, { cache: "no-store" });
+  let r: Response;
+  try {
+    r = await fetch(`${API}/${KEY}/searchplayers.php?p=${encodeURIComponent(name)}`, { cache: "no-store" });
+  } catch {
+    return undefined; // network error — retry next time
+  }
+  if (r.status === 429 || r.status >= 500) return undefined; // rate-limited / server error — don't cache
   if (!r.ok) return null;
-  const d = (await r.json()) as { player?: TSDBPlayer[] };
+  let d: { player?: TSDBPlayer[] };
+  try {
+    d = (await r.json()) as { player?: TSDBPlayer[] };
+  } catch {
+    return undefined; // bad/empty body (often a throttle) — don't cache
+  }
   const cn = norm(country);
   // Only accept a candidate whose nationality matches this player's World Cup nation, preferring a cutout.
   const sameNation = (d.player ?? []).filter((p) => p.strNationality && norm(p.strNationality) === cn);
@@ -33,7 +48,8 @@ async function fetchPlayerImage(name: string, teamCode: string): Promise<string 
   return pick?.strCutout || pick?.strThumb || null;
 }
 
-// KV-cached (hits for 14 days, misses re-checked after 2) and React-cached per request.
+// KV-cached (hits for 14 days, genuine misses re-checked after 2) and React-cached per request. Transient
+// failures (undefined) are never written, so the avatar simply retries on the next render until it resolves.
 export const getPlayerImage = cache(async (name: string, teamCode: string): Promise<string | null> => {
   const key = `${PLAYER_IMG_KEY}:${playerSlug(name, teamCode)}`;
   if (KV_CONFIGURED) {
@@ -44,7 +60,7 @@ export const getPlayerImage = cache(async (name: string, teamCode: string): Prom
       /* fall through to a fresh fetch */
     }
   }
-  const url = await fetchPlayerImage(name, teamCode).catch(() => null);
-  if (KV_CONFIGURED) await kvSetJSON(key, { at: Date.now(), url }).catch(() => {});
-  return url;
+  const res = await fetchPlayerImage(name, teamCode);
+  if (res !== undefined && KV_CONFIGURED) await kvSetJSON(key, { at: Date.now(), url: res }).catch(() => {});
+  return res ?? null;
 });

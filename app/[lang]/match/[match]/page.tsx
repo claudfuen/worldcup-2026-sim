@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getPredictions } from "@/lib/getPredictions";
+import { getPlayerImage } from "@/lib/playerImages";
 import { loadMatchLive, type MatchLivePayload } from "@/lib/matchLive";
 import type { MatchInfo } from "@/lib/predictions";
 import { slugForCode } from "@/lib/slug";
@@ -78,6 +79,23 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
   // The client islands take the RAW (code-keyed) payload and localize themselves via the i18n provider, so
   // every poll stays locale-agnostic. The server-rendered shell below uses a localized copy.
   const initial: MatchLivePayload = { m: foundRaw, summary, liveProbs, proj, hasLive };
+
+  // Headshots for the players named in the match timeline (scorers, assisters, carded, subbed). Resolved
+  // server-side (KV-cached) and keyed by "teamCode|name" for the timeline's mini avatars.
+  const tlPlayers = new Map<string, { name: string; code: string }>();
+  for (const e of summary.events) {
+    if (!e.teamCode) continue;
+    for (const nm of [e.player, e.assist, e.playerOff]) {
+      if (nm) tlPlayers.set(`${e.teamCode}|${nm}`, { name: nm, code: e.teamCode });
+    }
+  }
+  const playerImages: Record<string, string> = {};
+  await Promise.all(
+    [...tlPlayers.values()].map(async (p) => {
+      const url = await getPlayerImage(p.name, p.code).catch(() => null);
+      if (url) playerImages[`${p.code}|${p.name}`] = url;
+    }),
+  );
   const m = localizeMatch(foundRaw, t);
   const state: "final" | "live" | "defined" | "undefined" =
     m.status === "final" ? "final" : m.status === "live" ? "live" : m.defined ? "defined" : "undefined";
@@ -155,7 +173,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       <MatchFacts matchNo={m.match} initial={initial} heat={heat} />
 
       {/* State-dependent body (prose / live win-prob / goals-cards-stats / provisional table) — live via SWR. */}
-      <MatchBody matchNo={m.match} initial={initial} proseText={proseText} />
+      <MatchBody matchNo={m.match} initial={initial} proseText={proseText} playerImages={playerImages} />
 
       {homePred && awayPred && <MatchOutlook round={m.round} home={homePred} away={awayPred} matches={all} />}
 
