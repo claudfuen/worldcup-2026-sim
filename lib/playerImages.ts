@@ -1,0 +1,50 @@
+// Player headshots from TheSportsDB (community sports database, free API). ESPN's feed only carries headshots
+// for ~20% of squads; TheSportsDB has transparent-PNG "cutouts" for nearly everyone. We resolve by name and
+// disambiguate by nationality (its `strNationality` matches our team names exactly, even for tricky cases like
+// "Czechia"/"Ivory Coast"), so a common name can't match the wrong person. Best-effort + heavily cached:
+// fetched lazily per player view, never in bulk, so it can't hammer the API; any miss falls back to a monogram.
+import { cache } from "react";
+import { kvGetJSON, kvSetJSON, KV_CONFIGURED, PLAYER_IMG_KEY } from "./kv";
+import { TEAM_BY_CODE } from "./data/teams";
+import { playerSlug } from "./players";
+
+const API = "https://www.thesportsdb.com/api/v1/json";
+const KEY = process.env.THESPORTSDB_KEY || "3"; // "3" is the free public test key — set a real key in prod
+
+const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+interface TSDBPlayer {
+  strPlayer?: string;
+  strNationality?: string;
+  strCutout?: string; // transparent-PNG head/shoulders — preferred
+  strThumb?: string; // fallback
+}
+
+async function fetchPlayerImage(name: string, teamCode: string): Promise<string | null> {
+  const country = TEAM_BY_CODE[teamCode]?.name;
+  if (!country) return null;
+  const r = await fetch(`${API}/${KEY}/searchplayers.php?p=${encodeURIComponent(name)}`, { cache: "no-store" });
+  if (!r.ok) return null;
+  const d = (await r.json()) as { player?: TSDBPlayer[] };
+  const cn = norm(country);
+  // Only accept a candidate whose nationality matches this player's World Cup nation, preferring a cutout.
+  const sameNation = (d.player ?? []).filter((p) => p.strNationality && norm(p.strNationality) === cn);
+  const pick = sameNation.find((p) => p.strCutout) ?? sameNation.find((p) => p.strThumb) ?? null;
+  return pick?.strCutout || pick?.strThumb || null;
+}
+
+// KV-cached (hits for 14 days, misses re-checked after 2) and React-cached per request.
+export const getPlayerImage = cache(async (name: string, teamCode: string): Promise<string | null> => {
+  const key = `${PLAYER_IMG_KEY}:${playerSlug(name, teamCode)}`;
+  if (KV_CONFIGURED) {
+    try {
+      const c = await kvGetJSON<{ at: number; url: string | null }>(key);
+      if (c && Date.now() - c.at < (c.url ? 14 : 2) * 24 * 60 * 60_000) return c.url;
+    } catch {
+      /* fall through to a fresh fetch */
+    }
+  }
+  const url = await fetchPlayerImage(name, teamCode).catch(() => null);
+  if (KV_CONFIGURED) await kvSetJSON(key, { at: Date.now(), url }).catch(() => {});
+  return url;
+});

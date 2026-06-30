@@ -93,3 +93,7 @@ export const MATCH_EVENTS_KEY = "match:summary:v6";
 // players who only ever appear as substitutes (a benched player has no resolvable matchday position).
 // v1: initial. Long TTL inside the loader; versioned so a shape change forces a refresh.
 export const SQUAD_POS_KEY = "squad:positions:v1";
+
+// Per-player headshot URL (or null) resolved from TheSportsDB, keyed by player slug. Long TTL — photos are
+// stable; misses re-check sooner (a player's photo may get added). Suffixed with the slug by the caller.
+export const PLAYER_IMG_KEY = "player:img:v1";

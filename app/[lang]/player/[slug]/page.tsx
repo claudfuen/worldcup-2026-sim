@@ -11,6 +11,8 @@ import { ShareBar } from "@/components/share-bar";
 import { Flag } from "@/components/flag";
 import { LocalTime } from "@/components/local-time";
 import { findPlayer } from "@/lib/players";
+import { getPlayerImage } from "@/lib/playerImages";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { TEAM_BY_CODE } from "@/lib/data/teams";
 import { slugForCode } from "@/lib/slug";
 import { forecastPct, ordinal } from "@/lib/format";
@@ -65,6 +67,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ slug: s
   if (!view) notFound();
 
   const code = view.teamCode;
+  const headshot = await getPlayerImage(view.player, code).catch(() => null);
   const teamName = t(`teams.${code}`);
   const gb = view.goldenBoot;
   const info = view.info;
@@ -137,8 +140,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ slug: s
       ]} />
       <header className="mt-3 mb-6">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("player.eyebrow")}</div>
-        <div className="mt-1.5 flex items-start gap-3">
-          <span className="shrink-0"><Flag code={code} size={40} /></span>
+        <div className="mt-1.5 flex items-center gap-4">
+          <PlayerAvatar src={headshot} name={view.player} teamCode={code} size={72} />
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{view.player}</h1>
             <div className="text-muted-foreground mt-0.5 text-sm">
