@@ -3,20 +3,7 @@ import { getPredictions } from "@/lib/getPredictions";
 import { findPlayer } from "@/lib/players";
 import { getPlayerImage } from "@/lib/playerImages";
 import { TEAM_BY_CODE } from "@/lib/data/teams";
-import { flagDataUri, ogPct, OG_SIZE, OG_CONTENT_TYPE, OG_BG, OG_FG, OG_GREEN, OG_GOLD, OG_MUTED } from "@/lib/og";
-
-// Fetch a remote image into a data URI so Satori embeds it reliably (no external fetch at draw time).
-async function imgDataUri(url: string | null): Promise<string | null> {
-  if (!url) return null;
-  try {
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    const ct = r.headers.get("content-type") || "image/png";
-    return `data:${ct};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`;
-  } catch {
-    return null;
-  }
-}
+import { flagDataUri, imgDataUri, ogPct, OG_SIZE, OG_CONTENT_TYPE, OG_BG, OG_FG, OG_GREEN, OG_GOLD, OG_MUTED } from "@/lib/og";
 
 // Dynamic per-player social card: big country flag + name + position, with the player's goals / assists /
 // appearances and (if a scorer) their standing in the Golden Boot race.

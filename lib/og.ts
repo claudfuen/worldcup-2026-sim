@@ -38,3 +38,17 @@ export async function flagDataUri(code?: string | null): Promise<string | null> 
 export function ogPct(v: number): string {
   return `${Math.max(1, Math.round(Math.min(v, 0.99) * 100))}%`;
 }
+
+// Fetch a remote image into a data URI so Satori embeds it reliably (no external fetch at draw time).
+// Returns null on any failure so the card falls back to its no-image layout.
+export async function imgDataUri(url: string | null | undefined): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const ct = r.headers.get("content-type") || "image/png";
+    return `data:${ct};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
