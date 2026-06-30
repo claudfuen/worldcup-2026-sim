@@ -95,6 +95,13 @@
     "logGoal": "Goal",
     "logAssist": "Assist",
     "logPenalty": "Pen",
+    "appsHeading": "Match log",
+    "started": "Start",
+    "sub": "Sub",
+    "bench": "Bench",
+    "cardYellow": "Yellow card",
+    "cardRed": "Red card",
+    "minutesTitle": "Minutes played (estimated)",
     "relatedTeam": "{team} squad & odds",
     "relatedAwards": "Golden Boot race"
   },

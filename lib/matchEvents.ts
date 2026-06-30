@@ -43,6 +43,8 @@ export interface LineupPlayer {
   player: string;
   position: string; // normalized: GK / DF / MF / FW (empty if unknown)
   starter: boolean;
+  subbedIn: boolean; // came on as a substitute (played without starting)
+  subbedOut: boolean; // was replaced
 }
 export interface MatchSummary {
   events: MatchEvent[];
@@ -53,14 +55,17 @@ export interface MatchSummary {
   lineups?: { home: LineupPlayer[]; away: LineupPlayer[] } | null;
 }
 
-// ESPN position abbreviations → a simple GK/DF/MF/FW group.
-export function positionGroup(abbr?: string): string {
-  if (!abbr) return "";
-  const a = abbr.toUpperCase();
-  if (a === "G" || a.startsWith("GK")) return "GK";
-  if (/^(D|CD|FB|LB|RB|LWB|RWB|SW)/.test(a)) return "DF";
-  if (/^(M|CM|DM|AM|LM|RM)/.test(a)) return "MF";
-  return "FW";
+// ESPN's descriptive position name → a simple GK/DF/MF/FW group. Classify by NAME ("Goalkeeper",
+// "Left Back", "Defensive Midfielder", "Forward", "Substitute"), which is far more reliable than the
+// abbreviation. Unknown / "Substitute" returns "" — never guess a position (a benched keeper is not a forward).
+export function positionGroup(name?: string): string {
+  if (!name) return "";
+  const s = name.toLowerCase();
+  if (s.includes("keeper")) return "GK";
+  if (s.includes("defender") || s.includes("back") || s.includes("centre back") || s.includes("center back")) return "DF";
+  if (s.includes("midfield")) return "MF";
+  if (s.includes("forward") || s.includes("striker") || s.includes("winger") || s.includes("wing")) return "FW";
+  return ""; // "Substitute" / unknown — leave unset rather than mislabel
 }
 
 // "62'" -> 62, "45'+2'" -> 45.02 (stoppage sorts after the minute, before the next).
@@ -92,7 +97,7 @@ interface EspnShootoutTeam {
 
 interface EspnRosterTeam {
   team?: { displayName?: string };
-  roster?: { athlete?: { displayName?: string }; position?: { abbreviation?: string }; starter?: boolean }[];
+  roster?: { athlete?: { displayName?: string }; position?: { name?: string; abbreviation?: string }; starter?: boolean; subbedIn?: boolean; subbedOut?: boolean }[];
 }
 
 // Parse ESPN's `rosters` (matchday squads, incl. goalkeepers) into per-side lineups, oriented home/away.
@@ -101,7 +106,7 @@ function parseLineups(rosters: EspnRosterTeam[] | undefined, homeCode: string, a
   const side = (code: string): LineupPlayer[] => {
     const t = rosters.find((r) => espnCode(r.team?.displayName) === code);
     return (t?.roster ?? [])
-      .map((p) => ({ player: p.athlete?.displayName ?? "", position: positionGroup(p.position?.abbreviation), starter: !!p.starter }))
+      .map((p) => ({ player: p.athlete?.displayName ?? "", position: positionGroup(p.position?.name ?? p.position?.abbreviation), starter: !!p.starter, subbedIn: !!p.subbedIn, subbedOut: !!p.subbedOut }))
       .filter((p) => p.player);
   };
   const home = side(homeCode);

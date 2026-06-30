@@ -60,7 +60,8 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      for a tie settled on penalties, so the result shows "1–1 (4–3 pens)" instead of a bare draw everywhere.
 // v20: awards gained `players` — the full-squad universe (lineups ∪ scorers, incl. goalkeepers) that backs
 //      player pages, search and the sitemap, each with position + appearances + tallies.
-export const PRED_KEY = "predictions:v20";
+// v21: fix position classification (by descriptive name; substitutes/unknown no longer mislabeled "FW").
+export const PRED_KEY = "predictions:v21";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";
@@ -79,4 +80,6 @@ export const LIVE_FEED_KEY = "live:scoreboard:v1";
 // v2: timeline gained substitutions.
 // v3: summary gained `shootout` (penalty-shootout takers) — bump so finished-match caches (6h TTL) refetch.
 // v4: summary gained `lineups` (matchday squads incl. goalkeepers) for full-squad player coverage.
-export const MATCH_EVENTS_KEY = "match:summary:v4";
+// v5: positions classified by descriptive name (subs/unknown no longer mislabeled "FW"); lineups gained
+//     subbedIn/subbedOut for per-match player logs (started / came on / unused, minutes, cards).
+export const MATCH_EVENTS_KEY = "match:summary:v5";
