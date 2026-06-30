@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPredictions } from "@/lib/getPredictions";
-import { getLiveMatches, overlayLive, liveActivity } from "@/lib/live";
+import { getLiveMatches, liveActivity } from "@/lib/live";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { Flag } from "@/components/flag";
 import { Delta } from "@/components/delta";
