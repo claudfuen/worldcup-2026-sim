@@ -67,7 +67,7 @@ export default async function Page() {
           a full-width primary feed (on now / today / next / just finished), its sections flowing into balanced
           internal columns so a wide row never looks empty. TIER 3 — a quieter row of reference tiles (bracket
           heading, title race, golden boot), visibly smaller so they read as secondary. */}
-      <LiveTodayRail matches={lMatches} hotReasons={hotReasons} wide className="mt-8" />
+      <LiveTodayRail matches={lMatches} hotReasons={hotReasons} className="mt-8" />
 
       {/* Where it's being played — the next/live venue, over a real photo of the stadium */}
       <StadiumSpotlight matches={lMatches} className="mt-8" />
