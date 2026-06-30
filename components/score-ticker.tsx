@@ -4,6 +4,8 @@ import { Flag } from "@/components/flag";
 import { LocalTime } from "@/components/local-time";
 import type { MatchInfo } from "@/lib/predictions";
 import { decidedOnPens, pensScore } from "@/lib/penalties";
+import { useViewerZone } from "@/lib/useViewerZone";
+import { fmtDayKey } from "@/lib/format";
 import { useT, type TFunction } from "@/lib/i18n/provider";
 import { useLocale } from "@/lib/i18n/client";
 import { localeHref, type Locale } from "@/lib/i18n/config";
@@ -19,6 +21,8 @@ type TickerData = { items: MatchInfo[]; hasLive: boolean };
 export function ScoreTicker({ initialItems, hasLive }: { initialItems: MatchInfo[]; hasLive: boolean }) {
   const t = useT();
   const locale = useLocale();
+  const { zone } = useViewerZone();
+  const todayKey = fmtDayKey(new Date().toISOString(), zone);
   const { items } = useLivePoll<TickerData>(
     "/api/ticker",
     { items: initialItems, hasLive },
@@ -32,24 +36,26 @@ export function ScoreTicker({ initialItems, hasLive }: { initialItems: MatchInfo
         className="ticker-track flex w-max [animation:ticker_var(--d)_linear_infinite] hover:[animation-play-state:paused]"
         style={{ "--d": `${dur}s` } as React.CSSProperties}
       >
-        <Track items={items} t={t} locale={locale} />
-        <Track items={items} t={t} locale={locale} ariaHidden />
+        <Track items={items} t={t} locale={locale} todayKey={todayKey} zone={zone} />
+        <Track items={items} t={t} locale={locale} todayKey={todayKey} zone={zone} ariaHidden />
       </div>
     </div>
   );
 }
 
-function Track({ items, t, locale, ariaHidden }: { items: MatchInfo[]; t: TFunction; locale: Locale; ariaHidden?: boolean }) {
+function Track({ items, t, locale, todayKey, zone, ariaHidden }: { items: MatchInfo[]; t: TFunction; locale: Locale; todayKey: string; zone: import("@/lib/format").Zone; ariaHidden?: boolean }) {
   return (
     <div className="flex shrink-0" aria-hidden={ariaHidden}>
-      {items.map((m, i) => <TickerItem key={`${m.match}-${i}`} m={m} t={t} locale={locale} />)}
+      {items.map((m, i) => <TickerItem key={`${m.match}-${i}`} m={m} t={t} locale={locale} todayKey={todayKey} zone={zone} />)}
     </div>
   );
 }
 
-function TickerItem({ m, t, locale }: { m: MatchInfo; t: TFunction; locale: Locale }) {
+function TickerItem({ m, t, locale, todayKey, zone }: { m: MatchInfo; t: TFunction; locale: Locale; todayKey: string; zone: import("@/lib/format").Zone }) {
   const live = m.status === "live";
   const final = m.status === "final";
+  // Upcoming match not happening today → show the day so a tomorrow/later kickoff isn't read as today.
+  const otherDay = !live && !final && fmtDayKey(m.utc, zone) !== todayKey;
   const homeWon = m.winner != null && m.winner === m.home;
   const awayWon = m.winner != null && m.winner === m.away;
   const nameCls = (won: boolean) => (final ? (won ? "text-foreground" : "text-muted-foreground") : "text-foreground/90");
@@ -70,8 +76,8 @@ function TickerItem({ m, t, locale }: { m: MatchInfo; t: TFunction; locale: Loca
       {ps && <span className="text-muted-2 font-mono text-[10px] tabular-nums" title={t("common.wonOnPenalties")}>({ps.home}<span>–</span>{ps.away})</span>}
       <span className={`font-medium ${nameCls(awayWon)}`}>{m.away}</span>
       <Flag code={m.away} size={13} />
-      <span className={`ml-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase ${live ? "text-live" : final ? "text-win" : "text-data-cool"}`}>
-        {live ? (m.liveDetail ?? t("common.live")) : final ? t("scoreTicker.ft") : <LocalTime utc={m.utc} mode="timeshort" />}
+      <span className={`ml-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase ${live ? "text-live" : final ? "text-win" : "text-data-cool"}`} suppressHydrationWarning>
+        {live ? (m.liveDetail ?? t("common.live")) : final ? t("scoreTicker.ft") : otherDay ? <><LocalTime utc={m.utc} mode="day" /> <LocalTime utc={m.utc} mode="timeshort" /></> : <LocalTime utc={m.utc} mode="timeshort" />}
       </span>
     </Link>
   );

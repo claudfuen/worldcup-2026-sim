@@ -118,14 +118,20 @@ function RailSection({
   );
 }
 
-// One team line inside a card: crest + name (winner/favorite bold, the other side dimmed on a finished match)
-// with an optional right-aligned value (its score, live or final).
-function TeamLine({ code, name, strong, dim, value, valueClass = "" }: { code: string | null; name: string; strong?: boolean; dim?: boolean; value?: React.ReactNode; valueClass?: string }) {
+// One team line inside a card: crest + name (winner/favorite bold, the other side dimmed on a finished match),
+// an optional win-probability mini-bar (so the favorite reads at a glance), and a right-aligned value (its
+// win% for an upcoming match, or its score for a live/final one).
+function TeamLine({ code, name, strong, dim, value, valueClass = "", barFrac, barStrong }: { code: string | null; name: string; strong?: boolean; dim?: boolean; value?: React.ReactNode; valueClass?: string; barFrac?: number; barStrong?: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <Flag code={code} size={20} />
       <span className={`min-w-0 flex-1 truncate text-sm ${strong ? "font-semibold" : dim ? "text-muted-foreground" : "text-foreground/90"}`}>{name}</span>
-      {value != null && <span className={`shrink-0 font-mono text-base tabular-nums ${valueClass}`}>{value}</span>}
+      {barFrac != null && (
+        <span className="bg-muted/60 relative hidden h-1.5 w-14 shrink-0 overflow-hidden rounded-full sm:inline-block dark:inset-ring dark:inset-ring-white/5" aria-hidden>
+          <span className={`absolute inset-y-0 left-0 rounded-full ${barStrong ? "bg-primary/80" : "bg-muted-foreground/45"}`} style={{ width: `${Math.max(3, barFrac * 100)}%` }} />
+        </span>
+      )}
+      {value != null && <span className={`w-9 shrink-0 text-right font-mono tabular-nums ${valueClass}`}>{value}</span>}
     </div>
   );
 }
@@ -170,8 +176,8 @@ function MatchCard({ m, zone, hotReason, t, locale, showDate = false, kickoff = 
         )}
       </div>
       <div className="min-w-0 flex-1 space-y-0.5">
-        <TeamLine code={homeCode} name={homeName} strong={homeWin || favHome} dim={final && !homeWin} value={homeVal} valueClass="text-sm" />
-        <TeamLine code={awayCode} name={awayName} strong={awayWin || favAway} dim={final && !awayWin} value={awayVal} valueClass="text-sm" />
+        <TeamLine code={homeCode} name={homeName} strong={homeWin || favHome} dim={final && !homeWin} value={homeVal} valueClass="text-sm" barFrac={!final && !live ? wp?.h : undefined} barStrong={favHome} />
+        <TeamLine code={awayCode} name={awayName} strong={awayWin || favAway} dim={final && !awayWin} value={awayVal} valueClass="text-sm" barFrac={!final && !live ? wp?.a : undefined} barStrong={favAway} />
       </div>
       {hotReason != null && <HotBadge reason={hotReason} className="shrink-0 self-start" />}
     </Link>
