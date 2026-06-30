@@ -143,29 +143,33 @@ function Event({ e, side, t, locale, playerImages }: { e: MatchEvent; side: "hom
     ) : (
       <SubIcon label={t("match.subLabel")} />
     );
+  // The headshot must stay glued to the player's NAME, not to the whole text block. The block is only as wide
+  // as its widest line — often the assist ("assist: Ousmane Dembélé"), which is wider than the name — so keeping
+  // the avatar outside it left a gap between the avatar and the (spine-aligned) name. Instead, the avatar +
+  // name + type-icon form one tight row, with the assist / sub-off lines stacked beneath it.
   return (
-    <div className={`flex min-w-0 items-start gap-2 ${home ? "flex-row" : "flex-row-reverse"}`}>
-      {avatar ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={avatar} alt="" loading="lazy" decoding="async" className="border-border bg-muted mt-0.5 size-7 shrink-0 rounded-full border object-cover object-top" />
-      ) : null}
-      <div className={`min-w-0 ${home ? "text-right" : "text-left"}`}>
-        <div className="truncate text-sm">
+    <div className={`flex min-w-0 flex-col gap-0.5 ${home ? "items-end" : "items-start"}`}>
+      <div className={`flex min-w-0 max-w-full items-center gap-2 ${home ? "flex-row" : "flex-row-reverse"}`}>
+        {avatar ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={avatar} alt="" loading="lazy" decoding="async" className="border-border bg-muted size-7 shrink-0 rounded-full border object-cover object-top" />
+        ) : null}
+        <div className={`min-w-0 truncate text-sm ${home ? "text-right" : "text-left"}`}>
           <PlayerName name={e.player} code={e.teamCode} locale={locale} className={e.kind === "goal" ? "font-semibold" : "text-foreground/90"} />
           {tag && <span className="text-muted-2 ms-1 font-mono text-[10px] tracking-wide uppercase">({tag})</span>}
         </div>
-        {e.assist && (
-          <div className="text-muted-2 truncate text-[11px]">
-            <LinkedLine template={t("match.assist", { name: NAME_SLOT })} name={e.assist} code={e.teamCode} locale={locale} />
-          </div>
-        )}
-        {e.playerOff && (
-          <div className="text-muted-2 truncate text-[11px]">
-            <LinkedLine template={t("match.subOff", { name: NAME_SLOT })} name={e.playerOff} code={e.teamCode} locale={locale} />
-          </div>
-        )}
+        <span className="flex w-4 shrink-0 justify-center">{icon}</span>
       </div>
-      <span className="mt-0.5 flex w-4 shrink-0 justify-center">{icon}</span>
+      {e.assist && (
+        <div className={`text-muted-2 min-w-0 max-w-full truncate text-[11px] ${home ? "text-right" : "text-left"}`}>
+          <LinkedLine template={t("match.assist", { name: NAME_SLOT })} name={e.assist} code={e.teamCode} locale={locale} />
+        </div>
+      )}
+      {e.playerOff && (
+        <div className={`text-muted-2 min-w-0 max-w-full truncate text-[11px] ${home ? "text-right" : "text-left"}`}>
+          <LinkedLine template={t("match.subOff", { name: NAME_SLOT })} name={e.playerOff} code={e.teamCode} locale={locale} />
+        </div>
+      )}
     </div>
   );
 }
