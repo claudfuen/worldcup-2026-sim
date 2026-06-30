@@ -1,6 +1,7 @@
 import { Flag } from "@/components/flag";
 import { forecastPct } from "@/lib/format";
-import type { TeamPrediction } from "@/lib/predictions";
+import type { MatchInfo, TeamPrediction } from "@/lib/predictions";
+import { hasReachedRound, isEliminated } from "@/lib/teamStatus";
 import { getT } from "@/lib/i18n/server";
 
 // Side-by-side "how far does each team go" comparison for a defined match: the Monte Carlo probability that
@@ -16,14 +17,14 @@ const LADDER: [RoundKey, string][] = [
 const START: Record<string, number> = { GROUP: 0, R32: 1, R16: 2, QF: 3, SF: 4, FINAL: 6, "3P": 6 };
 const heat = (v: number) => `color-mix(in oklab, var(--primary) ${Math.round(Math.min(v, 1) * 22)}%, transparent)`;
 
-export async function MatchOutlook({ round, home, away }: { round: string; home: TeamPrediction; away: TeamPrediction }) {
+export async function MatchOutlook({ round, home, away, matches }: { round: string; home: TeamPrediction; away: TeamPrediction; matches: MatchInfo[] }) {
   const t = await getT();
   const cols = LADDER.slice(START[round] ?? 0);
   if (cols.length === 0) return null; // Final / third-place play-off: no meaningful onward ladder
 
   const row = (tm: TeamPrediction) => {
     const r = tm as unknown as Rounds;
-    const out = (r.advance ?? 0) === 0; // can't even reach the R32 → eliminated; show "Eliminated", not a row of 0%
+    const out = isEliminated(matches, tm.code, r.advance ?? 0);
     return (
     <div className="contents">
       <div className="bg-card flex items-center gap-2 px-3 py-2.5">
@@ -35,15 +36,19 @@ export async function MatchOutlook({ round, home, away }: { round: string; home:
         // keeps "Eliminated" legible — the narrow ~40px data columns can't hold the word on their own.
         <div className="bg-card text-muted-2 flex items-center px-3 py-2.5 text-xs" style={{ gridColumn: `span ${cols.length}` }}>{t("common.eliminated")}</div>
       ) : (
-        cols.map(([k]) => (
-          <div
-            key={k}
-            className={`bg-card flex items-center justify-center py-2.5 font-mono text-[11px] font-bold tabular-nums sm:text-xs ${k === "title" ? "text-primary" : ""}`}
-            style={{ backgroundColor: heat(r[k]) }}
-          >
-            {forecastPct(r[k])}
-          </div>
-        ))
+        cols.map(([k]) => {
+          // ✓ when mathematically through to this round (a fact), else the Monte Carlo forecast.
+          const clinched = hasReachedRound(matches, tm.code, k);
+          return (
+            <div
+              key={k}
+              className={`bg-card flex items-center justify-center py-2.5 font-mono text-[11px] font-bold tabular-nums sm:text-xs ${clinched ? "text-win" : k === "title" ? "text-primary" : ""}`}
+              style={{ backgroundColor: heat(clinched ? 1 : r[k]) }}
+            >
+              {clinched ? <span aria-hidden>✓</span> : forecastPct(r[k])}
+            </div>
+          );
+        })
       )}
     </div>
   );

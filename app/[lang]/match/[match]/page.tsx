@@ -156,7 +156,7 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       {/* State-dependent body (prose / live win-prob / goals-cards-stats / provisional table) — live via SWR. */}
       <MatchBody matchNo={m.match} initial={initial} proseText={proseText} />
 
-      {homePred && awayPred && <MatchOutlook round={m.round} home={homePred} away={awayPred} />}
+      {homePred && awayPred && <MatchOutlook round={m.round} home={homePred} away={awayPred} matches={all} />}
 
       <BracketPath m={m} all={all} />
 
