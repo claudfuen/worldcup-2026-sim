@@ -91,7 +91,23 @@ function shareTextFor(t: TFunction, m: MatchInfo, state: State, homeName?: strin
 
 // A two-way "to advance" bar for knockout matches (someone always goes through — no draw endpoint). Home in
 // pitch-green, away in cool-blue; percentages below, mirroring WinProbBar so the two read consistently.
-function AdvanceBar({ home, away, homeName, awayName, t }: { home: number; away: number; homeName: string; awayName: string; t: TFunction }) {
+function AdvanceBar({ home, away, homeName, awayName, t, secondary }: { home: number; away: number; homeName: string; awayName: string; t: TFunction; secondary?: boolean }) {
+  // Compact variant (the pre-match row stacked under the live one): thinner, dimmer, single-line labels —
+  // mirrors WinProbBar's `secondary` so the knockout layout matches the group-stage Now/Pre-match stack.
+  if (secondary) {
+    return (
+      <div>
+        <div className="bg-muted/40 flex h-1.5 w-full overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
+          <div className="bg-primary/55" style={{ width: `${home * 100}%` }} />
+          <div className="bg-data-cool/55" style={{ width: `${away * 100}%` }} />
+        </div>
+        <div className="text-muted-2 mt-1.5 flex items-baseline justify-between gap-2 text-xs">
+          <span className="min-w-0 truncate"><span className="font-mono tabular-nums">{forecastPct(home)}</span> {homeName}</span>
+          <span className="min-w-0 truncate text-right">{awayName} <span className="font-mono tabular-nums">{forecastPct(away)}</span></span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <div className="bg-muted/40 flex h-2.5 w-full overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5">
@@ -358,11 +374,12 @@ export function MatchBody({ matchNo, initial, proseText }: { matchNo: number; in
                 <div className="text-live mb-2 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.toAdvanceNow")}</div>
                 <AdvanceBar home={liveProbs.advance.home} away={liveProbs.advance.away} homeName={homeName!} awayName={awayName!} t={t} />
                 {m.advance && (
-                  <p className="text-muted-2 mt-3 text-xs">
-                    {t("match.preMatchAdvance", { home: homeName, homePct: forecastPct(m.advance.home), away: awayName, awayPct: forecastPct(m.advance.away) })}
-                  </p>
+                  <div className="border-border/50 mt-4 border-t pt-3">
+                    <div className="text-muted-2 mb-1.5 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("match.preMatchLabel")}</div>
+                    <AdvanceBar home={m.advance.home} away={m.advance.away} homeName={homeName!} awayName={awayName!} t={t} secondary />
+                  </div>
                 )}
-                <p className="text-muted-2 mt-1 text-xs text-pretty">
+                <p className="text-muted-2 mt-3 text-xs text-pretty">
                   {t("match.inNinety", { home: homeName, homePct: forecastPct(liveProbs.home), drawPct: forecastPct(liveProbs.draw), away: awayName, awayPct: forecastPct(liveProbs.away) })}
                 </p>
               </>
