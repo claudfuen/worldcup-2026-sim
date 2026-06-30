@@ -10,16 +10,11 @@ import { useLocale } from "@/lib/i18n/client";
 import { localeHref, type Locale } from "@/lib/i18n/config";
 import type { MatchInfo } from "@/lib/predictions";
 
-// An odd-count grid leaves a lone last card. Rather than stretch it across both columns (which maroons its
-// name far from its win-% rail and over-stretches the split bar), span the track but constrain the card to a
-// single column's width (gap-2 = 0.5rem ⇒ one column = 50% − 0.25rem) and centre it — no orphan cell, no
-// long saccade.
-const ODD_LAST_SPAN = "[&>*:last-child]:sm:col-span-2 [&>*:last-child]:sm:w-[calc(50%-0.25rem)] [&>*:last-child]:sm:justify-self-center";
-
-// J1 — "what's happening right now", promoted to the top of the homepage. A LIVE NOW lane (scores + clock,
-// with the model's PRE-MATCH favorite shown for context — never a fake live %), then a compact today/
-// last-night slate. Curated and capped, never the full schedule. Client-side so the day boundary follows
-// the viewer's timezone (no near-midnight hydration mismatch).
+// J1 — "what's happening right now", promoted to the top of the homepage. A LIVE NOW band (scores + clock,
+// with the model's PRE-MATCH favorite for context — never a fake live %), then a BENTO of labelled columns —
+// Today, Tomorrow/Next, Recent results — each a vertical list of match cards. The eye reads top-to-bottom down
+// one column at a time (no zigzag across a wrapping grid, no orphan cards). Client-side so the day boundary
+// follows the viewer's timezone (no near-midnight hydration mismatch).
 export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { matches: MatchInfo[]; hotReasons?: Record<number, string>; className?: string }) {
   const t = useT();
   const locale = useLocale();
@@ -30,17 +25,15 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
   const yest = fmtDayKey(new Date(Date.parse(nowIso) - 86400000).toISOString(), zone);
 
   const live = matches.filter((m) => m.status === "live").sort((a, b) => a.utc.localeCompare(b.utc));
-  // Two clearly-separated slates (easier to parse than one combined list): TODAY (chronological) and
-  // RECENT RESULTS = yesterday's finals (most-recent first).
+  // Today (chronological) and Recent results = yesterday's finals (most-recent first).
   const todayMatches = matches
     .filter((m) => m.status !== "live" && fmtDayKey(m.utc, zone) === today)
     .sort((a, b) => a.utc.localeCompare(b.utc));
   const recentResults = matches
     .filter((m) => m.status === "final" && fmtDayKey(m.utc, zone) === yest)
     .sort((a, b) => b.utc.localeCompare(a.utc));
-  // Forward look — sparser knockout days leave room to see what's next. Prefer a clean "Tomorrow" slate
-  // (times only); on a rest day with nothing tomorrow, fall back to "Coming up": the next scheduled
-  // matches, each tagged with its day so you can see when to tune in.
+  // Forward look — a clean "Tomorrow" slate (times only); on a rest day with nothing tomorrow, fall back to
+  // "Coming up": the next scheduled matches, each tagged with its day.
   const tomorrowKey = fmtDayKey(new Date(Date.parse(nowIso) + 86400000).toISOString(), zone);
   const tomorrowMatches = matches
     .filter((m) => m.status === "scheduled" && fmtDayKey(m.utc, zone) === tomorrowKey)
@@ -56,13 +49,23 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
     return null;
   }
 
-  // Caps keep the rail curated — a glimpse, never the full schedule (which is one tap away).
-  const TODAY_CAP = 10;
-  const UPCOMING_CAP = 8;
-  const RECENT_CAP = 6;
+  // Caps keep each column curated — vertical space is cheap in a column layout, so we can show a fuller list
+  // than the old stacked grid, while the full schedule stays one tap away.
+  const COL_CAP = 9;
 
-  // Chronological top-to-bottom: LIVE → TODAY → TOMORROW/UPCOMING → RECENT. Each section is a responsive grid
-  // of match CARDS (Apple-Sports-style card-per-event; teams stacked with an aligned score/odds column).
+  // Build the bento columns — only the sections that actually have matches, so the grid is 1–3 tiles wide.
+  const columns: ColumnData[] = [];
+  if (todayMatches.length > 0)
+    columns.push({ id: "today", heading: live.length > 0 ? t("home.alsoToday") : t("home.today"), matches: todayMatches, cap: COL_CAP, showFullSchedule: true });
+  if (upcoming.length > 0)
+    columns.push({ id: "upcoming", heading: upcomingIsTomorrow ? t("home.tomorrow") : t("home.comingUp"), matches: upcoming, cap: COL_CAP, showDate: !upcomingIsTomorrow, showFullSchedule: todayMatches.length === 0 });
+  if (recentResults.length > 0)
+    columns.push({ id: "recent", heading: t("home.recentResults"), matches: recentResults, cap: COL_CAP, showDate: true });
+
+  // Column count drives the grid. A lone column is width-capped so its cards stay narrow (the win% rail sits
+  // close to the name instead of marooned far to the right of a full-bleed card).
+  const gridCls = columns.length >= 3 ? "sm:grid-cols-2 lg:grid-cols-3" : columns.length === 2 ? "sm:grid-cols-2" : "max-w-2xl";
+
   return (
     <section className={className} suppressHydrationWarning>
       {live.length > 0 && (
@@ -70,48 +73,48 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
           <h2 className="text-live mb-2.5 flex items-center gap-2 font-mono text-[13px] font-semibold tracking-wide uppercase">
             <span className="bg-live size-2 animate-pulse rounded-full" />{t("common.liveNow")}
           </h2>
-          <div className={`grid gap-2 sm:grid-cols-2 ${live.slice(0, 6).length % 2 === 1 ? ODD_LAST_SPAN : ""}`}>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {live.slice(0, 6).map((m) => <MatchCard key={m.match} m={m} zone={zone} t={t} locale={locale} />)}
           </div>
         </div>
       )}
-      {todayMatches.length > 0 && (
-        <RailSection heading={live.length > 0 ? t("home.alsoToday") : t("home.today")} showFullSchedule matches={todayMatches} cap={TODAY_CAP} zone={zone} hotReasons={hotReasons} t={t} locale={locale} />
-      )}
-      {upcoming.length > 0 && (
-        <RailSection heading={upcomingIsTomorrow ? t("home.tomorrow") : t("home.comingUp")} showFullSchedule={live.length === 0 && todayMatches.length === 0} matches={upcoming} cap={UPCOMING_CAP} zone={zone} hotReasons={hotReasons} t={t} locale={locale} showDate={!upcomingIsTomorrow} />
-      )}
-      {recentResults.length > 0 && (
-        <RailSection heading={t("home.recentResults")} matches={recentResults} cap={RECENT_CAP} zone={zone} hotReasons={hotReasons} t={t} locale={locale} showDate />
-      )}
+      <div className={`grid items-start gap-x-4 gap-y-6 ${gridCls}`}>
+        {columns.map((c) => (
+          <RailColumn key={c.id} {...c} zone={zone} hotReasons={hotReasons} t={t} locale={locale} />
+        ))}
+      </div>
     </section>
   );
 }
 
-// One labelled slate (heading + card of rows + overflow link). Used for both "Today" and "Recent results".
-function RailSection({
-  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false, showDate = false,
-}: {
+type ColumnData = {
+  id: string;
   heading: string;
   matches: MatchInfo[];
   cap: number;
+  showFullSchedule?: boolean;
+  showDate?: boolean;
+};
+
+// One bento column: a section heading, then a vertical list of match cards read top-to-bottom.
+function RailColumn({
+  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false, showDate = false,
+}: ColumnData & {
   zone?: import("@/lib/format").Zone;
   hotReasons: Record<number, string>;
   t: TFunction;
   locale: Locale;
-  showFullSchedule?: boolean;
-  showDate?: boolean;
 }) {
   const shown = matches.slice(0, cap);
   return (
-    <div className="mb-6 last:mb-0">
+    <div>
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
         <h2 className="text-foreground/85 font-mono text-[13px] font-semibold tracking-wide uppercase">{heading}</h2>
         {showFullSchedule && (
-          <Link href={localeHref(locale, "/schedule")} className="text-primary text-xs hover:underline">{t("home.fullSchedule")}</Link>
+          <Link href={localeHref(locale, "/schedule")} className="text-primary shrink-0 text-xs hover:underline">{t("home.fullSchedule")}</Link>
         )}
       </div>
-      <div className={`grid gap-2 sm:grid-cols-2 ${shown.length % 2 === 1 ? ODD_LAST_SPAN : ""}`}>
+      <div className="flex flex-col gap-2">
         {shown.map((m) => <MatchCard key={m.match} m={m} zone={zone} hotReason={hotReasons[m.match]} t={t} locale={locale} showDate={showDate} />)}
       </div>
       {matches.length > cap && (
@@ -147,7 +150,7 @@ function SplitBar({ h, d, a }: { h: number; d: number; a: number }) {
   );
 }
 
-// A single match as a compact cell: a small status/time column on the left, the two teams stacked with each
+// A single match as a compact card: a small status/time column on the left, the two teams stacked with each
 // team's value in an aligned right rail, and — for an upcoming match — one split win-prob bar beneath the
 // matchup. A HOT match is flagged with a gold left border (no row-widening badge). Two/three lines tall; the
 // prediction reads in one glance with minimal eye travel.
