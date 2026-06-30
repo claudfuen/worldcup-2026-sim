@@ -6,6 +6,8 @@
 import type { MatchInfo } from "./predictions";
 import type { TeamProb } from "./sim/simulate";
 import type { MatchSummary } from "./matchEvents";
+import type { LiveMatch } from "./espn";
+import { overlayLive } from "./live";
 import { mulberry32, samplePoisson } from "./sim/rng";
 
 export interface AwardEntry {
@@ -169,7 +171,10 @@ function simulateRace(cands: Cand[], rand: () => number): Map<number, number> {
   return out;
 }
 
-function buildBoard(
+// The candidate set for one race: every player with a positive tally, each with their shrunk per-match rate
+// and the distribution of remaining team matches. Shared by the cron's full compute and the render-time live
+// refresh (which carries the win probabilities rather than re-running the Monte Carlo).
+function buildCands(
   tallies: Tally[],
   metric: "goals" | "assists",
   priorRate: number,
@@ -177,12 +182,9 @@ function buildBoard(
   played: Map<string, number>,
   groupRemaining: Map<string, number>,
   koPlayed: Map<string, number>,
-  tournamentOver: boolean,
-  rand: () => number,
-): AwardEntry[] {
+): Cand[] {
   const valueOf = (t: Tally) => (metric === "goals" ? t.goals : t.assists);
-  const secondaryOf = (t: { goals: number; assists: number }) => (metric === "goals" ? t.assists : t.goals);
-  const cands: Cand[] = tallies
+  return tallies
     .filter((t) => valueOf(t) > 0)
     .map((t) => {
       const tp = teams[t.teamCode];
@@ -195,7 +197,24 @@ function buildBoard(
       const expRemaining = gr + koLeft;
       return { player: t.player, teamCode: t.teamCode, value: valueOf(t), rate, groupRemaining: gr, depth, expRemaining };
     });
-  const winProbs = simulateRace(cands, rand);
+}
+
+// Turn scored candidates + their win probabilities into the sorted board. `winProbs` is keyed by candidate
+// index (matching `cands` order) — supplied by the Monte Carlo at cron time, or carried over from the previous
+// board at render time. Players tied on the headline metric (same goals / same assists) are then ranked by win
+// probability, NOT projected mean: the projected mean rewards more matches left, so a deep-run player with the
+// same tally can out-project a rival while the simulation gives that rival the higher chance of actually
+// finishing top — which read as a contradiction (the "leader" showing a lower % than #2). Ranking ties by win
+// probability keeps the board's order monotonic with the headline forecast. Projected breaks any further tie.
+function assembleBoard(
+  cands: Cand[],
+  tallies: Tally[],
+  metric: "goals" | "assists",
+  played: Map<string, number>,
+  winProbs: Map<number, number>,
+  tournamentOver: boolean,
+): AwardEntry[] {
+  const secondaryOf = (t: { goals: number; assists: number }) => (metric === "goals" ? t.assists : t.goals);
   const leaderValue = cands.reduce((m, c) => Math.max(m, c.value), 0);
   const FROZEN = 0.01; // expected remaining matches ≈ 0 → the team has no game left to add to the tally
   const built = cands.map((c, i) => {
@@ -223,7 +242,23 @@ function buildBoard(
     const maxSec = top.reduce((m, e) => Math.max(m, secondaryOf(e)), 0);
     for (const e of top) if (secondaryOf(e) === maxSec) e.clinched = true;
   }
-  return built.sort((a, b) => b.value - a.value || b.projected - a.projected || b.winProb - a.winProb);
+  return built.sort((a, b) => b.value - a.value || b.winProb - a.winProb || b.projected - a.projected);
+}
+
+function buildBoard(
+  tallies: Tally[],
+  metric: "goals" | "assists",
+  priorRate: number,
+  teams: Record<string, TeamProb>,
+  played: Map<string, number>,
+  groupRemaining: Map<string, number>,
+  koPlayed: Map<string, number>,
+  tournamentOver: boolean,
+  rand: () => number,
+): AwardEntry[] {
+  const cands = buildCands(tallies, metric, priorRate, teams, played, groupRemaining, koPlayed);
+  const winProbs = simulateRace(cands, rand);
+  return assembleBoard(cands, tallies, metric, played, winProbs, tournamentOver);
 }
 
 export async function computeAwards(
@@ -242,6 +277,71 @@ export async function computeAwards(
   const assists = buildBoard(tallies, "assists", PRIOR_ASSIST_RATE, teams, played, groupRemaining, koPlayed, tournamentOver, rand);
   const players = await aggregatePlayers(matches, getSummary, tallies, squadPositions);
   return { goldenBoot, assists, players, matchesCounted };
+}
+
+// Render-time live refresh of the boards. The cron stores a FINAL-SETTLED baseline (completed matches only);
+// here we fold in the goals/assists from matches in progress RIGHT NOW so a live hat-trick lands on the Golden
+// Boot immediately — the same overlay the score ticker uses for matches. Cheap by design: it re-reads only the
+// in-progress matches' (KV-cached, ~15s) summaries and CARRIES each player's win probability from the baseline
+// instead of re-running the per-race Monte Carlo. A brand-new live scorer appears with a 0% forecast that the
+// next cron tick fills in. Returns the baseline untouched when nothing live is outstanding.
+export async function liveAwards(
+  baseline: Awards,
+  kvMatches: MatchInfo[],
+  live: LiveMatch[],
+  teams: Record<string, TeamProb>,
+  getSummary: (m: MatchInfo) => Promise<MatchSummary>,
+): Promise<Awards> {
+  const pair = (a: string, b: string) => [a, b].sort().join("-");
+  // Matches the baseline already counts (the cron has absorbed them as final) must NOT be double-counted here.
+  const absorbed = new Set(
+    kvMatches.filter((m) => m.status === "final" && m.home && m.away).map((m) => pair(m.home!, m.away!)),
+  );
+  // In-progress or just-finished matches the baseline hasn't absorbed yet — these carry the live deltas.
+  const activePairs = new Set(
+    live
+      .filter((l) => (l.state === "in" || l.state === "post") && !absorbed.has(pair(l.homeCode, l.awayCode)))
+      .map((l) => pair(l.homeCode, l.awayCode)),
+  );
+  if (!activePairs.size) return baseline;
+
+  const overlaid = overlayLive(kvMatches, live);
+  const deltaMatches = overlaid.filter((m) => m.home && m.away && activePairs.has(pair(m.home, m.away)));
+  const { tallies: liveTallies } = await aggregateScorers(deltaMatches, getSummary);
+  if (!liveTallies.length) return baseline;
+
+  // Rebuild the full tally set: the baseline boards already carry every settled scorer's goals/assists/
+  // penalties (union the two boards — a player can be on one and not the other), then add the live deltas.
+  const byKey = new Map<string, Tally>();
+  for (const e of [...baseline.goldenBoot, ...baseline.assists]) {
+    const key = `${e.player}|${e.teamCode}`;
+    if (!byKey.has(key)) byKey.set(key, { player: e.player, teamCode: e.teamCode, goals: e.goals, penalties: e.penalties, assists: e.assists });
+  }
+  for (const lt of liveTallies) {
+    const key = `${lt.player}|${lt.teamCode}`;
+    const t = byKey.get(key);
+    if (t) { t.goals += lt.goals; t.penalties += lt.penalties; t.assists += lt.assists; }
+    else byKey.set(key, { ...lt });
+  }
+  const merged = [...byKey.values()];
+  const { played, groupRemaining, koPlayed } = teamMatchCounts(overlaid);
+
+  // Something is live, so the awards cannot be clinched; carry win probabilities from the matching baseline
+  // entry (new live scorers fall through to 0 until the next cron run computes their forecast).
+  const refresh = (metric: "goals" | "assists", priorRate: number, cached: AwardEntry[]): AwardEntry[] => {
+    const cands = buildCands(merged, metric, priorRate, teams, played, groupRemaining, koPlayed);
+    const carried = new Map(cached.map((e) => [`${e.player}|${e.teamCode}`, e.winProb]));
+    const winProbs = new Map<number, number>();
+    cands.forEach((c, i) => winProbs.set(i, carried.get(`${c.player}|${c.teamCode}`) ?? 0));
+    return assembleBoard(cands, merged, metric, played, winProbs, false);
+  };
+
+  return {
+    goldenBoot: refresh("goals", PRIOR_GOAL_RATE, baseline.goldenBoot),
+    assists: refresh("assists", PRIOR_ASSIST_RATE, baseline.assists),
+    players: baseline.players,
+    matchesCounted: baseline.matchesCounted + deltaMatches.length,
+  };
 }
 
 // Full-squad player universe: union of everyone named in a matchday squad (from ESPN lineups, incl. keepers)

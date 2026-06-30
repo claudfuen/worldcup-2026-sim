@@ -8,7 +8,6 @@ import { wdlProbs, eloToLambdas, scorelineDist, fracRemaining, koAdvanceProb } f
 import { hostEloBoost } from "./sim/hosts";
 import { buildGroupViews, lockedSlotsFromGroups } from "./groupView";
 import { getMatchSummary } from "./matchEvents";
-import { overlayLive } from "./live";
 import { computeAwards, type Awards } from "./awards";
 import { getSquadPositions } from "./squads";
 import { TEAM_BY_CODE, TEAMS, GROUPS } from "./data/teams";
@@ -431,12 +430,14 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
   }
 
   // Golden Boot + assists race, aggregated from the parsed match timelines and projected forward over each
-  // team's expected remaining matches. Best-effort: a feed hiccup leaves the awards empty, never breaks the
-  // rest of the payload. The stored `matches` only carry "final" status (live status is a render-time overlay),
-  // so overlay the live feed here first — otherwise an in-progress match counts as "scheduled" and its goals
-  // (e.g. a hat-trick mid-match) are excluded from the live Golden Boot until full-time.
+  // team's expected remaining matches. This is the FINAL-SETTLED baseline: it counts only completed matches
+  // (live status is a render-time overlay, not present here). Goals from in-progress matches are folded in at
+  // render time by liveAwards() — reusing the baseline's expensive win-prob forecast — so the boards track a
+  // live hat-trick without a per-request Monte Carlo, the same split the matches use (KV holds settled state;
+  // the live feed is overlaid on top). Best-effort: a feed hiccup leaves the awards empty, never breaks the
+  // rest of the payload.
   const squadPositions = await getSquadPositions().catch(() => ({}));
-  const awards = await computeAwards(overlayLive(matches, live), sim.teams, getMatchSummary, squadPositions).catch(
+  const awards = await computeAwards(matches, sim.teams, getMatchSummary, squadPositions).catch(
     () => ({ goldenBoot: [], assists: [], players: [], matchesCounted: 0 }) as Awards,
   );
 

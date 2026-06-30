@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { getPredictions } from "@/lib/getPredictions";
+import { getPredictions, getLiveAwards } from "@/lib/getPredictions";
+import { getLiveMatches, liveActivity } from "@/lib/live";
+import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { AwardsBoard } from "@/components/awards-board";
 import { RelatedLinks } from "@/components/related-links";
 import { forecastPct } from "@/lib/format";
@@ -37,8 +39,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AwardsPage() {
   const t = await getT();
   const locale = await getLocale();
-  const data = await getPredictions();
-  const { goldenBoot, assists, matchesCounted } = data.awards;
+  const [data, awards, live] = await Promise.all([getPredictions(), getLiveAwards(), getLiveMatches()]);
+  const { goldenBoot, assists, matchesCounted } = awards;
+  const hasLive = liveActivity(data.matches, live);
 
   const leader = goldenBoot[0];
   const leadCount = leader ? goldenBoot.filter((e) => e.goals === leader.goals).length : 0;
@@ -78,6 +81,7 @@ export default async function AwardsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <LiveAutoRefresh enabled={hasLive} />
       {itemListLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />}
       <header className="mb-6">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("awards.eyebrow")}</div>

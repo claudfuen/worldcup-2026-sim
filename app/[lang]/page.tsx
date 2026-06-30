@@ -1,4 +1,4 @@
-import { getPredictions } from "@/lib/getPredictions";
+import { getPredictions, getLiveAwards } from "@/lib/getPredictions";
 import { getLiveMatches, overlayLive, liveActivity, attachLiveProbs } from "@/lib/live";
 import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
@@ -25,7 +25,7 @@ export const revalidate = 0;
 
 export default async function Page() {
   const t = await getT();
-  const [data, live] = await Promise.all([getPredictions(), getLiveMatches()]);
+  const [data, live, awards] = await Promise.all([getPredictions(), getLiveMatches(), getLiveAwards()]);
   const ratings = ratingsFromTeams(data.teams);
   // Overlay live scores, then attach the current (live-conditioned) win probability to each in-progress match.
   const matches = attachLiveProbs(overlayLive(data.matches, live), ratings);
@@ -74,11 +74,11 @@ export default async function Page() {
         <BracketTeaser matches={lMatches} teams={teams} />
         {!groupStageOver && <GroupsPreview groups={lGroups} />}
         <TitleOdds teams={teams} />
-        <GoldenBootRace entries={data.awards.goldenBoot} />
+        <GoldenBootRace entries={awards.goldenBoot} />
       </div>
 
       {/* The faces of the tournament — top scorers as a headshot rail */}
-      <PlayersToWatch entries={data.awards.goldenBoot} className="mt-8" />
+      <PlayersToWatch entries={awards.goldenBoot} className="mt-8" />
 
       {/* What to watch next — the curated plan */}
       <MatchesToWatch matches={lMatches} teams={teams} groups={lGroups} className="mt-8" />
