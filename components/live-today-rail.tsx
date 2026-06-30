@@ -54,17 +54,20 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
   const COL_CAP = 9;
 
   // Build the bento columns — only the sections that actually have matches, so the grid is 1–3 tiles wide.
+  // Ordered as a left-to-right timeline: Recent (past) → Today (present) → Tomorrow/Next (future).
   const columns: ColumnData[] = [];
+  if (recentResults.length > 0)
+    columns.push({ id: "recent", heading: t("home.recentResults"), matches: recentResults, cap: COL_CAP, showDate: true });
   if (todayMatches.length > 0)
     columns.push({ id: "today", heading: live.length > 0 ? t("home.alsoToday") : t("home.today"), matches: todayMatches, cap: COL_CAP, showFullSchedule: true });
   if (upcoming.length > 0)
     columns.push({ id: "upcoming", heading: upcomingIsTomorrow ? t("home.tomorrow") : t("home.comingUp"), matches: upcoming, cap: COL_CAP, showDate: !upcomingIsTomorrow, showFullSchedule: todayMatches.length === 0 });
-  if (recentResults.length > 0)
-    columns.push({ id: "recent", heading: t("home.recentResults"), matches: recentResults, cap: COL_CAP, showDate: true });
 
-  // Column count drives the grid. A lone column is width-capped so its cards stay narrow (the win% rail sits
-  // close to the name instead of marooned far to the right of a full-bleed card).
-  const gridCls = columns.length >= 3 ? "sm:grid-cols-2 lg:grid-cols-3" : columns.length === 2 ? "sm:grid-cols-2" : "max-w-2xl";
+  // Today is the focus, so it gets the widest track — a bento where the present is bigger than past/future. A
+  // lone column is width-capped so its cards don't stretch full-bleed (which would maroon the win% rail far to
+  // the right of the name). On mobile everything stacks into one column.
+  const single = columns.length === 1;
+  const template = columns.map((c) => (c.id === "today" ? "1.4fr" : "1fr")).join(" ");
 
   return (
     <section className={className} suppressHydrationWarning>
@@ -74,13 +77,16 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
             <span className="bg-live size-2 animate-pulse rounded-full" />{t("common.liveNow")}
           </h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {live.slice(0, 6).map((m) => <MatchCard key={m.match} m={m} zone={zone} t={t} locale={locale} />)}
+            {live.slice(0, 6).map((m) => <MatchCard key={m.match} m={m} zone={zone} t={t} locale={locale} big />)}
           </div>
         </div>
       )}
-      <div className={`grid items-start gap-x-4 gap-y-6 ${gridCls}`}>
+      <div
+        className={`grid grid-cols-1 items-start gap-x-4 gap-y-6 ${single ? "max-w-2xl" : "lg:[grid-template-columns:var(--bento)]"}`}
+        style={single ? undefined : ({ "--bento": template } as React.CSSProperties)}
+      >
         {columns.map((c) => (
-          <RailColumn key={c.id} {...c} zone={zone} hotReasons={hotReasons} t={t} locale={locale} />
+          <RailColumn key={c.id} {...c} emphasis={c.id === "today"} zone={zone} hotReasons={hotReasons} t={t} locale={locale} />
         ))}
       </div>
     </section>
@@ -96,26 +102,28 @@ type ColumnData = {
   showDate?: boolean;
 };
 
-// One bento column: a section heading, then a vertical list of match cards read top-to-bottom.
+// One bento column: a section heading, then a vertical list of match cards read top-to-bottom. The emphasized
+// (Today) column gets a brighter heading and larger cards so the eye lands there first.
 function RailColumn({
-  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false, showDate = false,
+  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false, showDate = false, emphasis = false,
 }: ColumnData & {
   zone?: import("@/lib/format").Zone;
   hotReasons: Record<number, string>;
   t: TFunction;
   locale: Locale;
+  emphasis?: boolean;
 }) {
   const shown = matches.slice(0, cap);
   return (
     <div>
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
-        <h2 className="text-foreground/85 font-mono text-[13px] font-semibold tracking-wide uppercase">{heading}</h2>
+        <h2 className={`font-mono text-[13px] font-semibold tracking-wide uppercase ${emphasis ? "text-foreground" : "text-foreground/70"}`}>{heading}</h2>
         {showFullSchedule && (
           <Link href={localeHref(locale, "/schedule")} className="text-primary shrink-0 text-xs hover:underline">{t("home.fullSchedule")}</Link>
         )}
       </div>
       <div className="flex flex-col gap-2">
-        {shown.map((m) => <MatchCard key={m.match} m={m} zone={zone} hotReason={hotReasons[m.match]} t={t} locale={locale} showDate={showDate} />)}
+        {shown.map((m) => <MatchCard key={m.match} m={m} zone={zone} hotReason={hotReasons[m.match]} t={t} locale={locale} showDate={showDate} big={emphasis} />)}
       </div>
       {matches.length > cap && (
         <Link href={localeHref(locale, "/schedule")} className="text-primary mt-2.5 inline-block text-xs hover:underline">{t("home.moreCount", { n: matches.length - cap })}</Link>
@@ -127,12 +135,12 @@ function RailColumn({
 // One team line: crest + name, then a right-aligned value rail (its win% for upcoming, or its score for
 // live/final). Names truncate; the value never does (shrink-0) so it can't be clipped on mobile. The value rail
 // is a fixed width so both teams' numbers align in a column one short hop from the name.
-function TeamLine({ code, name, strong, dim, value }: { code: string | null; name: string; strong?: boolean; dim?: boolean; value?: React.ReactNode }) {
+function TeamLine({ code, name, strong, dim, value, big = false }: { code: string | null; name: string; strong?: boolean; dim?: boolean; value?: React.ReactNode; big?: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <Flag code={code} size={18} />
-      <span className={`min-w-0 flex-1 truncate text-[13px] ${strong ? "text-foreground font-semibold" : dim ? "text-muted-foreground" : "text-foreground/90"}`}>{name}</span>
-      {value != null && <span className="w-10 shrink-0 text-right font-mono text-[13px] tabular-nums">{value}</span>}
+      <Flag code={code} size={big ? 20 : 18} />
+      <span className={`min-w-0 flex-1 truncate ${big ? "text-sm" : "text-[13px]"} ${strong ? "text-foreground font-semibold" : dim ? "text-muted-foreground" : "text-foreground/90"}`}>{name}</span>
+      {value != null && <span className={`shrink-0 text-right font-mono tabular-nums ${big ? "w-11 text-sm" : "w-10 text-[13px]"}`}>{value}</span>}
     </div>
   );
 }
@@ -140,12 +148,12 @@ function TeamLine({ code, name, strong, dim, value }: { code: string | null; nam
 // The matchup contest as ONE object: a split bar — home share (pitch-green) from the left, away share
 // (data-cool) from the right, the remaining draw/uncertainty as a neutral centre. A glance reads blowout vs.
 // finely-balanced without parsing two numbers.
-function SplitBar({ h, d, a }: { h: number; d: number; a: number }) {
+function SplitBar({ h, d, a, big = false }: { h: number; d: number; a: number; big?: boolean }) {
   return (
-    <div className="bg-muted/30 mt-1.5 flex h-1 overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5" aria-hidden>
-      <span className="bg-primary/85 min-w-[3px]" style={{ width: `${h * 100}%` }} />
-      {d > 0 && <span className="bg-muted-foreground/25" style={{ width: `${d * 100}%` }} />}
-      <span className="bg-data-cool/70 min-w-[3px]" style={{ width: `${a * 100}%` }} />
+    <div className={`bg-muted/30 mt-1.5 flex overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5 ${big ? "h-1.5" : "h-1"}`} aria-hidden>
+      <span className="bg-primary/40 min-w-[3px]" style={{ width: `${h * 100}%` }} />
+      {d > 0 && <span className="bg-muted-foreground/15" style={{ width: `${d * 100}%` }} />}
+      <span className="bg-data-cool/35 min-w-[3px]" style={{ width: `${a * 100}%` }} />
     </div>
   );
 }
@@ -154,7 +162,7 @@ function SplitBar({ h, d, a }: { h: number; d: number; a: number }) {
 // team's value in an aligned right rail, and — for an upcoming match — one split win-prob bar beneath the
 // matchup. A HOT match is flagged with a gold left border (no row-widening badge). Two/three lines tall; the
 // prediction reads in one glance with minimal eye travel.
-function MatchCard({ m, zone, hotReason, t, locale, showDate = false }: { m: MatchInfo; zone?: import("@/lib/format").Zone; hotReason?: string; t: TFunction; locale: Locale; showDate?: boolean }) {
+function MatchCard({ m, zone, hotReason, t, locale, showDate = false, big = false }: { m: MatchInfo; zone?: import("@/lib/format").Zone; hotReason?: string; t: TFunction; locale: Locale; showDate?: boolean; big?: boolean }) {
   const live = m.status === "live";
   const final = m.status === "final";
   const homeCode = m.home ?? m.projHome?.[0]?.code ?? null;
@@ -182,8 +190,9 @@ function MatchCard({ m, zone, hotReason, t, locale, showDate = false }: { m: Mat
     <Link
       href={localeHref(locale, `/match/${m.match}`)}
       title={hotReason}
-      className={`group bg-card flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors dark:inset-ring dark:inset-ring-white/5 ${live ? "border-live/40 hover:border-live/60" : hotReason ? "border-border border-l-contention/70 border-l-[3px] hover:border-primary/50" : "border-border hover:border-primary/50"}`}
+      className={`group bg-card relative flex items-center gap-3 rounded-lg border transition-colors dark:inset-ring dark:inset-ring-white/5 ${big ? "px-3.5 py-2.5" : "px-3 py-2"} ${live ? "border-live/40 hover:border-live/60" : "border-border hover:border-primary/50"}`}
     >
+      {hotReason && !live && <span className="bg-contention/80 absolute inset-y-2 left-0 w-[3px] rounded-full" aria-hidden />}
       <div className="w-10 shrink-0 leading-tight">
         {live ? (
           <span className="text-live inline-flex items-center gap-1 font-mono text-[10px] font-bold tracking-wide" suppressHydrationWarning><span className="bg-live size-1.5 animate-pulse rounded-full" />{m.liveDetail ?? t("home.liveUpper")}</span>
@@ -195,10 +204,10 @@ function MatchCard({ m, zone, hotReason, t, locale, showDate = false }: { m: Mat
       </div>
       <div className="min-w-0 flex-1">
         <div className="space-y-1">
-          <TeamLine code={homeCode} name={homeName} strong={homeWin || favHome} dim={final && !homeWin} value={final || live ? score(m.homeScore, homeWin, ps?.home) : odds(wp?.h, favHome)} />
-          <TeamLine code={awayCode} name={awayName} strong={awayWin || favAway} dim={final && !awayWin} value={final || live ? score(m.awayScore, awayWin, ps?.away) : odds(wp?.a, favAway)} />
+          <TeamLine code={homeCode} name={homeName} strong={homeWin || favHome} dim={final && !homeWin} value={final || live ? score(m.homeScore, homeWin, ps?.home) : odds(wp?.h, favHome)} big={big} />
+          <TeamLine code={awayCode} name={awayName} strong={awayWin || favAway} dim={final && !awayWin} value={final || live ? score(m.awayScore, awayWin, ps?.away) : odds(wp?.a, favAway)} big={big} />
         </div>
-        {!final && !live && split && <SplitBar h={split.h} d={split.d} a={split.a} />}
+        {!final && !live && split && <SplitBar h={split.h} d={split.d} a={split.a} big={big} />}
       </div>
     </Link>
   );
