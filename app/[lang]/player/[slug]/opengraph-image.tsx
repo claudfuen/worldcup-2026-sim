@@ -1,8 +1,22 @@
 import { ImageResponse } from "next/og";
 import { getPredictions } from "@/lib/getPredictions";
 import { findPlayer } from "@/lib/players";
+import { getPlayerImage } from "@/lib/playerImages";
 import { TEAM_BY_CODE } from "@/lib/data/teams";
 import { flagDataUri, ogPct, OG_SIZE, OG_CONTENT_TYPE, OG_BG, OG_FG, OG_GREEN, OG_GOLD, OG_MUTED } from "@/lib/og";
+
+// Fetch a remote image into a data URI so Satori embeds it reliably (no external fetch at draw time).
+async function imgDataUri(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const ct = r.headers.get("content-type") || "image/png";
+    return `data:${ct};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
 
 // Dynamic per-player social card: big country flag + name + position, with the player's goals / assists /
 // appearances and (if a scorer) their standing in the Golden Boot race.
@@ -39,7 +53,10 @@ export default async function Image({ params }: { params: Promise<{ slug: string
 
   const team = TEAM_BY_CODE[view.teamCode];
   const teamName = team?.name ?? view.teamCode;
-  const flag = await flagDataUri(view.teamCode);
+  const [flag, headshot] = await Promise.all([
+    flagDataUri(view.teamCode),
+    imgDataUri(await getPlayerImage(view.player, view.teamCode).catch(() => null)),
+  ]);
   const info = view.info;
   const goals = info?.goals ?? view.goldenBoot?.goals ?? 0;
   const assists = info?.assists ?? view.assists?.assists ?? 0;
@@ -75,18 +92,21 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           {teamName.toUpperCase()} · WORLD CUP 2026
         </div>
 
-        {/* name + flag */}
-        <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 40 }}>
-          {flag && <img src={flag} style={{ width: FLAG_W, height: Math.round((FLAG_W * 3) / 4), borderRadius: 14, border: "1px solid rgba(255,255,255,0.18)", objectFit: "cover" }} />}
-          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-            <div style={{ display: "flex", fontSize: 78, fontWeight: 700, letterSpacing: -2, lineHeight: 1.02 }}>{view.player}</div>
-            <div style={{ display: "flex", fontSize: 32, color: OG_MUTED, marginTop: 14 }}>
-              {position ? `${position} · ${teamName}` : teamName}
+        {/* name + flag (left) · headshot (right) */}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flex: 1, gap: 32 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 40, minWidth: 0 }}>
+            {flag && <img src={flag} style={{ width: FLAG_W, height: Math.round((FLAG_W * 3) / 4), borderRadius: 14, border: "1px solid rgba(255,255,255,0.18)", objectFit: "cover" }} />}
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <div style={{ display: "flex", fontSize: 78, fontWeight: 700, letterSpacing: -2, lineHeight: 1.02 }}>{view.player}</div>
+              <div style={{ display: "flex", fontSize: 32, color: OG_MUTED, marginTop: 14 }}>
+                {position ? `${position} · ${teamName}` : teamName}
+              </div>
+              {bootLine && (
+                <div style={{ display: "flex", fontSize: 27, color: gb?.clinched ? OG_GOLD : OG_GREEN, fontWeight: 600, marginTop: 18 }}>{bootLine}</div>
+              )}
             </div>
-            {bootLine && (
-              <div style={{ display: "flex", fontSize: 27, color: gb?.clinched ? OG_GOLD : OG_GREEN, fontWeight: 600, marginTop: 18 }}>{bootLine}</div>
-            )}
           </div>
+          {headshot && <img src={headshot} style={{ height: 330, objectFit: "contain" }} />}
         </div>
 
         {/* stat strip */}
