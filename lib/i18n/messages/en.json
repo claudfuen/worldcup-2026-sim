@@ -11,6 +11,7 @@
     "bracket": "Bracket",
     "schedule": "Schedule",
     "calendar": "Calendar",
+    "stadiums": "Stadiums",
     "awards": "Awards",
     "scorecard": "Scorecard",
     "method": "Method",
@@ -19,6 +20,32 @@
     "closeMenu": "Close menu",
     "language": "Language",
     "homeAria": "World Cup Predictor — home"
+  },
+  "venues": {
+    "metaTitle": "World Cup 2026 Stadiums — All 16 Host Venues, Matches & Results",
+    "metaDesc": "Every 2026 World Cup venue across the USA, Mexico and Canada — host cities, capacities, and the full match list and results at each stadium.",
+    "eyebrow": "Host venues",
+    "heading": "Stadiums",
+    "lede": "All 16 venues across three host nations — where every match is played. Tap a stadium for its full schedule and results.",
+    "dotHint": "dot size = matches hosted",
+    "venuesCount": "{n} venues",
+    "matchesCount": "{n} matches",
+    "playedCount": "{n} played",
+    "capacity": "{cap} seats",
+    "final": "Final",
+    "relatedSchedule": "Full schedule",
+    "relatedScheduleHint": "Every match, by date",
+    "relatedBracket": "Knockout bracket",
+    "relatedCalendar": "Match calendar",
+    "relatedAllVenues": "All stadiums",
+    "fallbackTitle": "Stadium — World Cup 2026",
+    "detailMetaTitle": "{venue} — World Cup 2026 Matches & Results",
+    "detailMetaDesc": "Every 2026 World Cup match at {venue} in {city} — fixtures, kickoff times and results.",
+    "statMatches": "Matches",
+    "statPlayed": "Played",
+    "statGoals": "Goals",
+    "statCapacity": "Capacity",
+    "matchesHeading": "All matches at this venue"
   },
   "awards": {
     "metaTitle": "World Cup 2026 Golden Boot Race — Top Scorer Odds & Forecast",
@@ -122,7 +149,8 @@
     "shortSF": "SF",
     "shortFinal": "Final",
     "shortThird": "3rd",
-    "shortChamp": "Champ"
+    "shortChamp": "Champ",
+    "shortGroup": "Grp"
   },
   "common": {
     "vs": "vs",

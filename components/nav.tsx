@@ -22,6 +22,7 @@ const ROUTES = [
   { key: "nav.bracket", href: "/bracket" },
   { key: "nav.schedule", href: "/schedule" },
   { key: "nav.calendar", href: "/calendar" },
+  { key: "nav.stadiums", href: "/venues" },
   { key: "nav.awards", href: "/awards" },
   { key: "nav.scorecard", href: "/scorecard" },
   { key: "nav.method", href: "/methodology" },
