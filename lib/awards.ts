@@ -230,6 +230,7 @@ export async function computeAwards(
   matches: MatchInfo[],
   teams: Record<string, TeamProb>,
   getSummary: (m: MatchInfo) => Promise<MatchSummary>,
+  squadPositions: Record<string, string> = {},
   seed = FORECAST_SEED,
 ): Promise<Awards> {
   const { tallies, matchesCounted } = await aggregateScorers(matches, getSummary);
@@ -239,7 +240,7 @@ export async function computeAwards(
   const tournamentOver = matches.length > 0 && matches.every((m) => m.status === "final");
   const goldenBoot = buildBoard(tallies, "goals", PRIOR_GOAL_RATE, teams, played, groupRemaining, koPlayed, tournamentOver, rand);
   const assists = buildBoard(tallies, "assists", PRIOR_ASSIST_RATE, teams, played, groupRemaining, koPlayed, tournamentOver, rand);
-  const players = await aggregatePlayers(matches, getSummary, tallies);
+  const players = await aggregatePlayers(matches, getSummary, tallies, squadPositions);
   return { goldenBoot, assists, players, matchesCounted };
 }
 
@@ -250,6 +251,7 @@ async function aggregatePlayers(
   matches: MatchInfo[],
   getSummary: (m: MatchInfo) => Promise<MatchSummary>,
   tallies: Tally[],
+  squadPositions: Record<string, string> = {},
 ): Promise<PlayerInfo[]> {
   const played = matches.filter((m) => (m.status === "final" || m.status === "live") && m.home && m.away);
   const summaries = await Promise.all(played.map((m) => getSummary(m).catch(() => ({ events: [], stats: null }) as MatchSummary)));
@@ -290,6 +292,13 @@ async function aggregatePlayers(
     const e = map.get(key) ?? { name: t.player, teamCode: t.teamCode, position: "", appearances: 0, goals: 0, assists: 0, penalties: 0 };
     e.goals = t.goals; e.assists = t.assists; e.penalties = t.penalties;
     map.set(key, e);
+  }
+  // Authoritative pass: the squad roster carries each player's real position even when they only ever appeared
+  // as a substitute (a benched player's matchday position is "Substitute"). Canonical position wins; the
+  // match-derived one stays as the fallback for names not on the squad list (e.g. ESPN name variants).
+  for (const e of map.values()) {
+    const canon = squadPositions[`${e.name}|${e.teamCode}`];
+    if (canon) e.position = canon;
   }
   return [...map.values()];
 }

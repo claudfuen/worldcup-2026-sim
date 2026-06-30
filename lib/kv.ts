@@ -63,7 +63,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 // v21: fix position classification (by descriptive name; substitutes/unknown no longer mislabeled "FW").
 // v22: "Sweeper" now classifies as DF (was unset); player universe widened to everyone named in a timeline
 //      (scorers, assisters, carded, subbed) so every timeline name links to a real page.
-export const PRED_KEY = "predictions:v22";
+// v23: player positions now come from the canonical squad roster (ESPN teams/{id}/roster), so benched players
+//      (who have no matchday position — the Ochoa/St-Clair case) get their real position. Forces a refresh.
+export const PRED_KEY = "predictions:v23";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";
@@ -86,3 +88,8 @@ export const LIVE_FEED_KEY = "live:scoreboard:v1";
 //     subbedIn/subbedOut for per-match player logs (started / came on / unused, minutes, cards).
 // v6: "Sweeper" now classifies as DF (was unset) — bump so cached summaries refetch with the fix.
 export const MATCH_EVENTS_KEY = "match:summary:v6";
+
+// Canonical squad positions (name|code -> GK/DF/MF/FW) from ESPN's per-team roster — fills positions for
+// players who only ever appear as substitutes (a benched player has no resolvable matchday position).
+// v1: initial. Long TTL inside the loader; versioned so a shape change forces a refresh.
+export const SQUAD_POS_KEY = "squad:positions:v1";

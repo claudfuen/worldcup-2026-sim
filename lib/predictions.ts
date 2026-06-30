@@ -9,6 +9,7 @@ import { hostEloBoost } from "./sim/hosts";
 import { buildGroupViews, lockedSlotsFromGroups } from "./groupView";
 import { getMatchSummary } from "./matchEvents";
 import { computeAwards, type Awards } from "./awards";
+import { getSquadPositions } from "./squads";
 import { TEAM_BY_CODE, TEAMS, GROUPS } from "./data/teams";
 import { SCHEDULE } from "./data/schedule";
 import { KNOCKOUT } from "./data/bracket";
@@ -431,7 +432,8 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
   // Golden Boot + assists race, aggregated from the parsed match timelines and projected forward over each
   // team's expected remaining matches. Best-effort: a feed hiccup leaves the awards empty, never breaks the
   // rest of the payload.
-  const awards = await computeAwards(matches, sim.teams, getMatchSummary).catch(
+  const squadPositions = await getSquadPositions().catch(() => ({}));
+  const awards = await computeAwards(matches, sim.teams, getMatchSummary, squadPositions).catch(
     () => ({ goldenBoot: [], assists: [], players: [], matchesCounted: 0 }) as Awards,
   );
 
