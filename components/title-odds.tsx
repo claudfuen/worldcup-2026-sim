@@ -16,7 +16,10 @@ export async function TitleOdds({ teams, className = "" }: { teams: TeamPredicti
   const maxTitle = contenders[0]?.title || 1;
   return (
     <section className={`border-border bg-card flex flex-col rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/5 ${className}`}>
-      <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">{t("home.titleRace")}</h2>
+      <div className="mb-3 flex items-baseline justify-between gap-2">
+        <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-[0.1em] uppercase">{t("home.titleRace")}</h2>
+        <Link href={localeHref(locale, "/title-race")} className="text-primary shrink-0 text-xs font-medium hover:underline">{t("home.fullTitleRace")}</Link>
+      </div>
       <div className="divide-border/50 -mx-1.5 flex-1 divide-y">
         {contenders.map((tm, i) => (
           <Link key={tm.code} href={localeHref(locale, `/team/${slugForCode(tm.code)}`)} className="hover:bg-muted/20 flex items-center gap-2.5 rounded-md px-1.5 py-2 transition-colors">
