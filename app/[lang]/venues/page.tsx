@@ -7,6 +7,7 @@ import { RelatedLinks } from "@/components/related-links";
 import { VenueMap } from "@/components/venue-map";
 import { Flag } from "@/components/flag";
 import { VENUES, COUNTRIES, type Venue } from "@/lib/data/venues";
+import { VENUE_PHOTOS } from "@/lib/data/venuePhotos";
 import type { MatchInfo } from "@/lib/predictions";
 import { getT, getLocale, getIntlLocale } from "@/lib/i18n/server";
 import { buildAlternates } from "@/lib/i18n/links";
@@ -105,17 +106,29 @@ function VenueCard({ v, matches, locale, intl, t }: { v: Venue; matches: MatchIn
   const played = matches.filter((m) => m.status === "final").length;
   const rounds = ROUND_ORDER.filter((r) => matches.some((m) => m.round === r));
   const hostsFinal = matches.some((m) => m.round === "FINAL");
+  const photo = VENUE_PHOTOS[v.slug];
+  // Smaller thumbnail for the card grid (the vendored URL is 1280px — too heavy for 16 cards). 500px is one of
+  // Wikimedia's allowed thumbnail widths (arbitrary widths like 512 return 400); it's CDN-cached after first use.
+  const thumb = photo?.url.replace("/1280px-", "/500px-");
   return (
     <Link
       href={localeHref(locale as never, `/venues/${v.slug}`)}
-      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/5 flex flex-col rounded-2xl border p-4 transition-colors ${hostsFinal ? "border-contention/45" : ""}`}
+      className={`group border-border bg-card hover:border-primary/50 dark:inset-ring dark:inset-ring-white/5 flex flex-col overflow-hidden rounded-2xl border transition-colors ${hostsFinal ? "border-contention/45" : ""}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="truncate text-base font-semibold tracking-tight">{v.fifaName}</div>
-          <div className="text-muted-2 mt-0.5 truncate text-xs">{v.key}</div>
-        </div>
-        {hostsFinal && <span className="text-contention border-contention/40 bg-contention/10 shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-wide uppercase">{t("venues.final")}</span>}
+      <div className="bg-muted relative aspect-[16/9] w-full overflow-hidden">
+        {thumb && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={thumb} alt={v.fifaName} loading="lazy" decoding="async" className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.04]" />
+        )}
+        <div className="from-card/70 absolute inset-0 bg-gradient-to-t to-transparent to-40%" aria-hidden />
+        {hostsFinal && (
+          <span className="text-contention border-contention/40 absolute top-2 right-2 rounded-md border bg-[var(--card)]/85 px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-wide uppercase">{t("venues.final")}</span>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+      <div className="min-w-0">
+        <div className="truncate text-base font-semibold tracking-tight">{v.fifaName}</div>
+        <div className="text-muted-2 mt-0.5 truncate text-xs">{v.key}</div>
       </div>
       <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         <span>{v.city}</span>
@@ -132,6 +145,7 @@ function VenueCard({ v, matches, locale, intl, t }: { v: Venue; matches: MatchIn
             <span key={r} className={`rounded px-1 py-0.5 font-mono text-[9px] font-semibold tracking-wide uppercase ${r === "FINAL" ? "text-contention bg-contention/10" : "text-muted-foreground bg-muted/50"}`}>{t(ROUND_SHORT[r])}</span>
           ))}
         </span>
+      </div>
       </div>
     </Link>
   );
