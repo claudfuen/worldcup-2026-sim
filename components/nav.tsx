@@ -16,26 +16,32 @@ import { CommandMenu, OPEN_COMMAND_EVENT } from "@/components/command-menu";
 // which would wrongly signal neglected/stale data.
 const TOURNAMENT_OVER_MS = Date.parse("2026-07-20T00:00:00Z");
 
-// Route key (→ nav.<key> message) + locale-less href. Labels come from the i18n context.
-const ROUTES = [
+// Route key (→ nav.<key> message) + locale-less href. Labels come from the i18n context. The core tournament
+// views stay visible on desktop; everything else tucks into a "More" menu so the bar doesn't overwhelm.
+const PRIMARY = [
   { key: "nav.overview", href: "/" },
   { key: "nav.groups", href: "/groups" },
   { key: "nav.bracket", href: "/bracket" },
   { key: "nav.schedule", href: "/schedule" },
-  { key: "nav.calendar", href: "/calendar" },
   { key: "nav.stadiums", href: "/venues" },
+] as const;
+const SECONDARY = [
   { key: "nav.awards", href: "/awards" },
+  { key: "nav.calendar", href: "/calendar" },
   { key: "nav.scorecard", href: "/scorecard" },
   { key: "nav.method", href: "/methodology" },
 ] as const;
+const ROUTES = [...PRIMARY, ...SECONDARY]; // mobile drawer lists everything
 
 export function Nav({ updatedAt }: { updatedAt: string | null }) {
   const t = useT();
   const path = usePathname();
   const [locale, barePath] = splitLocale(path || "/");
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [installed, setInstalled] = useState(false);
   const isActive = (href: string) => (href === "/" ? barePath === "/" : barePath.startsWith(href));
+  const moreActive = SECONDARY.some((l) => isActive(l.href));
 
   // Awareness of running as / having an installed instance — hides the "Add to home screen" affordance.
   useEffect(() => {
@@ -51,8 +57,8 @@ export function Nav({ updatedAt }: { updatedAt: string | null }) {
     }
   }, []);
 
-  // Close the mobile drawer on navigation and on Escape.
-  useEffect(() => setOpen(false), [path]);
+  // Close menus on navigation; Escape closes whichever is open.
+  useEffect(() => { setOpen(false); setMoreOpen(false); }, [path]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -63,6 +69,12 @@ export function Nav({ updatedAt }: { updatedAt: string | null }) {
       document.body.style.overflow = "";
     };
   }, [open]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMoreOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   return (
     <header className="border-border/70 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-xl">
@@ -74,9 +86,9 @@ export function Nav({ updatedAt }: { updatedAt: string | null }) {
           <span className="font-display text-sm font-semibold tracking-tight">World Cup Predictor</span>
         </Link>
 
-        {/* Desktop nav (md+) */}
+        {/* Desktop nav (md+): core views, then a "More" menu for the rest */}
         <nav className="hidden flex-1 items-stretch gap-1 md:flex">
-          {ROUTES.map((l) => {
+          {PRIMARY.map((l) => {
             const active = isActive(l.href);
             return (
               <Link
@@ -89,10 +101,41 @@ export function Nav({ updatedAt }: { updatedAt: string | null }) {
               </Link>
             );
           })}
+          <div className="relative flex items-stretch">
+            <button
+              type="button"
+              onClick={() => setMoreOpen((o) => !o)}
+              aria-expanded={moreOpen}
+              aria-haspopup="menu"
+              className={`relative flex items-center gap-1 px-3 text-sm whitespace-nowrap ${moreActive || moreOpen ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {t("nav.more")}
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`transition-transform ${moreOpen ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" /></svg>
+              {moreActive && <span className="bg-primary absolute inset-x-3 bottom-0 h-0.5 rounded-full" />}
+            </button>
+            {moreOpen && (
+              <div role="menu" className="border-border bg-background/95 absolute top-full left-0 z-50 mt-1 min-w-44 rounded-xl border p-1 backdrop-blur-xl dark:inset-ring dark:inset-ring-white/10">
+                {SECONDARY.map((l) => {
+                  const active = isActive(l.href);
+                  return (
+                    <Link
+                      key={l.href}
+                      role="menuitem"
+                      href={localeHref(locale, l.href)}
+                      onClick={() => setMoreOpen(false)}
+                      className={`block rounded-lg px-3 py-2 text-sm ${active ? "bg-muted/50 text-foreground font-medium" : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"}`}
+                    >
+                      {t(l.key)}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
-        {/* Right cluster: search + freshness + (mobile) hamburger */}
-        <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-2">
+        {/* Right cluster: search · freshness · (mobile) hamburger */}
+        <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-3 md:gap-3">
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(OPEN_COMMAND_EVENT))}
@@ -103,6 +146,7 @@ export function Nav({ updatedAt }: { updatedAt: string | null }) {
             <span className="hidden text-sm lg:inline">{t("cmd.open")}</span>
             <kbd className="text-muted-2 border-border bg-muted/40 hidden shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] lg:block">⌘K</kbd>
           </button>
+          <span className="bg-border/70 hidden h-5 w-px shrink-0 md:block" aria-hidden />
           <Freshness updatedAt={updatedAt} />
           <button
             type="button"
@@ -119,6 +163,9 @@ export function Nav({ updatedAt }: { updatedAt: string | null }) {
           </button>
         </div>
       </div>
+
+      {/* Click-away catcher for the desktop "More" menu. */}
+      {moreOpen && <button type="button" aria-hidden tabIndex={-1} onClick={() => setMoreOpen(false)} className="fixed inset-0 z-40 hidden md:block" />}
 
       <CommandMenu />
 
