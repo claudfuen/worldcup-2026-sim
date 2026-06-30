@@ -6,6 +6,7 @@ import { slugForCode } from "@/lib/slug";
 import { MatchHero, MatchBody, MatchFacts } from "@/components/match-live";
 import { MatchOutlook } from "@/components/match-outlook";
 import { BracketPath } from "@/components/bracket-path";
+import { MatchPathForward } from "@/components/match-path-forward";
 import { computeWatchability } from "@/lib/watchability";
 import { fifaVenue } from "@/lib/venues";
 import { FIFA_RANK } from "@/lib/data/fifaRankings";
@@ -157,6 +158,8 @@ export default async function MatchPage({ params }: { params: Promise<{ match: s
       <MatchBody matchNo={m.match} initial={initial} proseText={proseText} />
 
       {homePred && awayPred && <MatchOutlook round={m.round} home={homePred} away={awayPred} matches={all} />}
+
+      <MatchPathForward m={m} matches={all} />
 
       <BracketPath m={m} all={all} />
 
