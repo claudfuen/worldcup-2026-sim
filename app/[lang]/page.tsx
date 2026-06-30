@@ -60,14 +60,12 @@ export default async function Page() {
         <MoverStrip teams={teams} />
       </header>
 
-      {/* Where the whole tournament is — a full-width progress strip under the call */}
-      <TournamentStage matches={lMatches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} className="mt-6" />
-
-      {/* Clear tiers, stacked so neither side can tower over a thin other side. TIER 2 — the live heartbeat:
-          a full-width primary feed (on now / today / next / just finished), its sections flowing into balanced
-          internal columns so a wide row never looks empty. TIER 3 — a quieter row of reference tiles (bracket
-          heading, title race, golden boot), visibly smaller so they read as secondary. */}
+      {/* TIER 2 — the live heartbeat, right under the call: a bento of Recent → Today → Tomorrow, Today the
+          emphasized centre column so the eye lands on what's happening now / next. */}
       <LiveTodayRail matches={lMatches} hotReasons={hotReasons} className="mt-8" />
+
+      {/* Where the whole tournament is — a quiet "zoom out" progress strip between the matches and the venue */}
+      <TournamentStage matches={lMatches} matchesPlayed={groupPlayed} totalGroupMatches={data.totalGroupMatches} className="mt-8" />
 
       {/* Where it's being played — the next/live venue, over a real photo of the stadium */}
       <StadiumSpotlight matches={lMatches} className="mt-8" />
