@@ -7,6 +7,7 @@ import { cache } from "react";
 import { kvGetJSON, kvSetJSON, KV_CONFIGURED, PLAYER_IMG_KEY } from "./kv";
 import { TEAM_BY_CODE } from "./data/teams";
 import { playerSlug } from "./players";
+import { PLAYER_IMAGES_BLOB } from "./data/playerImagesBlob";
 
 const API = "https://www.thesportsdb.com/api/v1/json";
 const KEY = process.env.THESPORTSDB_KEY || "3"; // "3" is the free public test key — set a real key in prod
@@ -51,6 +52,12 @@ async function fetchPlayerImage(name: string, teamCode: string): Promise<string 
 // KV-cached (hits for 14 days, genuine misses re-checked after 2) and React-cached per request. Transient
 // failures (undefined) are never written, so the avatar simply retries on the next render until it resolves.
 export const getPlayerImage = cache(async (name: string, teamCode: string): Promise<string | null> => {
+  // Vendored, self-hosted Blob map first — no API call, no rate limit. A present key is authoritative: a URL
+  // is the headshot, "" is a confirmed "no photo". Only a key we haven't resolved yet falls through to a live
+  // TheSportsDB lookup (so newly-appearing players still resolve until the next vendor run).
+  const vended = PLAYER_IMAGES_BLOB[`${teamCode}|${name}`];
+  if (vended !== undefined) return vended || null;
+
   const key = `${PLAYER_IMG_KEY}:${playerSlug(name, teamCode)}`;
   if (KV_CONFIGURED) {
     try {
