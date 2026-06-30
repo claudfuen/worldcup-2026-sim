@@ -107,9 +107,8 @@ function VenueCard({ v, matches, locale, intl, t }: { v: Venue; matches: MatchIn
   const rounds = ROUND_ORDER.filter((r) => matches.some((m) => m.round === r));
   const hostsFinal = matches.some((m) => m.round === "FINAL");
   const photo = VENUE_PHOTOS[v.slug];
-  // Smaller thumbnail for the card grid (the vendored URL is 1280px — too heavy for 16 cards). 500px is one of
-  // Wikimedia's allowed thumbnail widths (arbitrary widths like 512 return 400); it's CDN-cached after first use.
-  const thumb = photo?.url.replace("/1280px-", "/500px-");
+  // Card grid uses the smaller re-hosted thumbnail (cardUrl); the full image (url) is for the detail hero / OG.
+  const thumb = photo?.cardUrl;
   return (
     <Link
       href={localeHref(locale as never, `/venues/${v.slug}`)}
