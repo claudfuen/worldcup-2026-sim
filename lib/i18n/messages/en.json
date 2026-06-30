@@ -63,7 +63,9 @@
     "statPlayed": "Played",
     "statGoals": "Goals",
     "statCapacity": "Capacity",
-    "matchesHeading": "All matches at this venue"
+    "matchesHeading": "All matches at this venue",
+    "hostsFinal": "Hosts the Final",
+    "hosts": "Hosts"
   },
   "player": {
     "fallbackTitle": "Player — World Cup 2026",
@@ -71,6 +73,8 @@
     "metaDesc": "{player}'s 2026 World Cup record for {team}: goals, assists, penalties, the Golden Boot race and a log of every goal and assist.",
     "eyebrow": "Player",
     "lede": "{rank} in the Golden Boot race with {goals} for {team}.",
+    "ledeAlsoAssists": "Also {rank} for assists ({assists}).",
+    "ledeAssist": "{rank} in the assist race with {assists} for {team}.",
     "share": "{player}: {goals} goals, {assists} assists at the 2026 World Cup.",
     "statGoals": "Goals",
     "statAssists": "Assists",

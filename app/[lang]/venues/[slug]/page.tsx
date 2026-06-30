@@ -44,6 +44,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 const ROUND_KEY: Record<string, string> = {
   GROUP: "rounds.GROUP", R32: "rounds.R32", R16: "rounds.R16", QF: "rounds.QF", SF: "rounds.SF", "3P": "rounds.THIRD", FINAL: "rounds.FINAL",
 };
+const ROUND_SHORT: Record<string, string> = {
+  GROUP: "rounds.shortGroup", R32: "rounds.shortR32", R16: "rounds.shortR16", QF: "rounds.shortQF", SF: "rounds.shortSF", "3P": "rounds.shortThird", FINAL: "rounds.shortFinal",
+};
+const ROUND_ORDER = ["GROUP", "R32", "R16", "QF", "SF", "3P", "FINAL"];
 
 export default async function VenuePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -60,6 +64,8 @@ export default async function VenuePage({ params }: { params: Promise<{ slug: st
   const played = matches.filter((m) => m.status === "final");
   const goals = played.reduce((acc, m) => acc + (m.homeScore ?? 0) + (m.awayScore ?? 0), 0);
   const hostName = t(`teams.${v.hostCode}`);
+  const hostsFinal = matches.some((m) => m.round === "FINAL");
+  const roundsHosted = ROUND_ORDER.filter((r) => matches.some((m) => m.round === r));
 
   const stats: { label: string; value: string }[] = [
     { label: t("venues.statMatches"), value: String(matches.length) },
@@ -74,12 +80,25 @@ export default async function VenuePage({ params }: { params: Promise<{ slug: st
       <Breadcrumbs items={[{ label: t("team.homeCrumb"), href: localeHref(locale, "/") }, { label: t("nav.stadiums"), href: localeHref(locale, "/venues") }, { label: v.fifaName }]} />
       <header className="mt-3 mb-6">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("venues.eyebrow")}</div>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{v.fifaName}</h1>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{v.fifaName}</h1>
+          {hostsFinal && (
+            <span className="text-contention border-contention/40 bg-contention/10 shrink-0 rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("venues.hostsFinal")}</span>
+          )}
+        </div>
         <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
           <span className="text-foreground/80">{v.key}</span>
           <span className="text-muted-2">·</span>
           <span className="inline-flex items-center gap-1.5"><Flag code={v.hostCode} size={16} /> {v.city}, {hostName}</span>
         </div>
+        {roundsHosted.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <span className="text-muted-2 me-1 font-mono text-[10px] font-semibold tracking-wide uppercase">{t("venues.hosts")}</span>
+            {roundsHosted.map((r) => (
+              <span key={r} className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-wide uppercase ${r === "FINAL" ? "text-contention bg-contention/10" : "text-muted-foreground bg-muted/50"}`}>{t(ROUND_SHORT[r])}</span>
+            ))}
+          </div>
+        )}
       </header>
 
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-card sm:grid-cols-4 dark:inset-ring dark:inset-ring-white/5">

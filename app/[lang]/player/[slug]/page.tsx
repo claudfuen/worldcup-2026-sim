@@ -101,15 +101,23 @@ export default async function PlayerPage({ params }: { params: Promise<{ slug: s
       ]} />
       <header className="mt-3 mb-6">
         <div className="text-primary font-mono text-xs font-semibold tracking-wide uppercase">{t("player.eyebrow")}</div>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{view.player}</h1>
-        <Link href={localeHref(locale, `/team/${slugForCode(code)}`)} className="text-muted-foreground mt-2 inline-flex items-center gap-2 text-sm hover:underline">
-          <Flag code={code} size={18} /> {teamName}
-        </Link>
-        {view.gbRank != null && goals > 0 && (
+        <div className="mt-1.5 flex items-start gap-3">
+          <span className="shrink-0"><Flag code={code} size={40} /></span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{view.player}</h1>
+            <Link href={localeHref(locale, `/team/${slugForCode(code)}`)} className="text-muted-foreground hover:text-foreground mt-0.5 inline-block text-sm hover:underline">{teamName}</Link>
+          </div>
+        </div>
+        {view.gbRank != null && goals > 0 ? (
           <p className="text-muted-foreground mt-3 text-sm text-pretty">
             {t("player.lede", { rank: ordinal(view.gbRank, intl), goals, team: teamName })}
+            {view.asRank != null && assists > 0 && <> {t("player.ledeAlsoAssists", { rank: ordinal(view.asRank, intl), assists })}</>}
           </p>
-        )}
+        ) : view.asRank != null && assists > 0 ? (
+          <p className="text-muted-foreground mt-3 text-sm text-pretty">
+            {t("player.ledeAssist", { rank: ordinal(view.asRank, intl), assists, team: teamName })}
+          </p>
+        ) : null}
         <div className="mt-4">
           <ShareBar text={t("player.share", { player: view.player, goals, assists })} path={`/player/${slug}`} />
         </div>
