@@ -40,6 +40,36 @@ export function fmtDayKey(utc: string, z?: Zone): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: tzOf(z), year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(utc));
 }
 
+// A friendly relative day for an instant, in the viewer's zone, relative to `nowIso`. Returns EITHER a
+// translation `key` (tonight/tomorrow/yesterday) for the caller to localize, OR a preformatted, already-
+// localized `text` (weekday for the rest of this week, else month + day). An empty object means "no day word
+// needed" — a daytime match today, where the bare kickoff time already reads as today. Used by the ticker so a
+// later kickoff shows "Tomorrow 12:00 PM" / "Tonight 9:00 PM" instead of a terse "WED, JUL 1 12:00 PM".
+//
+// The "day" rolls over at NIGHT_ROLLOVER (05:00 local), not midnight — so a 1:00 AM kickoff counts as part of
+// the previous evening's night, i.e. still "tonight". We compare days on this shifted calendar (both the match
+// and "now" shifted identically), and a match is "tonight" when it falls in the current night window
+// (evening ≥18:00, or the small hours <05:00).
+const NIGHT_ROLLOVER_H = 5;
+export function relativeDay(utc: string, z: Zone | undefined, nowIso: string): { key?: string; text?: string } {
+  const tz = tzOf(z);
+  // The "sports day" key: shift the instant back NIGHT_ROLLOVER_H hours so the local day boundary is 05:00.
+  const eff = (iso: string) => fmtDayKey(new Date(Date.parse(iso) - NIGHT_ROLLOVER_H * 3600000).toISOString(), z);
+  const matchKey = eff(utc);
+  const todayKey = eff(nowIso);
+  const tomorrowKey = eff(new Date(Date.parse(nowIso) + 86400000).toISOString());
+  const yesterdayKey = eff(new Date(Date.parse(nowIso) - 86400000).toISOString());
+  // Local hour of the match (h23 → midnight is 0, never 24), to tell a daytime match from a night one.
+  const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(new Date(utc)));
+  const isNight = hour >= 18 || hour < NIGHT_ROLLOVER_H;
+  if (matchKey === todayKey) return isNight ? { key: "tonight" } : {}; // night → "Tonight"; daytime → just the time
+  if (matchKey === tomorrowKey) return { key: "tomorrow" };
+  if (matchKey === yesterdayKey) return { key: "yesterday" };
+  const diffDays = Math.round((Date.parse(matchKey) - Date.parse(todayKey)) / 86400000);
+  if (diffDays > 1 && diffDays <= 6) return { text: new Date(utc).toLocaleString(localeOf(z), { timeZone: tz, weekday: "long" }) };
+  return { text: new Date(utc).toLocaleString(localeOf(z), { timeZone: tz, month: "short", day: "numeric" }) };
+}
+
 // Localized ordinal, e.g. en 1st/2nd/3rd, es 1.º, fr 1er/2e, de 1., it 1º, pt 1º, ru 1-й, hi 1वाँ,
 // id ke-1, ja/zh 第1, ko 1위, ar 1. Returns a COMPLETE display ordinal — callers interpolate it whole
 // (do not append a suffix in the message catalog). `locale` is a BCP-47 tag; only the language matters.

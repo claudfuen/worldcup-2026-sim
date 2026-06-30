@@ -5,7 +5,7 @@ import { LocalTime } from "@/components/local-time";
 import type { MatchInfo } from "@/lib/predictions";
 import { decidedOnPens, pensScore } from "@/lib/penalties";
 import { useViewerZone } from "@/lib/useViewerZone";
-import { fmtDayKey } from "@/lib/format";
+import { relativeDay } from "@/lib/format";
 import { useT, type TFunction } from "@/lib/i18n/provider";
 import { useLocale } from "@/lib/i18n/client";
 import { localeHref, type Locale } from "@/lib/i18n/config";
@@ -22,7 +22,7 @@ export function ScoreTicker({ initialItems, hasLive }: { initialItems: MatchInfo
   const t = useT();
   const locale = useLocale();
   const { zone } = useViewerZone();
-  const todayKey = fmtDayKey(new Date().toISOString(), zone);
+  const nowIso = new Date().toISOString();
   const { items } = useLivePoll<TickerData>(
     "/api/ticker",
     { items: initialItems, hasLive },
@@ -36,26 +36,28 @@ export function ScoreTicker({ initialItems, hasLive }: { initialItems: MatchInfo
         className="ticker-track flex w-max [animation:ticker_var(--d)_linear_infinite] hover:[animation-play-state:paused]"
         style={{ "--d": `${dur}s` } as React.CSSProperties}
       >
-        <Track items={items} t={t} locale={locale} todayKey={todayKey} zone={zone} />
-        <Track items={items} t={t} locale={locale} todayKey={todayKey} zone={zone} ariaHidden />
+        <Track items={items} t={t} locale={locale} nowIso={nowIso} zone={zone} />
+        <Track items={items} t={t} locale={locale} nowIso={nowIso} zone={zone} ariaHidden />
       </div>
     </div>
   );
 }
 
-function Track({ items, t, locale, todayKey, zone, ariaHidden }: { items: MatchInfo[]; t: TFunction; locale: Locale; todayKey: string; zone: import("@/lib/format").Zone; ariaHidden?: boolean }) {
+function Track({ items, t, locale, nowIso, zone, ariaHidden }: { items: MatchInfo[]; t: TFunction; locale: Locale; nowIso: string; zone: import("@/lib/format").Zone; ariaHidden?: boolean }) {
   return (
     <div className="flex shrink-0" aria-hidden={ariaHidden}>
-      {items.map((m, i) => <TickerItem key={`${m.match}-${i}`} m={m} t={t} locale={locale} todayKey={todayKey} zone={zone} />)}
+      {items.map((m, i) => <TickerItem key={`${m.match}-${i}`} m={m} t={t} locale={locale} nowIso={nowIso} zone={zone} />)}
     </div>
   );
 }
 
-function TickerItem({ m, t, locale, todayKey, zone }: { m: MatchInfo; t: TFunction; locale: Locale; todayKey: string; zone: import("@/lib/format").Zone }) {
+function TickerItem({ m, t, locale, nowIso, zone }: { m: MatchInfo; t: TFunction; locale: Locale; nowIso: string; zone: import("@/lib/format").Zone }) {
   const live = m.status === "live";
   const final = m.status === "final";
-  // Upcoming match not happening today → show the day so a tomorrow/later kickoff isn't read as today.
-  const otherDay = !live && !final && fmtDayKey(m.utc, zone) !== todayKey;
+  // Upcoming kickoff → a friendly relative day ("Tonight" / "Tomorrow" / weekday / date), or nothing for a
+  // daytime match today (the bare time already reads as today).
+  const rel = !live && !final ? relativeDay(m.utc, zone, nowIso) : null;
+  const dayWord = rel ? (rel.key ? t(`time.${rel.key}`) : rel.text) : null;
   const homeWon = m.winner != null && m.winner === m.home;
   const awayWon = m.winner != null && m.winner === m.away;
   const nameCls = (won: boolean) => (final ? (won ? "text-foreground" : "text-muted-foreground") : "text-foreground/90");
@@ -77,7 +79,7 @@ function TickerItem({ m, t, locale, todayKey, zone }: { m: MatchInfo; t: TFuncti
       <span className={`font-medium ${nameCls(awayWon)}`}>{m.away}</span>
       <Flag code={m.away} size={13} />
       <span className={`ml-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase ${live ? "text-live" : final ? "text-win" : "text-data-cool"}`} suppressHydrationWarning>
-        {live ? (m.liveDetail ?? t("common.live")) : final ? t("scoreTicker.ft") : otherDay ? <><LocalTime utc={m.utc} mode="day" /> <LocalTime utc={m.utc} mode="timeshort" /></> : <LocalTime utc={m.utc} mode="timeshort" />}
+        {live ? (m.liveDetail ?? t("common.live")) : final ? t("scoreTicker.ft") : dayWord ? <>{dayWord} <LocalTime utc={m.utc} mode="timeshort" /></> : <LocalTime utc={m.utc} mode="timeshort" />}
       </span>
     </Link>
   );

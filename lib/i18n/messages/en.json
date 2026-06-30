@@ -794,6 +794,12 @@
     "v": "v",
     "ft": "FT"
   },
+  "time": {
+    "today": "Today",
+    "tonight": "Tonight",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday"
+  },
   "matchFlag": {
     "inMyMatches": "In my matches",
     "addToMyMatches": "Add to my matches",
