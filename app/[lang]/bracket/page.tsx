@@ -99,7 +99,7 @@ export default async function BracketPage() {
       />
       <div className="border-border bg-card mt-6 rounded-2xl border p-4">
         <h2 className="mb-2 text-base font-semibold tracking-tight">{t("rounds.THIRD")}</h2>
-        <ThirdPlace m={matches.find((x) => x.match === 103)} tbd={t("common.tbd")} vs={t("common.vs")} />
+        <ThirdPlace m={matches.find((x) => x.match === 103)} tbd={t("common.tbd")} vs={t("common.vs")} projectedLabel={t("common.projected")} />
       </div>
       <RelatedLinks
         links={[
@@ -112,26 +112,46 @@ export default async function BracketPage() {
   );
 }
 
-function ThirdPlace({ m, tbd, vs }: { m?: MatchInfo; tbd: string; vs: string }) {
+function ThirdPlace({ m, tbd, vs, projectedLabel }: { m?: MatchInfo; tbd: string; vs: string; projectedLabel: string }) {
   if (!m) return null;
   const final = m.status === "final";
-  // Resolved participants if known, else the projected top candidate for each slot.
-  const h = m.home ? { code: m.home, name: m.homeName ?? m.home } : m.projHome?.[0];
-  const a = m.away ? { code: m.away, name: m.awayName ?? m.away } : m.projAway?.[0];
+  // Resolved participants if known, else the projected top candidate for each slot. `confirmed` distinguishes
+  // a locked team (a decided semi-final loser) from the model's best guess so the two never read the same.
+  const h = m.home ? { code: m.home, name: m.homeName ?? m.home, prob: undefined } : m.projHome?.[0];
+  const a = m.away ? { code: m.away, name: m.awayName ?? m.away, prob: undefined } : m.projAway?.[0];
   const hWon = final && m.winner === h?.code;
   const aWon = final && m.winner === a?.code;
+  const anyProjected = !final && ((!m.home && !!h) || (!m.away && !!a));
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      {h && <Flag code={h.code} size={16} />}
-      <span className={hWon ? "text-win font-medium" : "text-foreground/90"}>{h?.name ?? tbd}</span>
-      {final ? (
-        <span className="text-foreground font-mono font-semibold tabular-nums">{m.homeScore}<span className="text-muted-2">–</span>{m.awayScore}</span>
-      ) : (
-        <span className="text-muted-foreground">{vs}</span>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        {h && <Flag code={h.code} size={16} />}
+        <ThirdSide name={h?.name ?? tbd} won={hWon} confirmed={!!m.home} prob={m.home ? undefined : h?.prob} />
+        {final ? (
+          <span className="text-foreground font-mono font-semibold tabular-nums">{m.homeScore}<span className="text-muted-2">–</span>{m.awayScore}</span>
+        ) : (
+          <span className="text-muted-foreground">{vs}</span>
+        )}
+        {a && <Flag code={a.code} size={16} />}
+        <ThirdSide name={a?.name ?? tbd} won={aWon} confirmed={!!m.away} prob={m.away ? undefined : a?.prob} />
+        <span className="text-muted-2">· {fifaVenue(m.venue)}, {m.city} · <LocalTime utc={m.utc} mode="day" /></span>
+      </div>
+      {anyProjected && (
+        <span className="text-data-cool border-data-cool/30 bg-data-cool/10 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wide uppercase">
+          {projectedLabel}
+        </span>
       )}
-      {a && <Flag code={a.code} size={16} />}
-      <span className={aWon ? "text-win font-medium" : "text-foreground/90"}>{a?.name ?? tbd}</span>
-      <span className="text-muted-2">· {fifaVenue(m.venue)}, {m.city} · <LocalTime utc={m.utc} mode="day" /></span>
     </div>
+  );
+}
+
+// One side of the third-place play-off. A confirmed (decided) semi-final loser reads at full strength; a
+// projected one is dimmed and carries its slot probability, so a best-guess never looks locked in.
+function ThirdSide({ name, won, confirmed, prob }: { name: string; won: boolean; confirmed: boolean; prob?: number }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className={won ? "text-win font-medium" : confirmed ? "text-foreground/90" : "text-foreground/60"}>{name}</span>
+      {!confirmed && prob != null && <span className="text-muted-2 font-mono text-[11px] tabular-nums">{forecastPct(prob)}</span>}
+    </span>
   );
 }
