@@ -10,6 +10,7 @@ import { Flag } from "@/components/flag";
 import { LocalTime } from "@/components/local-time";
 import { decidedOnPens, pensScore } from "@/lib/penalties";
 import { VENUES, VENUE_BY_SLUG } from "@/lib/data/venues";
+import { VENUE_PHOTOS } from "@/lib/data/venuePhotos";
 import type { MatchInfo } from "@/lib/predictions";
 import { localizeMatches } from "@/lib/i18n/localize-payload";
 import { getT, getLocale, getIntlLocale } from "@/lib/i18n/server";
@@ -53,6 +54,7 @@ export default async function VenuePage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   const v = VENUE_BY_SLUG[slug];
   if (!v) notFound();
+  const photo = VENUE_PHOTOS[slug];
   const t = await getT();
   const locale = await getLocale();
   const intl = await getIntlLocale();
@@ -100,6 +102,33 @@ export default async function VenuePage({ params }: { params: Promise<{ slug: st
           </div>
         )}
       </header>
+
+      {photo && (
+        <figure className="border-border mb-6 overflow-hidden rounded-2xl border dark:inset-ring dark:inset-ring-white/5">
+          <img
+            src={photo.url}
+            alt={t("venues.photoAlt", { venue: v.fifaName })}
+            loading="lazy"
+            decoding="async"
+            className="aspect-[2/1] w-full bg-muted object-cover sm:aspect-[5/2]"
+          />
+          <figcaption className="text-muted-2 bg-card flex flex-wrap items-center justify-end gap-x-1.5 px-3 py-1.5 text-[10px]">
+            <a href={photo.source} target="_blank" rel="noopener noreferrer" className="hover:text-foreground hover:underline">
+              {t("venues.photoCredit", { artist: photo.artist })}
+            </a>
+            {photo.license && (
+              <>
+                <span aria-hidden>·</span>
+                {photo.licenseUrl ? (
+                  <a href={photo.licenseUrl} target="_blank" rel="noopener noreferrer" className="hover:text-foreground hover:underline">{photo.license}</a>
+                ) : (
+                  <span>{photo.license}</span>
+                )}
+              </>
+            )}
+          </figcaption>
+        </figure>
+      )}
 
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-card sm:grid-cols-4 dark:inset-ring dark:inset-ring-white/5">
         {stats.map((s) => (

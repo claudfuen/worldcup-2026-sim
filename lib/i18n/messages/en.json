@@ -50,6 +50,8 @@
     "heading": "Stadiums",
     "lede": "All 16 venues across three host nations — where every match is played. Tap a stadium for its full schedule and results.",
     "dotHint": "dot size = matches hosted",
+    "photoAlt": "{venue}",
+    "photoCredit": "Photo: {artist}",
     "venuesCount": "{n} venues",
     "matchesCount": "{n} matches",
     "playedCount": "{n} played",
