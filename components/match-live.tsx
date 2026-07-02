@@ -154,7 +154,7 @@ export function MatchHero({ matchNo, initial, iterations, homeRank, awayRank, ho
   const [rankMode, setRankMode] = useState<"elo" | "fifa">("elo");
   const toggleRank = () => setRankMode((r) => (r === "elo" ? "fifa" : "elo"));
   return (
-    <section className="hero-sheen border-border-strong relative mt-5 overflow-hidden rounded-3xl border bg-surface-raised px-5 py-7 sm:px-10 sm:py-9 dark:inset-ring dark:inset-ring-white/5">
+    <section className="hero-sheen card-surface border-border-strong relative mt-5 overflow-hidden rounded-3xl border bg-surface-raised px-5 py-7 sm:px-10 sm:py-9 dark:inset-ring dark:inset-ring-white/8">
       <div className="mb-6 flex items-center justify-between gap-3">
         <span className="text-primary font-mono text-[11px] font-semibold tracking-[0.1em] uppercase">
           {m.group ? t("match.heroEyebrowGroup", { round: roundName(t, m.round), group: m.group }) : roundName(t, m.round)}{" "}
@@ -340,7 +340,7 @@ export function MatchBody({ matchNo, initial, proseText, playerImages }: { match
       {state === "final" && (
         <section className="mt-8">
           <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">{t("match.preMatchRead")}</h2>
-          <div className="border-border bg-card rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/5">
+          <div className="border-border bg-card card-surface rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/8">
             {m.probs ? (
               <>
                 <WinProbBar home={m.probs.home} draw={m.probs.draw} away={m.probs.away} homeName={homeName!} awayName={awayName!} />
@@ -363,7 +363,7 @@ export function MatchBody({ matchNo, initial, proseText, playerImages }: { match
           <h2 className="text-muted-foreground mb-3 font-mono text-xs font-semibold tracking-[0.1em] uppercase">
             {liveProbs ? t("match.liveWinProb") : t("match.preMatchWinProb")}
           </h2>
-          <div className="border-border bg-card rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/5">
+          <div className="border-border bg-card card-surface rounded-2xl border p-4 dark:inset-ring dark:inset-ring-white/8">
             <p className="text-live mb-3 text-xs font-medium">
               {t("match.liveScoreLine", { home: homeName, homeScore: m.homeScore, awayScore: m.awayScore, away: awayName, detail: m.liveDetail })}
             </p>
@@ -424,7 +424,7 @@ export function MatchBody({ matchNo, initial, proseText, playerImages }: { match
             <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-[0.1em] uppercase">{t("match.mostLikelyScorelines")}</h2>
             {m.xg && <span className="text-muted-foreground text-xs">{t("match.xgLabel", { home: m.xg.home.toFixed(1), away: m.xg.away.toFixed(1) })}</span>}
           </div>
-          <div className="border-border bg-card divide-border/50 divide-y rounded-2xl border dark:inset-ring dark:inset-ring-white/5">
+          <div className="border-border bg-card card-surface divide-border/50 divide-y rounded-2xl border dark:inset-ring dark:inset-ring-white/8">
             {m.topScores.map((s) => (
               <div key={`${s.h}-${s.a}`} className="flex items-center gap-2.5 px-4 py-2.5">
                 <Flag code={m.home} size={16} />
