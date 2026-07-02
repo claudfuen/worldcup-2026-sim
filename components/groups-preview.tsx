@@ -15,10 +15,10 @@ export async function GroupsPreview({ groups, className = "" }: { groups: GroupV
   return (
     <Link
       href={localeHref(locale, "/groups")}
-      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/5 hover:dark:inset-ring-primary/30 flex flex-col rounded-2xl border p-4 transition-colors ${className}`}
+      className={`group border-border bg-card card-surface hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/8 hover:dark:inset-ring-primary/30 flex flex-col rounded-2xl border p-4 transition-colors ${className}`}
     >
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{t("nav.groups")}</h2>
+        <h2 className="eyebrow text-muted-foreground">{t("nav.groups")}</h2>
         <span className="text-muted-2 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden>→</span>
       </div>
       <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">

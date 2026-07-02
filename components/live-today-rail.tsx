@@ -85,9 +85,13 @@ export function LiveTodayRail({ matches, hotReasons = {}, className = "" }: { ma
         className={`grid grid-cols-1 items-start gap-x-4 gap-y-6 ${single ? "max-w-2xl" : "lg:[grid-template-columns:var(--bento)]"}`}
         style={single ? undefined : ({ "--bento": template } as React.CSSProperties)}
       >
-        {columns.map((c) => (
-          <RailColumn key={c.id} {...c} emphasis={c.id === "today"} zone={zone} hotReasons={hotReasons} t={t} locale={locale} />
-        ))}
+        {columns.map((c) => {
+          // Mobile stacks the bento into one column — reorder it present → future → past (Today, Tomorrow,
+          // Recent) so the phone opens on what's on now/next; the desktop left-to-right timeline is restored
+          // at lg (order resets, so the grid template's column positions hold).
+          const orderClass = c.id === "today" ? "order-first lg:order-none" : c.id === "recent" ? "order-last lg:order-none" : "lg:order-none";
+          return <RailColumn key={c.id} {...c} orderClass={orderClass} emphasis={c.id === "today"} zone={zone} hotReasons={hotReasons} t={t} locale={locale} />;
+        })}
       </div>
     </section>
   );
@@ -105,17 +109,18 @@ type ColumnData = {
 // One bento column: a section heading, then a vertical list of match cards read top-to-bottom. The emphasized
 // (Today) column gets a brighter heading and larger cards so the eye lands there first.
 function RailColumn({
-  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false, showDate = false, emphasis = false,
+  heading, matches, cap, zone, hotReasons, t, locale, showFullSchedule = false, showDate = false, emphasis = false, orderClass = "",
 }: ColumnData & {
   zone?: import("@/lib/format").Zone;
   hotReasons: Record<number, string>;
   t: TFunction;
   locale: Locale;
   emphasis?: boolean;
+  orderClass?: string;
 }) {
   const shown = matches.slice(0, cap);
   return (
-    <div>
+    <div className={orderClass}>
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
         <h2 className={`font-mono text-[13px] font-semibold tracking-wide uppercase ${emphasis ? "text-foreground" : "text-foreground/70"}`}>{heading}</h2>
         {showFullSchedule && (
@@ -145,15 +150,16 @@ function TeamLine({ code, name, strong, dim, value, big = false }: { code: strin
   );
 }
 
-// The matchup contest as ONE object: a split bar — home share (pitch-green) from the left, away share
-// (data-cool) from the right, the remaining draw/uncertainty as a neutral centre. A glance reads blowout vs.
-// finely-balanced without parsing two numbers.
+// The matchup contest as ONE object: a segmented share bar — home share (pitch-green) from the left, away
+// share (data-cool) from the right, the draw/uncertainty as a VISIBLE neutral centre. Solid fills with a 2px
+// gap (the card colour shows through as the separator) read blowout vs finely-balanced at a glance, far better
+// than the old translucent slivers.
 function SplitBar({ h, d, a, big = false }: { h: number; d: number; a: number; big?: boolean }) {
   return (
-    <div className={`bg-muted/30 mt-1.5 flex overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5 ${big ? "h-1.5" : "h-1"}`} aria-hidden>
-      <span className="bg-primary/40 min-w-[3px]" style={{ width: `${h * 100}%` }} />
-      {d > 0 && <span className="bg-muted-foreground/15" style={{ width: `${d * 100}%` }} />}
-      <span className="bg-data-cool/35 min-w-[3px]" style={{ width: `${a * 100}%` }} />
+    <div className={`mt-1.5 flex gap-[2px] ${big ? "h-2" : "h-1.5"}`} aria-hidden>
+      <span className="bg-primary min-w-[3px] rounded-full" style={{ width: `${h * 100}%` }} />
+      {d > 0 && <span className="bg-muted-foreground/45 min-w-[3px] rounded-full" style={{ width: `${d * 100}%` }} />}
+      <span className="bg-data-cool min-w-[3px] rounded-full" style={{ width: `${a * 100}%` }} />
     </div>
   );
 }
@@ -190,7 +196,7 @@ function MatchCard({ m, zone, hotReason, t, locale, showDate = false, big = fals
     <Link
       href={localeHref(locale, `/match/${m.match}`)}
       title={hotReason}
-      className={`group bg-card relative flex items-center gap-3 rounded-lg border transition-colors dark:inset-ring dark:inset-ring-white/5 ${big ? "px-3.5 py-2.5" : "px-3 py-2"} ${live ? "border-live/40 hover:border-live/60" : "border-border hover:border-primary/50"}`}
+      className={`group bg-card card-surface relative flex items-center gap-3 rounded-lg border transition-colors dark:inset-ring dark:inset-ring-white/8 ${big ? "px-3.5 py-2.5" : "px-3 py-2"} ${live ? "border-live/40 hover:border-live/60" : "border-border hover:border-primary/50"}`}
     >
       {hotReason && !live && <span className="bg-contention/80 absolute inset-y-2 left-0 w-[3px] rounded-full" aria-hidden />}
       <div className="w-10 shrink-0 leading-tight">

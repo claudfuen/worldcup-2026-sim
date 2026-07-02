@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { Countdown } from "@/components/countdown";
+import { ProbBar } from "@/components/ui/prob-bar";
 import { forecastPct } from "@/lib/format";
 import { getT, getLocale } from "@/lib/i18n/server";
 import { localeHref } from "@/lib/i18n/config";
@@ -41,10 +42,10 @@ export async function BracketTeaser({ matches, teams, className = "" }: { matche
   return (
     <Link
       href={localeHref(locale, "/bracket")}
-      className={`group border-border bg-card hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/5 hover:dark:inset-ring-primary/30 flex h-full flex-col rounded-2xl border p-4 transition-colors ${className}`}
+      className={`group border-border bg-card card-surface hover:border-primary/50 hover:bg-surface-raised dark:inset-ring dark:inset-ring-white/8 hover:dark:inset-ring-primary/30 flex h-full flex-col rounded-2xl border p-4 transition-colors ${className}`}
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-muted-foreground font-mono text-xs font-semibold tracking-wide uppercase">{played ? t("home.finalResult") : t("home.projectedFinal")}</h2>
+        <h2 className="eyebrow text-muted-foreground">{played ? t("home.finalResult") : t("home.projectedFinal")}</h2>
         <span className="text-muted-2 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden>→</span>
       </div>
 
@@ -81,11 +82,9 @@ function FinalRow({ code, name, reach, reachLabel, won }: { code: string | null;
       <div className="min-w-0 flex-1">
         <div className={`truncate text-lg font-semibold tracking-tight ${won ? "text-win" : ""}`}>{name}</div>
         {reach != null && (
-          <div className="mt-1 flex items-center gap-2">
-            <span className="bg-muted/60 relative h-1.5 w-full max-w-[7rem] overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5" aria-hidden>
-              <span className="bg-primary/70 absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.max(4, Math.min(reach, 0.99) * 100)}%` }} />
-            </span>
-            <span className="text-muted-2 font-mono text-[10px] tabular-nums">{forecastPct(reach)} {reachLabel}</span>
+          <div className="mt-1.5 flex items-center gap-2">
+            <ProbBar value={reach} max={0.5} hue="primary" size="sm" className="w-full max-w-[7rem]" />
+            <span className="text-muted-foreground font-mono text-[11px] tabular-nums">{forecastPct(reach)} {reachLabel}</span>
           </div>
         )}
       </div>

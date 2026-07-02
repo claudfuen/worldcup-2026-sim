@@ -76,19 +76,25 @@ export async function TournamentStage({
         <p className="text-muted-2 text-xs md:text-right" suppressHydrationWarning>{context}</p>
       </div>
 
-      {/* Overall completion — how far through the whole 104-match tournament we are. */}
+      {/* Overall completion as a SEGMENTED meter — one segment per phase, width ∝ its match count, so the bar
+          also reads the tournament's shape (the group stage is most of it) and each phase fills on its own as
+          its matches land. Filled left-to-right in pitch green. */}
       <div className="flex items-center gap-3">
         <div
-          className="bg-muted/40 relative h-1.5 flex-1 overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5"
+          className="flex flex-1 items-center gap-[3px]"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={pct}
           aria-label={t("home.tournamentProgressLabel")}
         >
-          <div className="bg-primary absolute inset-y-0 left-0 rounded-full transition-[width] duration-500" style={{ width: `${pct}%` }} />
+          {phases.map((p) => (
+            <div key={p.key} className="bg-foreground/8 relative h-1.5 min-w-[10px] overflow-hidden rounded-full dark:inset-ring dark:inset-ring-white/5" style={{ flexGrow: p.total, flexBasis: 0 }}>
+              <div className="bg-primary absolute inset-y-0 left-0 rounded-full transition-[width] duration-500" style={{ width: `${p.total ? Math.min(100, (p.played / p.total) * 100) : 0}%` }} />
+            </div>
+          ))}
         </div>
-        <span className="text-muted-2 shrink-0 font-mono text-[10px] font-semibold tabular-nums whitespace-nowrap">
+        <span className="text-muted-2 shrink-0 font-mono text-[11px] font-semibold tabular-nums whitespace-nowrap">
           {t("home.tournamentProgress", { pct, played: playedMatches, total: totalMatches })}
         </span>
       </div>
