@@ -7,6 +7,7 @@ import { rankGroup } from "./sim/standings";
 import { wdlProbs, eloToLambdas, scorelineDist, fracRemaining, koAdvanceProb } from "./sim/poisson";
 import { hostEloBoost } from "./sim/hosts";
 import { buildGroupViews, lockedSlotsFromGroups } from "./groupView";
+import { applyChampionRoad } from "./championRoad";
 import { getMatchSummary } from "./matchEvents";
 import { computeAwards, type Awards } from "./awards";
 import { getSquadPositions } from "./squads";
@@ -320,6 +321,13 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
     fillMatchForecast(info, ratings, preMatch);
     return info;
   });
+
+  // Global coherence: the projected champion (argmax title — what the champion card, masthead and title race
+  // all show) must also be who the projected bracket crowns. Re-front the champion in every unresolved slot
+  // on its most-likely road to the final (probabilities untouched) so list[0] — the canonical "projected
+  // occupant" every surface reads — resolves the tree to the same team. Runs BEFORE the third-place filter
+  // below so M103 excludes the coherent projected finalists.
+  applyChampionRoad(matches, teams[0]?.code);
 
   // A team projected into the FINAL cannot also appear in the third-place play-off: both matches are fed by
   // the same two semifinals (winners -> final, losers -> 3rd place). Projected per slot, the modal "loser" of

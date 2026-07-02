@@ -59,7 +59,7 @@ export function Bracket({
                       const m = byMatch.get(mn);
                       return (
                         <div key={mn} className="flex flex-1 items-center">
-                          {m && <Node m={m} hasTicket={tickets.has(mn)} final={round === "FINAL"} />}
+                          {m && <Node m={m} hasTicket={tickets.has(mn)} final={round === "FINAL"} championCode={champion?.code} />}
                         </div>
                       );
                     })}
@@ -143,7 +143,7 @@ function Connectors({ count }: { count: number }) {
   );
 }
 
-function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; big?: boolean; final?: boolean }) {
+function Node({ m, hasTicket, big, final, championCode }: { m: MatchInfo; hasTicket: boolean; big?: boolean; final?: boolean; championCode?: string }) {
   const t = useT();
   const locale = useLocale();
   const { zone } = useViewerZone();
@@ -176,15 +176,15 @@ function Node({ m, hasTicket, big, final }: { m: MatchInfo; hasTicket: boolean; 
         </span>
       </div>
       <div className="flex flex-1 flex-col justify-center">
-        <Side m={m} side="home" big={big} />
+        <Side m={m} side="home" big={big} championCode={championCode} />
         <div className="border-border border-t" />
-        <Side m={m} side="away" big={big} />
+        <Side m={m} side="away" big={big} championCode={championCode} />
       </div>
     </Link>
   );
 }
 
-function Side({ m, side, big }: { m: MatchInfo; side: "home" | "away"; big?: boolean }) {
+function Side({ m, side, big, championCode }: { m: MatchInfo; side: "home" | "away"; big?: boolean; championCode?: string }) {
   const t = useT();
   const resolved = side === "home" ? m.home : m.away;
   const name = side === "home" ? m.homeName : m.awayName;
@@ -246,15 +246,19 @@ function Side({ m, side, big }: { m: MatchInfo; side: "home" | "away"; big?: boo
     <div className={`space-y-px ${big ? "px-2.5 py-1.5" : "px-2 py-1"}`}>
       {list.map((c, i) => {
         const lead = i === 0;
+        // The projected champion leads every slot on its road to the final (payload guarantees the ordering);
+        // tint that row pitch-green so it reads as the champion's road — one green thread through the tree to
+        // the champion card — even where a rival's reach-% is a hair higher.
+        const road = lead && c.code === championCode;
         const w = Math.max(3, Math.min(c.prob, 0.99) * 100);
         return (
           <div key={c.code} className="relative flex items-center overflow-hidden rounded">
-            <span className="absolute inset-y-0 left-0" style={{ width: `${w}%`, backgroundColor: mix("var(--foreground)", lead ? 13 : 5) }} aria-hidden />
+            <span className="absolute inset-y-0 left-0" style={{ width: `${w}%`, backgroundColor: mix(road ? "var(--primary)" : "var(--foreground)", road ? 22 : lead ? 13 : 5) }} aria-hidden />
             <span className="relative flex w-full items-center gap-1.5 px-0.5 py-0.5">
               <Flag code={c.code} size={lead ? (big ? 16 : 14) : big ? 14 : 12} />
               {third && lead && <span className="text-muted-2 shrink-0 font-mono text-[8px] font-semibold tracking-wide uppercase" title={t("bracket.thirdPlacedTeam")}>{t("rounds.shortThird")}</span>}
               <span className={`min-w-0 flex-1 truncate ${lead ? "text-foreground text-[13px] font-semibold" : i === 1 ? "text-muted-foreground text-[11px]" : "text-muted-2 text-[11px]"}`}>{c.name}</span>
-              <span className={`shrink-0 font-mono tabular-nums ${lead ? "text-foreground/90 text-[11px] font-semibold" : "text-muted-2 text-[10px]"}`}>{pct(Math.min(c.prob, 0.99))}</span>
+              <span className={`shrink-0 font-mono tabular-nums ${road ? "text-primary text-[11px] font-semibold" : lead ? "text-foreground/90 text-[11px] font-semibold" : "text-muted-2 text-[10px]"}`}>{pct(Math.min(c.prob, 0.99))}</span>
             </span>
           </div>
         );

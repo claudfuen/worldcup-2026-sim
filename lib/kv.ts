@@ -65,7 +65,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      (scorers, assisters, carded, subbed) so every timeline name links to a real page.
 // v23: player positions now come from the canonical squad roster (ESPN teams/{id}/roster), so benched players
 //      (who have no matchday position — the Ochoa/St-Clair case) get their real position. Forces a refresh.
-export const PRED_KEY = "predictions:v23";
+// v24: champion-road coherence — the projected champion (argmax title) is re-fronted in every unresolved
+//      slot on its most-likely road to the final, so the projected bracket and the champion card agree.
+export const PRED_KEY = "predictions:v24";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";
