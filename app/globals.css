@@ -116,7 +116,8 @@
     --secondary-foreground: oklch(0.968 0.004 160);
     --muted: oklch(0.255 0.008 168);
     --muted-foreground: oklch(0.72 0.012 165);
-    --muted-foreground-2: oklch(0.6 0.012 165);
+    /* Lifted from 0.6 → 0.66 to clear the 4.5:1 contrast floor on the card surface (the dimmest text tier). */
+    --muted-foreground-2: oklch(0.66 0.012 165);
     --accent: oklch(0.27 0.01 168);
     --accent-foreground: oklch(0.968 0.004 160);
     --destructive: oklch(0.704 0.191 22.216);
@@ -125,7 +126,9 @@
     --border-strong: oklch(1 0 0 / 16%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.74 0.10 163);
-    --win: oklch(0.76 0.105 160);
+    /* --win pushed brighter + higher-chroma so a positive result reads as a distinctly lit green, not a
+       second indistinguishable brand-green (was 0.76/0.105/160 — only a hair off --primary). */
+    --win: oklch(0.80 0.15 150);
     --live: oklch(0.64 0.155 24);
     --contention: oklch(0.78 0.09 82);
     --loss: oklch(0.60 0.012 165);
@@ -207,6 +210,56 @@
    upper third reads as a softly-lit raised surface (the page has its own radial top sheen; this is local). */
 @utility hero-sheen {
   background-image: linear-gradient(180deg, oklch(1 0 0 / 6%), transparent 42%);
+}
+
+/* One eyebrow recipe for the whole app — a mono, uppercase, wide-tracked label. Callers add the colour
+   (text-primary reserved for the hero; text-muted-foreground for section heads). Kills the prior
+   tracking-wide (0.025em) vs tracking-[0.1em] drift across the masthead/title-odds/golden-boot/bracket. */
+@utility eyebrow {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+/* Give every card a light source without a drop shadow (dark-mode rule): a 1px inner top-edge highlight
+   (overhead light) plus a whisper of top-down surface gradient. Clipped to the card's border-radius by the
+   default background-clip, so it follows rounded corners. Layers over bg-card / hover:bg-surface-raised. */
+@utility card-surface {
+  background-image:
+    linear-gradient(180deg, oklch(1 0 0 / 7%), oklch(1 0 0 / 0) 2px),
+    linear-gradient(180deg, oklch(1 0 0 / 2.5%), transparent 42%);
+}
+
+/* The hero display size — a real monumental tier above the global h1 clamp (which tops out at 2.5rem). Both
+   masthead states use this so a flat/near-tied day never shrinks the thesis under the ticker. */
+@utility hero-headline {
+  font-size: clamp(2.25rem, 5.5vw, 3.5rem);
+  line-height: 1.02;
+}
+
+/* The one earned signature motion: a magnitude bar filling from zero as the model "resolves" on load. The
+   global reduced-motion guard collapses the duration, so it lands full instantly for those users. */
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@utility bar-grow {
+  animation: bar-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+/* A one-shot tint sweep when a live value changes (score / probability), toggled by a client leaf on the
+   viewer's side so a moving number briefly announces itself. */
+@keyframes value-flash {
+  0% { background-color: color-mix(in oklab, var(--flash, var(--live)) 32%, transparent); }
+  100% { background-color: transparent; }
+}
+@utility value-flash {
+  animation: value-flash 0.7s ease-out both;
+  border-radius: 0.25rem;
 }
 
 /* Score ticker marquee: the track holds two identical copies, so translating by -50% lands copy 2 exactly

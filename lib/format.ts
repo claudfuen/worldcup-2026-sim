@@ -117,3 +117,9 @@ export function pct(v: number): string {
 export function forecastPct(v: number): import("./view/types").ForecastLabel {
   return pct(Math.min(v, 0.99)) as import("./view/types").ForecastLabel;
 }
+
+// The shared ABSOLUTE domain for every title-probability bar (hero + title race). A single fixed ceiling —
+// never normalize a bar to the current leader, which would render #1 as a full bar beside a sub-100% number
+// and read as certainty (it isn't — champions come from clinch math, not the sim). 0.40 keeps the strongest
+// realistic favourite near-full while the field stays honestly proportional to each other.
+export const TITLE_BAR_MAX = 0.4;
