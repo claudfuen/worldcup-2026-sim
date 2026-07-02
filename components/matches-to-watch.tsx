@@ -19,6 +19,12 @@ const ROUND_SHORT_KEY: Record<string, string> = {
   "3P": "rounds.shortThird",
 };
 
+// Beyond ~36h out, so this plan complements (not duplicates) the live rail's today/tomorrow slate. Kept out
+// of the component body so the render stays pure (Date.now() belongs in a helper).
+function isFarOut(utc: string): boolean {
+  return Date.parse(utc) - Date.now() > 36 * 3_600_000;
+}
+
 function TeamLine({ code, name, dim, tbd }: { code: string | null; name: string | null; dim?: boolean; tbd: string }) {
   return (
     <div className="flex items-center gap-2 py-0.5">
@@ -36,9 +42,8 @@ export async function MatchesToWatch({
   const { picks } = computeWatchability(matches, teams, groups);
   // Only carry games BEYOND the next day or so — the live rail already leads with today/tomorrow (with the
   // same hot badges), so this section is the forward-looking plan, not a duplicate of what's imminent.
-  const now = Date.now();
   const plan = picks
-    .filter((p) => p.hot && Date.parse(p.match.utc) - now > 36 * 3_600_000)
+    .filter((p) => p.hot && isFarOut(p.match.utc))
     .sort((a, b) => a.match.utc.localeCompare(b.match.utc));
   if (plan.length === 0) return null;
 
@@ -80,7 +85,7 @@ function WatchCard({ p, t, locale }: { p: WatchPick; t: TFunction; locale: Local
       </div>
       <TeamLine code={p.home} name={p.homeName} dim={projected} tbd={t("common.tbd")} />
       <TeamLine code={p.away} name={p.awayName} dim={projected} tbd={t("common.tbd")} />
-      <div className="text-muted-2 mt-2 truncate text-[11px]">{note}</div>
+      <div className="text-muted-foreground mt-2 line-clamp-2 text-xs">{note}</div>
     </Link>
   );
 }

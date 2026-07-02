@@ -21,9 +21,9 @@ export async function LaunchRail({ teams, iterations, className = "" }: { teams:
   const c1 = teams[0];
   return (
     <footer className={`border-border/60 border-t pt-6 ${className}`}>
-      <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs font-medium tracking-wide uppercase">
+      <nav className="flex flex-wrap items-center gap-x-5 font-mono text-xs font-medium tracking-wide uppercase">
         {LINKS.map((l) => (
-          <Link key={l.href} href={localeHref(locale, l.href)} className="text-muted-foreground hover:text-foreground">{t(l.labelKey)}</Link>
+          <Link key={l.href} href={localeHref(locale, l.href)} className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center">{t(l.labelKey)}</Link>
         ))}
       </nav>
       {c1 && (

@@ -3,7 +3,6 @@ import { Flag } from "@/components/flag";
 import { LocalTime, RelativeDay } from "@/components/local-time";
 import { VENUE_BY_KEY } from "@/lib/data/venues";
 import { VENUE_PHOTOS } from "@/lib/data/venuePhotos";
-import { fifaVenue } from "@/lib/venues";
 import type { MatchInfo } from "@/lib/predictions";
 import { getT, getLocale } from "@/lib/i18n/server";
 import { localeHref } from "@/lib/i18n/config";
@@ -45,7 +44,7 @@ export async function StadiumSpotlight({ matches, className = "" }: { matches: M
   return (
     <section className={`group relative overflow-hidden rounded-2xl border border-border dark:inset-ring dark:inset-ring-white/5 ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={photo.url} alt={v.fifaName} loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
+      <img src={photo.url} alt={v.fifaName} loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]" />
       <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,10,8,0.92)] via-[rgba(6,10,8,0.45)] to-[rgba(6,10,8,0.55)]" aria-hidden />
       <div className="relative flex min-h-[260px] flex-col justify-between gap-4 p-5 text-white sm:min-h-[300px] sm:p-6">
         <div className="flex items-center gap-2">
