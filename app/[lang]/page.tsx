@@ -3,13 +3,11 @@ import { getLiveMatches, overlayLive, liveActivity, attachLiveProbs } from "@/li
 import { finalizeGroups, ratingsFromTeams } from "@/lib/liveProjection";
 import { LiveAutoRefresh } from "@/components/live-auto-refresh";
 import { MastheadVerdict } from "@/components/masthead-verdict";
-import { MoverStrip } from "@/components/mover-strip";
 import { TournamentStage } from "@/components/tournament-stage";
 import { LiveTodayRail } from "@/components/live-today-rail";
 import { MatchesToWatch } from "@/components/matches-to-watch";
 import { BracketTeaser } from "@/components/bracket-teaser";
 import { GroupsPreview } from "@/components/groups-preview";
-import { TitleOdds } from "@/components/title-odds";
 import { GoldenBootRace } from "@/components/golden-boot-race";
 import { StadiumSpotlight } from "@/components/stadium-spotlight";
 import { PlayersToWatch } from "@/components/players-to-watch";
@@ -54,10 +52,10 @@ export default async function Page() {
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <LiveAutoRefresh enabled={hasLive} />
 
-      {/* The call — the hero, full width */}
+      {/* The call — the hero, full width: the model's pick + the title race + the day's movement, fused into
+          one display-scale contender leaderboard on a lit featured pane. */}
       <header>
         <MastheadVerdict teams={teams} iterations={data.iterations} complete={data.complete} champion={data.champion} finalMatch={lMatches.find((mm) => mm.round === "FINAL")} />
-        <MoverStrip teams={teams} />
       </header>
 
       {/* TIER 2 — the live heartbeat, right under the call: a bento of Recent → Today → Tomorrow, Today the
@@ -73,7 +71,6 @@ export default async function Page() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <BracketTeaser matches={lMatches} teams={teams} />
         {!groupStageOver && <GroupsPreview groups={lGroups} />}
-        <TitleOdds teams={teams} />
         <GoldenBootRace entries={awards.goldenBoot} />
       </div>
 
