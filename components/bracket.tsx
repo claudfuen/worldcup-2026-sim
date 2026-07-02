@@ -222,9 +222,10 @@ function Side({ m, side, big, championCode }: { m: MatchInfo; side: "home" | "aw
         ) : live ? (
           // In progress: show the current goals (no winner highlight yet — undecided until full time).
           <span className={`text-foreground shrink-0 font-mono font-bold tabular-nums ${big ? "text-sm" : "text-xs"}`}>{score}</span>
-        ) : (
-          <span className={`shrink-0 font-bold text-win ${big ? "text-sm" : "text-xs"}`} title={t("bracket.confirmed")}>✓</span>
-        )}
+        ) : null}
+        {/* A clinched-but-unplayed slot needs no ✓ — the bold, named team already reads as locked in against
+            the %-race list on an unconfirmed slot. (The old per-slot ✓ became a wall of checkmarks deep in
+            the bracket, where almost every upcoming slot is clinched.) */}
       </div>
     );
   }
