@@ -308,7 +308,7 @@ function Side({ m, side, big, championCode, hovered, onHover }: { m: MatchInfo; 
             <span className="flex shrink-0 items-center gap-1">
               <span className={`font-mono font-bold tabular-nums ${big ? "text-sm" : "text-xs"} ${isWinner ? "text-win" : "text-muted-foreground"}`}>{score}</span>
               {onPens && ps != null && (
-                <span className={`font-mono text-[10px] tabular-nums ${isWinner ? "text-win/80" : "text-muted-foreground/70"}`} title={t("common.wonOnPenalties")}>({pen})</span>
+                <span className={`font-mono text-[10px] tabular-nums ${isWinner ? "text-win" : "text-muted-foreground"}`} title={t("common.wonOnPenalties")}>({pen})</span>
               )}
               {onPens && ps == null && isWinner && (
                 <span className="text-win/70 font-mono text-[9px] font-semibold tracking-wide uppercase" title={t("common.wonOnPenalties")}>{t("common.pens")}</span>
