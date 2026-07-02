@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { MatchInfo } from "@/lib/predictions";
 import { Flag } from "./flag";
 import { slugForCode } from "@/lib/slug";
-import { pct, fmtDay } from "@/lib/format";
+import { pct, fmtDay, fmtTimeShort } from "@/lib/format";
 import { fifaCity } from "@/lib/venues";
 import { decidedOnPens, pensScore } from "@/lib/penalties";
 import { useViewerZone } from "@/lib/useViewerZone";
@@ -147,6 +147,9 @@ function Node({ m, hasTicket, big, final, championCode }: { m: MatchInfo; hasTic
   const t = useT();
   const locale = useLocale();
   const { zone } = useViewerZone();
+  // A fully-decided but unplayed tie (both teams clinched, no kickoff yet) — it needs a clear "scheduled"
+  // cue in place of a score, or it reads as a blank result card.
+  const upcoming = m.status === "scheduled" && !!m.home && !!m.away;
   // Uniform min-height keeps every node the same size, so the flex slots divide each column evenly and the
   // connectors land on feeder centers. The matchup is vertically centred to absorb the spare height.
   return (
@@ -177,7 +180,18 @@ function Node({ m, hasTicket, big, final, championCode }: { m: MatchInfo; hasTic
       </div>
       <div className="flex flex-1 flex-col justify-center">
         <Side m={m} side="home" big={big} championCode={championCode} />
-        <div className="border-border border-t" />
+        {/* A clinched-but-unplayed matchup (both teams set, not yet kicked off) would otherwise read as a
+            blank result card — so the divider carries the kickoff time, framing it clearly as an upcoming
+            fixture (played matches show scores here instead; race slots show the % list). */}
+        {upcoming ? (
+          <div className="flex items-center gap-2 px-2.5 py-0.5">
+            <span className="border-border/70 flex-1 border-t" aria-hidden />
+            <span className="text-muted-foreground shrink-0 font-mono text-[10px] tracking-wide tabular-nums" suppressHydrationWarning>{fmtTimeShort(m.utc, zone)}</span>
+            <span className="border-border/70 flex-1 border-t" aria-hidden />
+          </div>
+        ) : (
+          <div className="border-border border-t" />
+        )}
         <Side m={m} side="away" big={big} championCode={championCode} />
       </div>
     </Link>
