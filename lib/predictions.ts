@@ -206,7 +206,11 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
       groupOutcome[g] = ranked.map((r) => r.code);
       thirds.push({ group: g, row: ranked[2] });
     }
-    const koResults = results.filter((r) => r.date.slice(0, 10) > GROUP_STAGE_END);
+    // A knockout result is any cross-group result (group teams never meet cross-group in the group stage) OR
+    // a same-group result after the group window (an R16+ rematch). A plain date cutoff (> GROUP_STAGE_END)
+    // is WRONG: the last group day (06-28) overlaps the first R32 day, so a cross-group R32 tie on the 28th
+    // (e.g. M73 South Africa–Canada) would be dropped and never marked final. Mirrors the group filter below.
+    const koResults = results.filter((r) => r.group == null || r.date.slice(0, 10) > GROUP_STAGE_END);
     const resolved = resolveKnockoutResults(groupOutcome, selectAndAssignThirds(thirds, ratings).slotToTeam, koResults);
     koWinners = resolved.winners;
     koLosers = resolved.losers;
@@ -221,7 +225,9 @@ export async function computePredictions(iterations = 20000, seed = 20260611, li
   // (group-stage live matches are handled by buildGroupMatches above; KO matches are split off by date).
   const koLive: KOLive = {};
   for (const l of live) {
-    if (l.state !== "in" || l.minute == null || l.date.slice(0, 10) <= GROUP_STAGE_END) continue;
+    // Same knockout test as koResults: cross-group is always KO; same-group only counts as KO after the group
+    // window. (A date-only `<= GROUP_STAGE_END` skip would drop a live cross-group R32 on the overlap day.)
+    if (l.state !== "in" || l.minute == null || (l.group != null && l.date.slice(0, 10) <= GROUP_STAGE_END)) continue;
     koLive[[l.homeCode, l.awayCode].sort().join("-")] = {
       homeCode: l.homeCode, homeScore: l.homeGoals, awayScore: l.awayGoals, frac: fracRemaining(l.minute), eloAdj: l.eloAdj,
     };

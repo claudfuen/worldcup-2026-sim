@@ -67,7 +67,9 @@ export const KV_CONFIGURED = Boolean(URL && TOKEN);
 //      (who have no matchday position — the Ochoa/St-Clair case) get their real position. Forces a refresh.
 // v24: champion-road coherence — the projected champion (argmax title) is re-fronted in every unresolved
 //      slot on its most-likely road to the final, so the projected bracket and the champion card agree.
-export const PRED_KEY = "predictions:v24";
+// v25: knockout-result ingestion fix — a cross-group KO tie on the last group day (e.g. M73 SA–Canada on
+//      06-28) was dropped by the date-only koResults filter and never marked final; invalidate stale cache.
+export const PRED_KEY = "predictions:v25";
 
 // Start-of-day snapshot of title/advance odds, for "moved since yesterday" deltas. Rolled once per ET day.
 export const BASELINE_KEY = "predictions:baseline:v1";
